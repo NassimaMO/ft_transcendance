@@ -1,0 +1,14 @@
+#bin/bash
+
+set -e
+
+until pg_isready -h $DB_HOST -p $DB_PORT -U$POSTGRES_USER
+do
+	sleep 1
+done
+
+psql -h $DB_HOST -p $DB_PORT -U$POSTGRES_USER -c "CREATE DATABASE $DB_NAME;"
+psql -h $DB_HOST -p $DB_PORT -U$POSTGRES_USER -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
+psql -h $DB_HOST -p $DB_PORT -U$POSTGRES_USER -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+
+exec "$@"
