@@ -1,12 +1,14 @@
 .img_tea
 {
 	grid-area: img_tea;
-	width: 100%;
+	margin: auto;
+	width: 75%;
 }
 
 .h2_tea
 {
 	grid-area: h2_tea;
+	padding-bottom: 5%;
 }
 
 .p_tea
@@ -29,12 +31,14 @@
 .img_sheiilll
 {
 	grid-area: img_sheiilll;
-	width: 100%;
+	margin: auto;
+	width: 75%;
 }
 
 .h2_sheiilll
 {
 	grid-area: h2_sheiilll;
+	padding-bottom: 5%;
 }
 
 .p_sheiilll
@@ -57,12 +61,14 @@
 .img_valorant
 {
 	grid-area: img_valorant;
-	width: 100%;
+	margin: auto;
+	width: 75%;
 }
 
 .h2_valorant
 {
 	grid-area: h2_valorant;
+	padding-bottom: 5%;
 }
 
 .p_valorant

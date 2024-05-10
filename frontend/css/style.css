@@ -8,7 +8,7 @@ body
 h1
 {
     color: rgb(240, 240, 240);
-    font-size: 5em;
+    font-size: 7em;
     font-family: "bit5x3", sans-serif;
     text-align: center;
 }
@@ -16,7 +16,7 @@ h1
 h2
 {
     color: rgb(240, 240, 240);
-    font-size: 2em;
+    font-size: 3em;
     font-family: "Minecraft", sans-serif;
     margin-left: 10%;
     margin-right: 10%;
