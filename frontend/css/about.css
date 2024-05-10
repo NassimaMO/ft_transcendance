@@ -1,0 +1,85 @@
+.img_tea
+{
+    grid-area: img_tea;
+    width: 100%;
+}
+
+.h2_tea
+{
+    grid-area: h2_tea;
+
+}
+
+.p_tea
+{
+    grid-area: p_tea;
+    text-align: justify;
+}
+
+.bubble_tea
+{
+    display: grid;
+    grid-template-columns: 0.5fr 2fr 2fr 0.5fr;
+    grid-template-areas:
+    ". img_tea . ."
+    ". img_tea h2_tea ."
+    ". img_tea p_tea ."
+    ". img_tea . .";
+}
+
+.img_sheiilll
+{
+    grid-area: img_sheiilll;
+    width: 100%;
+}
+
+.h2_sheiilll
+{
+    grid-area: h2_sheiilll;
+}
+
+.p_sheiilll
+{
+    grid-area: p_sheiilll;
+    text-align: justify;
+}
+
+.sheiilll
+{
+    display: grid;
+    grid-template-columns: 0.5fr 2fr 2fr 0.5fr;
+    grid-template-areas:
+    ". img_sheiilll . ."
+    ". img_sheiilll h2_sheiilll ."
+    ". img_sheiilll p_sheiilll ."
+    ". img_sheiilll . .";
+}
+
+.img_valorant
+{
+    grid-area: img_valorant;
+    width: 100%;
+
+}
+
+.h2_valorant
+{
+    grid-area: h2_valorant;
+}
+
+.p_valorant
+{
+    grid-area: p_valorant;
+    text-align: justify;
+}
+
+.valorant
+{
+    display: grid;
+    grid-template-columns: 0.5fr 2fr 2fr 0.5fr;
+    grid-template-areas:
+    ". img_valorant . ."
+    ". img_valorant h2_valorant ."
+    ". img_valorant p_valorant ."
+    ". img_valorant . .";
+}

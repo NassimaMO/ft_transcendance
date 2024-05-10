@@ -1,0 +1,51 @@
+.play, .about, .rule
+{
+    padding-top: 0.7em;
+    padding-bottom: 0.7em;
+    border: 0.1em rgb(240, 240, 240) solid;
+    transition: background-color 0.2s;
+}
+
+.play:visited, .play:link, .about:visited, .about:link, .rule:visited, .rule:link
+{
+    color: rgb(240, 240, 240);
+    font-style: normal;
+    text-decoration: none;
+}
+
+.play:hover, .about:hover, .rule:hover
+{
+    background-color: rgb(240, 240, 240);
+    color: rgb(0, 0, 30);
+
+}
+
+.play
+{
+    grid-area: play;
+}
+
+.about
+{
+    grid-area: about;
+}
+
+.rule
+{
+    grid-area: rule;
+}
+
+.button
+{
+    color: rgb(240, 240, 240);
+    font-size: 3em;
+    font-family: "bit5x3", sans-serif;
+    text-align: center;
+    gap: 0.5em;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1.5fr;
+    grid-template-areas:
+    ". play ."
+    ". rule ."
+    ". about .";
+}
