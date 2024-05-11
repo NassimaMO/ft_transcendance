@@ -1,13 +1,17 @@
 FROM python:3.10
 
-COPY ./srcs /app
+WORKDIR /app
 
-COPY ./requirements/django/conf /app/conf
+COPY srcs /app/srcs
 
-WORKDIR /app/conf
+COPY requirements/django/conf /app/conf
 
 RUN pip install --upgrade pip
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r conf/requirements.txt
 
-WORKDIR /app/srcs
+COPY requirements/django/tools/start.sh .
+
+RUN chmod 755 ./start.sh
+
+ENTRYPOINT ["./start.sh"]
