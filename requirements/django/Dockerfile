@@ -1,11 +1,13 @@
 FROM python:3.10
 
-COPY . .
+COPY ./srcs /app
 
-WORKDIR /requirements/django/conf/
+COPY ./requirements/django/conf /app/conf
+
+WORKDIR /app/conf
 
 RUN pip install --upgrade pip
 
 RUN pip install -r requirements.txt
 
-WORKDIR /srcs
+WORKDIR /app/srcs

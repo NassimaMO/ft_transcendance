@@ -1,3 +1,0 @@
-django
-python-dotenv
-psycopg2

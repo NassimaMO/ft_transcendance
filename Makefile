@@ -1,5 +1,5 @@
 all:
-	docker-compose up --build -d
+	docker compose up --build -d
 
 clean:
 	-docker stop $$(docker ps -a -q)
