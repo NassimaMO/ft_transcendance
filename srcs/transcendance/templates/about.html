@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block CSSFiles %}
+	<link rel="stylesheet" type="text/css" href="{% static 'css/about.css' %}">
+{% endblock %}
+
+{% block content %}
+	<h1>About Us</h1>
+	<div id="carouselAbout" class="carousel slide" data-bs-ride="carousel">
+		<div class="carousel-inner">
+			<div class="carousel-item active">
+				<div class="bubble_tea">
+					<img src="{% static 'media/tea.png' %}" class="img_tea" alt="tea">
+					<h2 class="h2_tea">The aux baies</h2>
+					<p class="p_tea">Hello je suis Theo<br>Je suis a 42 depuis novembre 2022</p>
+				</div>
+			</div>
+			<div class="carousel-item">
+				<div class="sheiilll">
+					<img src="{% static 'media/sheiilll.png' %}" class="img_sheiilll" alt="caca">
+					<h2 class="h2_sheiilll">Sheiilll</h2>
+					<p class="p_sheiilll">Hello je suis Nassima<br>Je suis a 42 depuis avril 2022</p>
+				</div>
+			</div>
+			<div class="carousel-item">
+				<div class="valorant">
+					<img src="{% static 'media/valorant.png' %}" class="img_valorant" alt="valorant">
+					<h2 class="h2_valorant">Valorant</h2>
+					<p class="p_valorant">Hello je suis Nily<br>Je suis a 42 depuis avril 2022</p>
+				</div>
+			</div>
+		</div>
+		<button class="carousel-control-prev" type="button" data-bs-target="#carouselAbout" data-bs-slide="prev">
+			<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+			<span class="visually-hidden">Previous</span>
+		</button>
+		<button class="carousel-control-next" type="button" data-bs-target="#carouselAbout" data-bs-slide="next">
+			<span class="carousel-control-next-icon" aria-hidden="true"></span>
+			<span class="visually-hidden">Next</span>
+		</button>
+	</div>
+{% endblock %}

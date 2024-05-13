@@ -27,6 +27,8 @@ SECRET_KEY = 'django-insecure-x*n6&=ca50jzh5m*56mbvgjgp9@ihj9t$$dyyh1+v4*k!km+m5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+TEMPLATE_DEBUG = True
+
 ALLOWED_HOSTS = ['*']
 
 
@@ -39,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-	#'pong',
+	'pong',
 ]
 
 MIDDLEWARE = [
@@ -57,7 +59,9 @@ ROOT_URLCONF = 'transcendance.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+       'DIRS': [
+           os.path.join(BASE_DIR, 'transcendance/templates'),
+           ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -125,6 +129,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'transcendance/static'),
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
