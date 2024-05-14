@@ -17,11 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from . import views
+import pong
+from django.apps import apps
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    path('rules', views.rules, name='rules'),
-    path('about', views.about, name='about'),
-    path('play', views.play, name='play'),
-]	
+    path('rules/', views.rules, name='rules'),
+    path('about/', views.about, name='about'),
+]
+
+if apps.is_installed('pong'):
+    urlpatterns += [path('play/', include('pong.urls'))]
+else :
+    urlpatterns += [path('play/', views.play, name='play')]
+
