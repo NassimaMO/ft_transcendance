@@ -25,6 +25,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('rules/', views.rules, name='rules'),
     path('about/', views.about, name='about'),
+    path("api/", include("api.urls"))
 ]
 
 if apps.is_installed('pong'):

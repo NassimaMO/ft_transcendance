@@ -7,7 +7,7 @@ clean:
 
 fclean: clean
 	@rm -rf postgres_data
-	@rm -rf srcs/staticfiles
+#@rm -rf srcs/staticfiles
 	@-docker rm $$(docker ps -a -q)
 	@docker system prune -af
 
