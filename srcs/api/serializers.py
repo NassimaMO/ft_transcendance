@@ -4,4 +4,4 @@ from .models import PongPlayerStats
 class PongPlayerStatsSerializer(serializers.ModelSerializer):
     class Meta:
         model = PongPlayerStats
-        fields = ["id", "player", "gamesWon", "gamesTotal", "gamesWonMulti", "gamesMultiTotal", "gamesWonRegular", "gamesRegularTotal"]
+        fields = ["id", "player", "gamesWon", "gamesTotal", "gamesWonMulti", "gamesWonRegular"]

@@ -10,12 +10,12 @@ class PongPlayerStats(models.Model):
     def __str__(self):
         return self.player
     
-class Player(models.Model):
+class PongPlayer(models.Model):
     name = models.CharField(max_length=50)
     level = models.FloatField()
     friends = models.IntegerField()
     online = models.BooleanField()
-    stats = PongPlayerStats()
+    stats = PongPlayerStats(name)
 
     def __str__(self):
         return self.name

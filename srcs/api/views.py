@@ -6,3 +6,8 @@ from .serializers import PongPlayerStatsSerializer
 class PongPlayerStatsCreate(generics.ListCreateAPIView):
     queryset = PongPlayerStats.objects.all()
     serializer_class = PongPlayerStatsSerializer
+
+class PongPlayerStatsRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PongPlayerStats.objects.all()
+    serializer_class = PongPlayerStatsSerializer
+    lookup_field = "pk"
