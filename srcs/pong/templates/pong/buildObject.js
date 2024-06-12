@@ -3,16 +3,17 @@ import * as THREE from 'three';
 var textureLoader = new THREE.TextureLoader();
 var lightMap = textureLoader.load('texture.jpg');
 
-export function sphere()
+export function puck()
 {
-    const geometrySphere = new THREE.SphereGeometry( 1, 64, 64 );
-    const materialSphere = new THREE.MeshStandardMaterial( { color: 0x00ff00, lightMap: lightMap, lightMapIntensity: 5} );
-    let ball =
+    const geometryCylinder = new THREE.CylinderGeometry( 5, 5, 3, 64 );
+    const materialCylinder = new THREE.MeshStandardMaterial( { color: 0x00ff00, lightMap: lightMap, lightMapIntensity: 5} );
+    let puck =
     {
-        object: new THREE.Mesh( geometrySphere, materialSphere ),
+        object: new THREE.Mesh( geometryCylinder, materialCylinder ),
         pointLight: new THREE.PointLight( 0x00ff00, 30)
     }
-    return ball;
+    puck.object.rotation.x = Math.PI / 2
+    return puck;
 }
 
 export function paddle(positionX, positionY, positionZ)
@@ -31,12 +32,12 @@ export function paddle(positionX, positionY, positionZ)
 
 export function wallVertical(positionX, positionY, positionZ)
 {
-    const geometryWallVertical = new THREE.BoxGeometry( 5, 100, 5 );
+    const geometryWallVertical = new THREE.BoxGeometry( 5, 240, 5 );
     const materialWallVertical = new THREE.MeshStandardMaterial( { color: 0xff0000, lightMap: lightMap, lightMapIntensity: 5} );
     let wallVertical =
     {
         object: new THREE.Mesh( geometryWallVertical, materialWallVertical ),
-        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 5, 100)
+        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 5, 240)
     }
     wallVertical.object.position.set(positionX, positionY, positionZ)
     wallVertical.rectLight.position.set(positionX, positionY, positionZ)
@@ -45,12 +46,12 @@ export function wallVertical(positionX, positionY, positionZ)
 
 export function wallHorizontal(positionX, positionY, positionZ)
 {
-    const geometryWallVertical = new THREE.BoxGeometry( 100, 5, 5 );
+    const geometryWallVertical = new THREE.BoxGeometry( 427, 5, 5 );
     const materialWallVertical = new THREE.MeshStandardMaterial( { color: 0xff0000, lightMap: lightMap, lightMapIntensity: 5} );
     let wallHorizontal =
     {
         object: new THREE.Mesh( geometryWallVertical, materialWallVertical ),
-        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 100, 5)
+        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 427, 5)
     }
     wallHorizontal.object.position.set(positionX, positionY, positionZ)
     wallHorizontal.rectLight.position.set(positionX, positionY, positionZ)

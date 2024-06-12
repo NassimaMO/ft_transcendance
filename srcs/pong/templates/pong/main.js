@@ -9,34 +9,34 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-let ball = Object.sphere()
-let paddleLeft = Object.paddle(-30, 0, 0)
-let paddleRight = Object.paddle(30, 0, 0)
+let ball = Object.puck()
+let paddleLeft = Object.paddle(-180, 0, 0)
+let paddleRight = Object.paddle(180, 0, 0)
 scene.add( paddleLeft.object, paddleLeft.rectLight, paddleRight.object, paddleRight.rectLight, ball.object, ball.pointLight);
 
-const geometryTable = new THREE.BoxGeometry( 100, 100, 1 );
+const geometryTable = new THREE.BoxGeometry( 427, 240, 1 );
 const materialTable = new THREE.MeshStandardMaterial( { color: 0xffffff} );
 const table = new THREE.Mesh( geometryTable, materialTable );
 table.position.z = -4
 //table.metalness = 1
 scene.add( table );
 
-let wallLeft = Object.wallVertical(-50, 0, 0)
+let wallLeft = Object.wallVertical(-213, 0, 0)
 scene.add(wallLeft.object, wallLeft.rectLight)
 
-let wallRight = Object.wallVertical(50, 0, 0)
+let wallRight = Object.wallVertical(213, 0, 0)
 scene.add(wallRight.object, wallRight.rectLight)
 
-let wallUp = Object.wallHorizontal(0, 50, 0)
+let wallUp = Object.wallHorizontal(0, 120, 0)
 scene.add(wallUp.object, wallUp.rectLight)
 
-let wallDown = Object.wallHorizontal(0, -50, 0)
+let wallDown = Object.wallHorizontal(0, -120, 0)
 scene.add(wallDown.object, wallDown.rectLight)
 
 //const light = new THREE.AmbientLight( 0xffffff ); // soft white light
 //scene.add( light );
 
-camera.position.z = 50;
+camera.position.z = 200;
 
 const controls = new OrbitControls(camera, renderer.domElement)
 
@@ -51,7 +51,7 @@ function animate() {
 	ball.pointLight.position.x += 0.1 *direction;
 	if (ball.object.position.x >= 25 || ball.object.position.x <= -25)
 	{
-		direction *= -1
+		//direction *= -1
 	}
 	//sphere.position.y -= 0.01;
 
