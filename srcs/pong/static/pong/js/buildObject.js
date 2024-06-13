@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 var textureLoader = new THREE.TextureLoader();
-var lightMap = textureLoader.load('texture.jpg');
+var lightMap = textureLoader.load('/static/pong/media/texture.jpg');
 
 export function puck()
 {

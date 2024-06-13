@@ -1,5 +1,6 @@
 all:
 	docker compose up --build -d
+	@echo You can now go to http://localhost:8000
 
 clean:
 	@echo "Stoping containers..."

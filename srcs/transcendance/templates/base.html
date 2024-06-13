@@ -15,11 +15,10 @@
         <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
         <link rel="stylesheet" type="text/css" href="{% static 'css/font.css' %}">
     </div>
-    {% block extraCSS %}
-    {% endblock %}
+    {% block extraCSS %}{% endblock %}
 </head>
 <body>
-    {% block content %}
-    {% endblock %}
+    {% block content %}{% endblock %}
+    {% block extraJS %}{% endblock %}
 </body>
 </html>

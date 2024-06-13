@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+	<h1>Pong</h1>
+	<h2> ** Jeu ici ** </h2>
+{% endblock %}
+
+{% block extraJS %}
+	<script type="importmap">
+	{
+		"imports": {
+			"three" : "https://unpkg.com/three@0.126.1/build/three.module.js",
+			"orbitcontrols" : "https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js"
+		}
+	}
+	</script>
+	<script type="module" src="{% static 'pong/js/main.js' %}"></script>
+{% endblock %}
