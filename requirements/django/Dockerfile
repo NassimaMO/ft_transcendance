@@ -2,6 +2,8 @@ FROM python:3.10
 
 WORKDIR /app
 
+RUN mkdir /app/staticfiles
+
 COPY srcs /app/srcs
 
 COPY requirements/django/conf /app/conf
