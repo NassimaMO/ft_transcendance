@@ -41,6 +41,7 @@ function game() {
 	requestAnimationFrame( game );
 	puckMouvement()
 	colision()
+	//threeJS.renderer.setSize( window.innerWidth - 100, window.innerHeight - 100)
 	threeJS.renderer.render( threeJS.scene, threeJS.camera );
 }
 
@@ -50,13 +51,13 @@ function onDocumentKeyDown(event)
 	var keyCode = event.which;
 	if (keyCode === 38 && paddleRight.object.position.y < 95)
 	{
-		paddleRight.object.position.y += 2
-		paddleRight.rectLight.position.y += 2
+		paddleRight.object.translateY(5)
+		paddleRight.rectLight.translateY(5)
 	}
 	else if (event.keyCode === 40 && paddleRight.object.position.y > -95)
 	{
-		paddleRight.object.position.y -= 2
-		paddleRight.rectLight.position.y -= 2
+		paddleRight.object.translateY(-5)
+		paddleRight.rectLight.translateY(-5)
 	}
 }
 
