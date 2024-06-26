@@ -1,5 +1,6 @@
 django
 djangorestframework
+# djangorestframework-simplejwt
 environs
 python-dotenv
 psycopg2
