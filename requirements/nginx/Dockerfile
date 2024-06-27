@@ -1,6 +1,7 @@
 FROM nginx:latest
 
 COPY ./conf/nginx.conf /etc/nginx/conf.d
+RUN mkdir -p /etc/nginx/conf.d && rm -f /etc/nginx/conf.d/default.conf
 
 RUN mkdir -p /etc/nginx/ssl
 

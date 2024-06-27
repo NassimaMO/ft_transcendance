@@ -1,6 +1,5 @@
 django
-djangorestframework
-environs
-python-dotenv
 psycopg2
-gunicorn
+djangorestframework
+channels
+daphne

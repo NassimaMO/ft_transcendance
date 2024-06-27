@@ -7,5 +7,5 @@ if [ "$DEBUG" -eq 1 ]; then
 else
     python3 manage.py collectstatic --no-input
     python3 manage.py migrate
-    gunicorn transcendance.wsgi:application --bind 0.0.0.0:8000
+    daphne -b 0.0.0.0 -p 8000 transcendance.asgi:application
 fi
