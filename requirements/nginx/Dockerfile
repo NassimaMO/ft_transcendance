@@ -1,4 +1,4 @@
-FROM nginx:latest
+FROM nginx:1.27.0
 
 COPY ./conf/nginx.conf /etc/nginx/conf.d
 RUN mkdir -p /etc/nginx/conf.d && rm -f /etc/nginx/conf.d/default.conf
