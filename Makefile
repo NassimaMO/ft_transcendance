@@ -1,20 +1,29 @@
+LOCAL_IP	:= $(shell ./get_ip.sh)
+ENV_FILE	:= dev.env
+DOCKER_FILE	:= docker-compose.yml
+
 all: dev
 
-dev:
-	docker compose -f docker-compose.yml --env-file dev.env up --build -d
-	@echo You can now go to http://localhost:8000
+dev: get_ip docker
+	@echo "You can now go to : \n - http://localhost:8000 in this device\n - http://$(LOCAL_IP):8000 in another device"
 
-prod:
-	docker compose -f docker-compose.prod.yml --env-file prod.env up --build -d
-	@echo You can now go to https://localhost
+prod: ENV_FILE=prod.env DOCKER_FILE=docker-compose.prod.yml
+prod: get_ip docker
+	@echo "You can now go to : \n - https://localhost in this device\n - https://$(LOCAL_IP) in another device"
+
+get_ip:
+	@grep -qF "LOCAL_IP=" $(ENV_FILE) || echo "\nLOCAL_IP=$(LOCAL_IP)" >> $(ENV_FILE)
+
+docker:
+	docker compose -f $(DOCKER_FILE) --env-file $(ENV_FILE) up --build -d
 
 clean:
-	@echo "Stoping containers..."
-	-@docker stop $$(docker ps -a -q)
+	@-docker stop $$(docker ps -a -q)
 
 fclean: clean
 	@docker compose down -v
-	@-docker rm $$(docker ps -a -q)
 	@docker system prune -af
 
-re : fclean all
+re: fclean all
+
+.PHONY: all clean fclean re
