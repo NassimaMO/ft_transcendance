@@ -1,12 +1,12 @@
 FROM nginx:1.27.0
 
-COPY ./conf/nginx.conf /etc/nginx/conf.d
 RUN mkdir -p /etc/nginx/conf.d && rm -f /etc/nginx/conf.d/default.conf
 
-RUN mkdir -p /etc/nginx/ssl
+COPY ./conf/nginx.conf /etc/nginx/conf.d
 
-RUN openssl req -x509 -nodes -out /etc/nginx/ssl/cert.crt \
+RUN mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -out /etc/nginx/ssl/cert.crt \
     -keyout /etc/nginx/ssl/cert.key \
-    -subj "/C=FR/ST=IDF/L=Paris/O=42/OU=42/CN=mysite.local"
+    -subj "/C=FR/ST=IDF/L=Paris/O=42/OU=42/CN=localhost"
 
 CMD ["nginx", "-g", "daemon off;"]
