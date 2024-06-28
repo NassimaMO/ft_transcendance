@@ -7,7 +7,8 @@ all: dev
 dev: get_ip docker
 	@echo "You can now go to : \n - http://localhost:8000 in this device\n - http://$(LOCAL_IP):8000 in another device"
 
-prod: ENV_FILE=prod.env DOCKER_FILE=docker-compose.prod.yml
+prod: ENV_FILE=prod.env
+prod: DOCKER_FILE=docker-compose.prod.yml
 prod: get_ip docker
 	@echo "You can now go to : \n - https://localhost in this device\n - https://$(LOCAL_IP) in another device"
 
