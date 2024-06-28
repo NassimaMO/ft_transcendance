@@ -1,4 +1,2 @@
 *.env
-postgres_data/
-srcs/staticfiles
 __pycache__/
