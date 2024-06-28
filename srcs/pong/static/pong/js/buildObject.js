@@ -6,7 +6,7 @@ var lightMap = textureLoader.load('/static/pong/media/texture.jpg');
 export function puck()
 {
     const geometryCylinder = new THREE.CylinderGeometry( 5, 5, 3, 64 );
-    const materialCylinder = new THREE.MeshStandardMaterial( { color: 0x00ff00, lightMap: lightMap, lightMapIntensity: 5} );
+    const materialCylinder = new THREE.MeshStandardMaterial( { color: 0xffffff, lightMap: lightMap, lightMapIntensity: 5} );
     const puck =
     {
         object: new THREE.Mesh( geometryCylinder, materialCylinder ),

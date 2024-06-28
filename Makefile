@@ -19,9 +19,10 @@ docker:
 
 clean:
 	@-docker stop $$(docker ps -a -q)
+	@-docker rm $$(docker ps -a -q)
 
 fclean: clean
-	@docker compose down -v
+	@-docker volume rm $$(docker volume ls -q)
 	@docker system prune -af
 
 re: fclean all
