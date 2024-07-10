@@ -164,8 +164,6 @@ STATIC_ROOT = '/app/staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-<<<<<<< HEAD
-=======
 #PROXY
 
 if bool(int(os.getenv('DEBUG'))) == False :
@@ -174,7 +172,6 @@ if bool(int(os.getenv('DEBUG'))) == False :
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     
->>>>>>> ccdc54539b480d767350033494776ca6f51aacd6
 # LOGGING = {
 #     'version': 1,
 #     'disable_existing_loggers': False,
