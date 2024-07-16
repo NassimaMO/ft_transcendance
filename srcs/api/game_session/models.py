@@ -1,5 +1,5 @@
 from django.db import models
-from .models import Player
+from ..player.models import Player
 
 class GameSession(models.Model):
     player_one = models.ForeignKey(Player, related_name='player_one', on_delete=models.CASCADE)

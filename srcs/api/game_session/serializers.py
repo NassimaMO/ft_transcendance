@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import GameSession
-from .serializers import PlayerSerializer
+from ..player.serializers import PlayerSerializer
 
 class GameSessionSerializer(serializers.ModelSerializer):
     player_one = PlayerSerializer()

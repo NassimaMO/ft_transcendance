@@ -1,13 +1,9 @@
-from django.shortcuts import render
-from rest_framework import generics
+from rest_framework import viewsets
+from rest_framework import permissions
 from .models import PlayerStats
 from .serializers import PlayerStatsSerializer
 
-class PlayerStatsListCreate(generics.ListCreateAPIView):
+class PlayerStatsViewSet(viewsets.ModelViewSet):
     queryset = PlayerStats.objects.all()
     serializer_class = PlayerStatsSerializer
-
-# class PlayerStatsRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-#     queryset = PlayerStats.objects.all()
-#     serializer_class = PlayerStatsSerializer
-#     lookup_field = "pk"
+    permission = [permissions.IsAuthenticated]

@@ -1,6 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
-from .models import Player
+from ..player.models import Player
 
 class PlayerStats(models.Model):
     player = models.OneToOneField(Player, related_name='stats', on_delete=models.CASCADE)
