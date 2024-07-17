@@ -23,7 +23,8 @@ export function paddle(positionX, positionY, positionZ)
     const paddle =
     {
         object: new THREE.Mesh( geometryPaddle, materialPaddle ),
-        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 10, 30)
+        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 10, 30),
+		//event: new THREE.dispatchEvent( { type: 'start', message: 'vroom vroom!' } )
     }
     paddle.object.position.set(positionX, positionY, positionZ)
     paddle.rectLight.position.set(positionX, positionY, positionZ)
@@ -46,12 +47,12 @@ export function wallVertical(positionX, positionY, positionZ)
 
 export function wallHorizontal(positionX, positionY, positionZ)
 {
-    const geometryWallVertical = new THREE.BoxGeometry( 427, 5, 5 );
+    const geometryWallVertical = new THREE.BoxGeometry( 431, 5, 5 );
     const materialWallVertical = new THREE.MeshStandardMaterial( { color: 0xff0000, lightMap: lightMap, lightMapIntensity: 5} );
     const wallHorizontal =
     {
         object: new THREE.Mesh( geometryWallVertical, materialWallVertical ),
-        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 427, 5)
+        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 431, 5)
     }
     wallHorizontal.object.position.set(positionX, positionY, positionZ)
     wallHorizontal.rectLight.position.set(positionX, positionY, positionZ)
