@@ -14,22 +14,31 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
+from django.conf.urls.static import static
 from django.urls import include, path
-from . import views
-import pong
 from django.apps import apps
+from django.conf import settings
+from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('rules/', views.rules, name='rules'),
     path('about/', views.about, name='about'),
-    path('api/', include('api.urls'))
 ]
 
 if apps.is_installed('pong'):
     urlpatterns += [path('play/', include('pong.urls'))]
 else :
     urlpatterns += [path('play/', views.play, name='play')]
+if apps.is_installed('account'):
+    urlpatterns += [path('account/', include('account.urls'))]
+if apps.is_installed('api'):
+    urlpatterns += [path('api/', include('api.urls'))]
 
+if settings.DEBUG:
+    urlpatterns += [path('media/static/<path:file_path>', views.media, name='media')]
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
