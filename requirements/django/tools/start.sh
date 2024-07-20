@@ -4,7 +4,7 @@ if [ "$DEBUG" -eq 1 ]; then
     python3 manage.py makemigrations
     python3 manage.py migrate
     python3 manage.py runserver 0.0.0.0:8000
-    # python3 srcs/manage.py createsuperuser -e POSTGRES_PASSWORD=password"
+    #python manage.py createsuperuser --username admin --email admin@example.com
 else
     python3 manage.py collectstatic --no-input
     python3 manage.py migrate
