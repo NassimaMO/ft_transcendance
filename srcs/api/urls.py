@@ -1,6 +1,6 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .game_session.views import GameSessionViewSet
+from .pong_game.views import GameSessionViewSet
 from .player.views import PlayerViewSet
 from .player_stats.views import PlayerStatsViewSet
 
