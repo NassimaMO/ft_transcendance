@@ -4,3 +4,9 @@ from django.shortcuts import render
 
 def play(request) :
     return (render(request, "pong/play.html"))
+
+def game(request) :
+    return (render(request, "pong/game.html"))
+
+def private(request) :
+    return (render(request, "pong/private.html"))

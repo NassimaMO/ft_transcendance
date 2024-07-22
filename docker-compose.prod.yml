@@ -26,6 +26,7 @@ services:
       dockerfile: requirements/django/Dockerfile
     volumes:
       - static_volume:/app/staticfiles
+      - media_volume:/app/mediafiles
     expose:
     - 8000
     env_file:
@@ -42,6 +43,7 @@ services:
     build: requirements/nginx
     volumes:
       - static_volume:/usr/share/nginx/html/staticfiles
+      - media_volume:/usr/share/nginx/html/mediafiles
     ports:
       - "80:80"
       - "443:443"
@@ -55,6 +57,8 @@ volumes:
     name: postgres_data
   static_volume:
     name: static_volume
+  media_volume:
+    name: media_volume
 
 networks:
   transcendence:

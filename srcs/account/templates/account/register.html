@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extraCSS %}
+	<link rel="stylesheet" type="text/css" href="{% static 'account/css/sign.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+        <div class="form-container">
+            <h2>Inscription</h2>
+            <form method="post" enctype="multipart/form-data" class="form-horizontal">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="form-error-container">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% for field in form %}
+                    <div class="form-group">
+                        {{ field.label_tag }} 
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="form-error-field">
+                                {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="form-group text-center">
+                    <button type="submit" class="btn btn-primary">S'inscrire</button>
+                </div>
+            </form>
+            <p class="text-center mt-3">Vous avez déjà un compte ? <a href="{% url 'login' %}">Connectez-vous ici</a></p>
+        </div>
+    </div>
+{% endblock %}
