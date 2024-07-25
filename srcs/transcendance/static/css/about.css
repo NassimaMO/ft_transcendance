@@ -17,7 +17,7 @@
 	text-align: justify;
 }
 
-.bubble_tea
+.tea
 {
 	display: grid;
 	grid-template-columns: 0.5fr 2fr 2fr 0.5fr;
@@ -28,34 +28,34 @@
 	". img_tea . .";
 }
 
-.img_sheiilll
+.img_sheil
 {
-	grid-area: img_sheiilll;
+	grid-area: img_sheil;
 	margin: auto;
 	width: 75%;
 }
 
-.h2_sheiilll
+.h2_sheil
 {
-	grid-area: h2_sheiilll;
+	grid-area: h2_sheil;
 	padding-bottom: 5%;
 }
 
-.p_sheiilll
+.p_sheil
 {
-	grid-area: p_sheiilll;
+	grid-area: p_sheil;
 	text-align: justify;
 }
 
-.sheiilll
+.sheil
 {
 	display: grid;
 	grid-template-columns: 0.5fr 2fr 2fr 0.5fr;
 	grid-template-areas:
-	". img_sheiilll . ."
-	". img_sheiilll h2_sheiilll ."
-	". img_sheiilll p_sheiilll ."
-	". img_sheiilll . .";
+	". img_sheil . ."
+	". img_sheil h2_sheil ."
+	". img_sheil p_sheil ."
+	". img_sheil . .";
 }
 
 .img_valorant

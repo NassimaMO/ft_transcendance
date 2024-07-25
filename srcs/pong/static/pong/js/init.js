@@ -1,5 +1,9 @@
 import * as THREE from 'three'
-import * as Object from './buildObject.js'
+import * as Object from './buildGeometry.js'
+
+
+export let windowWidth = window.innerWidth
+export let windowHeight = window.innerHeight
 
 function initThreeJs()
 {
@@ -10,8 +14,8 @@ function initThreeJs()
 		camera : new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ),
 		renderer
 	}
-	threeJs.renderer.setSize( window.innerWidth - 10, window.innerHeight - 200)
-	threeJs.camera.position.z = 200;
+	threeJs.renderer.shadowMap.enabled = true
+	threeJs.renderer.setSize( window.innerWidth, window.innerHeight - 200)
 	document.body.appendChild( renderer.domElement )
 	return (threeJs)
 }
@@ -19,8 +23,7 @@ function initThreeJs()
 function buildMap(threeJs)
 {
 	const	map	= Object.map()
-	threeJs.scene.add(map.wallLeft.object, map.wallLeft.rectLight,
-					map.wallRight.object, map.wallRight.rectLight,
+	threeJs.scene.add(
 					map.wallUp.object, map.wallUp.rectLight,
 					map.wallDown.object, map.wallDown.rectLight,
 					map.table
@@ -34,10 +37,16 @@ function buildObject(threeJs, puck, paddleLeft, paddleRight)
 				puck.object, puck.pointLight);
 }
 
+function buildLight(threeJs)
+{
+
+}
+
 export function init(puck, paddleLeft, paddleRight)
 {
 	const threeJs = initThreeJs()
 	buildMap(threeJs)
+	buildLight(threeJs)
 	buildObject(threeJs, puck, paddleLeft, paddleRight)
 	return threeJs
 }
