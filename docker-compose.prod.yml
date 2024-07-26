@@ -1,65 +1,22 @@
 services:
 
-  postgres_db:
-    image: postgres:16.3
-    container_name: postgres_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    env_file:
-      - prod.env
-    user: root
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 1s
-      timeout: 5s
-      retries: 10
-    expose:
-      - 5432
-    networks:
-      - transcendence
-
   django:
-    image: django
-    container_name: django
-    build:
-      context: .
-      dockerfile: requirements/django/Dockerfile
+    expose:
+    - 8000
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/mediafiles
-    expose:
-    - 8000
     env_file:
       - prod.env
-    depends_on:
-      postgres_db:
-        condition: service_healthy
-    networks:
-      - transcendence
-
-  nginx:
-    image: nginx
-    container_name: nginx
-    build: requirements/nginx
-    volumes:
-      - static_volume:/usr/share/nginx/html/staticfiles
-      - media_volume:/usr/share/nginx/html/mediafiles
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - django
-    networks:
-      - transcendence
-
-volumes:
-  postgres_data:
-    name: postgres_data
-  static_volume:
-    name: static_volume
-  media_volume:
-    name: media_volume
+      
+  postgres:
+    env_file:
+      - prod.env
 
 networks:
   transcendence:
-    name: transcendence
+    name: transcendence_prod
+
+volumes:
+  postgres_data:
+    name: postgres_volume_prod
