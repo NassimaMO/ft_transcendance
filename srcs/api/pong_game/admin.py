@@ -1,4 +1,4 @@
 from django.contrib import admin
-from .models import GameSession
+from .models import RegularGameSession
 
-admin.site.register(GameSession)
+admin.site.register(RegularGameSession)

@@ -25,29 +25,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(os.environ.get("DEBUG", default=0)))
 
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'file': {
-#             'level': 'INFO',
-#             'class': 'logging.FileHandler',
-#             'filename': os.path.join(BASE_DIR, 'debug.log'),
-#         },
-#         'console': {
-#             'level': 'INFO',
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['file', 'console'],
-#             'level': 'INFO',
-#             'propagate': True,
-#         },
-#     },
-# }
-
 TEMPLATE_DEBUG = True
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.

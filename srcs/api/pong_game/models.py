@@ -1,12 +1,31 @@
 from django.db import models
-from ..player.models import Player
+from account.models import User
 
-class GameSession(models.Model):
-    player_one = models.ForeignKey(Player, related_name='player_one', on_delete=models.CASCADE)
-    player_two = models.ForeignKey(Player, related_name='player_two', on_delete=models.CASCADE)
-    mode = models.TextField(max_length=125)
-    score_player1 = models.IntegerField(default=0)
-    score_player2 = models.IntegerField(default=0)
+"""
+** TABLES SQL **
+
+1) RegularGameSession
+
+objets : 
+- Balle (position & velocité)
+- Players
+- started
+
+2) PlayerSession
+
+objets:
+- User
+- score
+- position
+"""
+
+class RegularGameSession(models.Model):
+    player_one = models.ForeignKey(User, related_name='player_one', on_delete=models.CASCADE)
+    player_two = models.ForeignKey(User, related_name='player_two', on_delete=models.CASCADE)
+    position_player_one = models.FloatField(default=-180)
+    position_player_two = models.FloatField(default=180)
+    score_player_one = models.IntegerField(default=0)
+    score_player_two = models.IntegerField(default=0)
     ball_position_x = models.FloatField(default=0)
     ball_position_y = models.FloatField(default=0)
     ball_velocity_x = models.FloatField(default=1)
@@ -17,4 +36,4 @@ class GameSession(models.Model):
         unique_together = ('player_one', 'player_two')
 
     def __str__(self):
-        return f'{self.playerOne.user.username} is playing with {self.playerTwo.user.username}'
+        return f'{self.player_one.username} is playing with {self.player_two.username}'
