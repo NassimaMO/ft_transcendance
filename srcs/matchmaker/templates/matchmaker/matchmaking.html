@@ -1,9 +1,17 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extraCSS %}
+	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/matchmaker.css' %}">
+{% endblock %}
+
 {% block content %}
+<div id="matchmaking-container">
     <h1>Matchmaking</h1>
+    <div class="loader"></div>
     <p id="status">Connecting...</p>
     <p id="message"></p>
-    <script type="module" src="{% static 'matchmaker/js/matchmaking.js' %}"></script>
+    <button id="cancel-button">Cancel Matchmaking</button>
+</div>
+<script type="module" src="{% static 'matchmaker/js/matchmaking.js' %}"></script>
 {% endblock %}
