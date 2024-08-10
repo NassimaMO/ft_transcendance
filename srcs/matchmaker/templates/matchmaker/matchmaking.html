@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+    <h1>Matchmaking</h1>
+    <p id="status">Connecting...</p>
+    <p id="message"></p>
+    <script type="module" src="{% static 'matchmaker/js/matchmaking.js' %}"></script>
+{% endblock %}

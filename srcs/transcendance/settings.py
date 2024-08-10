@@ -69,6 +69,7 @@ INSTALLED_APPS = [
 	'pong',
     'api',
     'account',
+    'matchmaker',
 ]
 
 MIDDLEWARE = [
