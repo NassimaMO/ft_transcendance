@@ -50,12 +50,13 @@ DEBUG = bool(int(os.environ.get("DEBUG", default=0)))
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]']
+ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]', 'host.docker.internal']
 ALLOWED_HOSTS += os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -106,14 +107,14 @@ WSGI_APPLICATION = 'transcendance.wsgi.application'
 
 ASGI_APPLICATION = 'transcendance.asgi.application'
 
-""" CHANNEL_LAYERS = {
+CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('redis', 6379)],
         },
     },
-} """
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases

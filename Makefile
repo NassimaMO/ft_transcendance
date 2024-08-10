@@ -15,10 +15,10 @@ prod: get_ip docker
 	@echo "You can now go to : \n - https://localhost in this device\n - https://$(LOCAL_IP) in another device"
 
 get_ip:
-	@grep -qF "LOCAL_IP=" $(ENV_FILE) || echo "\nDJANGO_ALLOWED_HOSTS=$(LOCAL_IP)" >> $(ENV_FILE)
+	@grep -qF "DJANGO_ALLOWED_HOSTS=" $(ENV_FILE) || echo "\nDJANGO_ALLOWED_HOSTS=$(LOCAL_IP)" >> $(ENV_FILE)
 
 docker:
-	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) up --build -d
+	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) up --build -d --wait
 
 clean:
 	@-docker stop $$(docker ps -a -q)
