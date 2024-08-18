@@ -27,16 +27,13 @@ DEBUG = bool(int(os.environ.get("DEBUG", default=0)))
 
 TEMPLATE_DEBUG = True
 
-# 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.
-# For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
-
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", default="localhost").split(" ")
-if (os.environ.get("LOCAL_IP")) :
-    ALLOWED_HOSTS.append(os.environ.get("LOCAL_IP"))
+ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]', 'host.docker.internal']
+ALLOWED_HOSTS += os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,6 +46,7 @@ INSTALLED_APPS = [
 	'pong',
     'api',
     'account',
+    'matchmaker',
 ]
 
 MIDDLEWARE = [
@@ -87,26 +85,26 @@ WSGI_APPLICATION = 'transcendance.wsgi.application'
 
 ASGI_APPLICATION = 'transcendance.asgi.application'
 
-""" CHANNEL_LAYERS = {
+CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('redis', 6379)],
         },
     },
-} """
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('SQL_ENGINE'),
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('POSTGRES_DB'),
         'USER': os.getenv('POSTGRES_USER'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('POSTGRES_HOST'),
-        'PORT': os.getenv('POSTGRES_PORT'),
+        'HOST': 'postgres',
+        'PORT': 5432,
     }
 }
 

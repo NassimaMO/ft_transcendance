@@ -1,20 +1,18 @@
 services:
 
-  postgres_db:
+  postgres:
     image: postgres:16.3
-    container_name: postgres_db
+    container_name: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file:
-        - dev.env
     user: root
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 1s
       timeout: 5s
       retries: 10
-    ports:
-      - '5437:5432'
+    expose:
+      - "5432"
     networks:
       - transcendence
 
@@ -24,22 +22,53 @@ services:
     build:
       context: .
       dockerfile: requirements/django/Dockerfile
-    volumes:
-      - ./srcs:/app/srcs
-    ports:
-      - "8000:8000"
-    env_file:
-      - dev.env
     depends_on:
-      postgres_db:
+      postgres:
         condition: service_healthy
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    networks:
+      - transcendence
+
+  nginx:
+    image: nginx
+    container_name: nginx
+    build: requirements/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_volume:/usr/share/nginx/html/staticfiles
+      - media_volume:/usr/share/nginx/html/mediafiles
+    depends_on:
+      - django
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - transcendence
+    profiles:
+      - production
+
+  redis:
+    image: redis:7.4.0
+    container_name: redis
+    expose:
+      - "6379"
     networks:
       - transcendence
 
 volumes:
   postgres_data:
-    name: postgres_data
+  static_volume:
+    name: static_volume
+  media_volume:
+    name: media_volume
 
 networks:
   transcendence:
-    name: transcendence
+    driver: bridge

@@ -1,0 +1,23 @@
+services:
+
+  django:
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./srcs:/app/srcs
+    env_file:
+      - dev.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000 || exit 1"]
+      
+  postgres:
+    env_file:
+      - dev.env
+
+networks:
+  transcendence:
+    name: transcendence_dev
+
+volumes:
+  postgres_data:
+    name: postgres_volume_dev
