@@ -28,12 +28,18 @@ function startWebSocket()
         }
         document.querySelector(".loader").style.display = "none";
         ws = null;
+        cancelButton.textContent = "Join Matchmaking";
+        cancelButton.onclick = startMatchmaking;
     };
 
     ws.onerror = function(event)
     {
         statusElement.textContent = "Error occurred. Please try again.";
         statusElement.style.color = "red";
+        if (ws)
+        {
+            ws.close();
+        }
     };
 
     ws.onmessage = function (event)
@@ -58,8 +64,6 @@ function cancelMatchmaking()
     {
         ws.close(1000);
     }
-    cancelButton.textContent = "Join Matchmaking";
-    cancelButton.onclick = startMatchmaking;
 }
 
 function startMatchmaking()
