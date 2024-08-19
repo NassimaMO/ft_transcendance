@@ -1,9 +1,15 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from .forms import MatchChoiceForm
 
-# Create your views here.
-
-def play(request) :
-    return (render(request, "pong/play.html"))
+def play(request):
+    if request.method == 'POST':
+        form = MatchChoiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('match')
+    else:
+        form = MatchChoiceForm()
+    return render(request, "pong/play.html", {'form': form})
 
 def game(request) :
     return (render(request, "pong/game.html"))
