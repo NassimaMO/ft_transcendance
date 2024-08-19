@@ -6,19 +6,31 @@ from account.models import User
 
 class GameMode(models.TextChoices) :
     SOLO = "solo", "Un joueur (VS IA)"
-    LOCAL = "multi local", "Multijoueur Local"
-    ONLINE = "multi online", "Multijoueur en ligne"
+    MULTI = "multi", "Multijoueur"
 
-class MatchMaking(models.TextChoices) :
-    RANK = "ranked", "Ranked"
-    UNRANK = "unranked", "Unranked"
-    PRIVATE = "private", "Private"
-    TOURNAMENT = "tournament", "Tournament"
+class Connecitvity(models.TextChoices) :
+    LOCAL = "local", "Local"
+    ONLINE = "online", "En ligne"
+
+class MatchmakingMode(models.TextChoices) :
+    RANK = "classé", "Classé"
+    UNRANK = "non classé", "Non Classé"
+    TOURNAMENT = "tournoi", "Tournoi"
+
+class MatchChoice(models.Model) :
+    connect = models.CharField(max_length=20, choices=Connecitvity.choices, default=Connecitvity.LOCAL)
+    mode = models.CharField(max_length=20, choices=GameMode.choices, default=GameMode.SOLO)
+    mm = models.CharField(max_length=20, choices=MatchmakingMode.choices, default=MatchmakingMode.UNRANK)
+
+    def __str__(self):
+        return f"{self.mode} - {self.connect} - {self.mm}"
 
 class Match(models.Model) :
     date = models.DateTimeField(default=timezone.now)
-    mode = models.CharField(max_length=20, choices=GameMode.choices, default=GameMode.SOLO)
-    mm = models.CharField(max_length=20, choices=MatchMaking.choices, default=MatchMaking.UNRANK)
+    info = models.ForeignKey(MatchChoice, related_name="match_info", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Match on {self.date} with {self.info}"
 
 class Player(models.Model) :
     user = models.ForeignKey(User, related_name="player_user", on_delete=models.CASCADE)

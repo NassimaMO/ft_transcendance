@@ -3,7 +3,7 @@ import redis.asyncio as redis
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from datetime import datetime
-from .models import Match, GameMode, MatchMaking
+from .models import Match, GameMode, MatchmakingMode
 
 class MatchmakingConsumer(AsyncWebsocketConsumer):
 
@@ -22,8 +22,10 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
     async def add_to_queue(self) :
         await self.channel_layer.group_add('matchmaking_queue', self.channel_name)
-        await self.redis.zadd('matchmaking_queue', {self.channel_name: datetime.now().timestamp()})
-        await self.redis.hset(f"user:{self.channel_name}", mapping={'id':self.user.id, 'rank': self.user.rank})
+        if not await self.redis.zscore('matchmaking_queue', self.channel_name) :
+            await self.redis.zadd('matchmaking_queue', {self.channel_name: datetime.now().timestamp()})
+        if not await self.redis.hget(f"user:{self.channel_name}", 'id') :
+            await self.redis.hset(f"user:{self.channel_name}", mapping={'id':self.user.id, 'rank': self.user.rank})
 
     async def remove_from_queue(self, channel_name) :
         await self.redis.zrem('matchmaking_queue', channel_name)
@@ -43,7 +45,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             players.append(users_list[0][0].decode('utf-8'))
             players.append(users_list[1][0].decode('utf-8'))
             
-            match = await sync_to_async(Match.objects.create)(mode=GameMode.ONLINE, mm=MatchMaking.UNRANK)
+            match = await sync_to_async(Match.objects.create)(mode=GameMode.ONLINE, mm=MatchmakingMode.UNRANK)
             match_group_name = f'match_{match.id}'
 
             for channel_name in players :
@@ -67,3 +69,6 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                 'match_url': match_url
             }))
         self.close()
+
+class TournamentConsumer(AsyncWebsocketConsumer):
+    pass
