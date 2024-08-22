@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extraCSS %}
+  <link rel="stylesheet" type="text/css" href="{% static 'pong/css/play.css' %}">
+{% endblock %}
+
 {% block content %}
   <h1 class="gaming-title">Choisir le mode de jeu</h1>
-<!--   <div class="form-container">
- -->    <form method="post">
+  <div class="form-container">
+    <form method="post">
       {% csrf_token %}
       <div class="form-group">
         {{ form.mode.label_tag }}
@@ -20,9 +24,9 @@
       </div>
       <button type="submit">Valider</button>
     </form>
-<!--   </div>
- -->{% endblock %}
+  </div>
+{% endblock %}
 
 {% block extraJS %}
-<script type="module" src="{% static 'pong/js/play.js' %}"></script>
+  <script type="module" src="{% static 'pong/js/play.js' %}"></script>
 {% endblock %}

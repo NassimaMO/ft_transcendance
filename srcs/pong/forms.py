@@ -6,9 +6,9 @@ class MatchChoiceForm(forms.ModelForm):
         model = MatchChoice
         fields = ['mode', 'connect', 'mm']
         labels = {
-            'connect': 'Type de connexion',
+            'connect': 'Connectivité',
             'mode': 'Mode de jeu',
-            'mm': 'Mode de matchmaking',
+            'mm': 'Matchmaking',
         }
         widgets = {
             'mode': forms.Select(attrs={'class': 'form-select'}),
