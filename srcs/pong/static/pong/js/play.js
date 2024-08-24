@@ -1,8 +1,9 @@
 document.addEventListener("DOMContentLoaded", function () {
     const modeField = document.getElementById("id_mode");
-    const connectField = document.querySelector(".connect-group");
+    const connectField = document.getElementById("connect-group");
     const matchmakingField = document.getElementById("id_mm");
     const tournamentOption = matchmakingField.querySelector("option[value='tournoi']");
+
     function updateFields() {
         const mode = modeField.value;
 
@@ -20,6 +21,5 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     modeField.addEventListener("change", updateFields);
-
     updateFields();
 });
