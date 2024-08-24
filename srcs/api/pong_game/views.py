@@ -3,27 +3,34 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from account.models import User
-from .models import RegularGameSession
-from .serializers import RegularGameSessionSerializer
-from .serializers import UserSerializer
+from .models import GameSession, PlayerSession
+from .serializers import GameSessionSerializer, UserSerializer
 from .logic import updateGameState
 
 class RegularGameSessionViewSet(viewsets.ModelViewSet):
-    queryset = RegularGameSession.objects.all()
-    serializer_class = RegularGameSessionSerializer
+    queryset = GameSession.objects.all()
+    serializer_class = GameSessionSerializer
     # permission = [permissions.IsAuthenticated]
 
     @action(detail=False, methods=['post'])
     def create_game(self, request):
-        player_one = User.objects.get(id=request.data.get('player_one_id'))
-        player_two = User.objects.get(id=request.data.get('player_two_id'))
-
-        new_game = RegularGameSession.objects.create(
-            player_one=player_one,
-            player_two=player_two
-        )
-
-        serializer = RegularGameSessionSerializer(new_game)
+        user = User.objects.get(id=request.data.get('players'))
+        available_game = GameSession.objects.annotate(player_count=models.Count('players')).filter(player_count=1).first()
+        if available_game:
+            new_player = PlayerSession.objects.create(
+                user=user,
+                position=180,
+                game_session=available_game
+            )
+            serializer = GameSessionSerializer(available_game)
+        else:
+            game_session=GameSession.objects.create()
+            new_player = PlayerSession.objects.create(
+                user=user,
+                position=-180,
+                game_session=game_session
+            )
+            serializer = GameSessionSerializer(game_session)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
@@ -31,24 +38,22 @@ class RegularGameSessionViewSet(viewsets.ModelViewSet):
         game = self.get_object()
         updateGameState(game.id)
         game.save()
-        return Response(RegularGameSessionSerializer(game).data)
+        return Response(GameSessionSerializer(game).data)
 
     @action(detail=True, methods=['post'])
     def control(self, request, pk=None):
         game = self.get_object()
-        player = request.data.get('player')
+        paddle = request.data.get('player')
+        if paddle == 'right':
+            player = game.players.filter(position__gte=0).order_by('position').first()
+        else:
+            player = game.players.filter(position__lte=0).order_by('-position').first()
         player_action = request.data.get('action')
 
-        if player == 'one':
-            if player_action == 'move_up':
-                game.position_player_one = min(game.position_player_one + 5, 96)
-            elif player_action == 'move_down':
-                game.position_player_one = max(game.position_player_one - 5, -96)
-        elif player == 'two':
-            if player_action == 'move_up':
-                game.position_player_two = min(game.position_player_two + 5, 96)
-            elif player_action == 'move_down':
-                game.position_player_two = max(game.position_player_two - 5, -96)
+        if player_action == 'move_up':
+            player.position = min(player.position + 5, 96)
+        elif player_action == 'move_down':
+            player.position = max(player.position - 5, -96)
 
         game.save()
         return Response(status=status.HTTP_200_OK)
@@ -57,40 +62,3 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     # permission = [permissions.IsAuthenticated]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-
-def start_game(request):
-    user = request.user
-    game = RegularGameSession.objects.filter(player_two__isnull=True).first()
-    
-    if game:
-        game.player_two = user
-        game.save()
-        role = 'player_two'
-    else:
-        game = RegularGameSession.objects.create(player_one=user)
-        role = 'player_one'
-    
-    return JsonResponse({
-        'game_session_id': game.id,
-        'role': role
-    })

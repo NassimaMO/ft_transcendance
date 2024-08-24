@@ -21,46 +21,111 @@ document.addEventListener("keydown", keyPress, false);
 document.addEventListener("keyup", keyRelease, false);
 
 
-/*function colision()
-{
-	if (puck.object.position.x + 3 >= paddleRight.object.position.x - 5 && puck.object.position.x + 3 <= paddleRight.object.position.x && puck.object.position.y <= paddleRight.object.position.y + 15 && puck.object.position.y >= paddleRight.object.position.y - 15)
-	{
-		directionX *= -1
-		puck.object.position.x = paddleRight.object.position.x - 8
-		puck.pointLight.position.x = paddleRight.object.position.x - 8
-	}
-	if (puck.object.position.x - 3 <= paddleLeft.object.position.x + 5 && puck.object.position.x - 3 <= paddleLeft.object.position.x && puck.object.position.y <= paddleLeft.object.position.y + 15 && puck.object.position.y >= paddleLeft.object.position.y - 15)
-	{
-		directionX *= -1
-		puck.object.position.x = paddleLeft.object.position.x + 8
-		puck.pointLight.position.x = paddleLeft.object.position.x + 8
-	}
-	if (puck.object.position.y + 3 >= 120 - 5)
-		directionY *= -1;
-	if (puck.object.position.y - 3 <= -120 + 5)
-		directionY *= -1;
-	if (puck.object.position.x >= 203 || puck.object.position.x <= -203)
-	{
-		puck.object.position.x = 0
-		puck.pointLight.position.x = 0
-	}
+function startGame() {
+    // Open a WebSocket connection to the server
+    const gameSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/game/create_game/'
+    );
+
+    // When the connection is open, send a message to create a game
+    gameSocket.onopen = function() {
+        const message = {
+            type: 'create_game',
+            player_one_id: 1,
+            player_two_id: 2
+        };
+        gameSocket.send(JSON.stringify(message));
+    };
+
+    // Handle messages received from the server
+    gameSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'game_created') {
+            const gameSessionID = data.id;
+            game(gameSocket, gameSessionID);
+        }
+    };
+
+    // Handle any errors
+    gameSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
+    };
+
+    // Handle connection close
+    gameSocket.onclose = function(e) {
+        console.error('WebSocket connection closed:', e);
+    };
 }
 
-function puckMouvement()
-{
-	puck.object.rotation.y += puckSpeed * directionY
-	puck.object.position.x += puckSpeed * directionX;
-	puck.object.position.y += puckSpeed * directionY;
-	puck.pointLight.position.x += puckSpeed * directionX;
-	puck.pointLight.position.y += puckSpeed * directionY;
-}*/
-function getCSRFToken() {
+function updateGameState(gameSocket) {
+    // Send a request to the server to update the game state
+    const message = {
+        type: 'update_state'
+    };
+    gameSocket.send(JSON.stringify(message));
+}
+
+function game(gameSocket, gameSessionID) {
+    requestAnimationFrame(function() { game(gameSocket, gameSessionID); });
+
+    // Request game state update from the server
+    updateGameState(gameSocket);
+
+    // Handle window resizing
+    if (windowHeight != window.innerHeight || windowWidth != window.innerWidth) {
+        threeJS.renderer.setSize(window.innerWidth - 10, window.innerHeight - 200);
+        threeJS.camera.position.z = 200;
+        threeJS.camera.aspect = (window.innerWidth / window.innerHeight);
+        threeJS.camera.updateProjectionMatrix();
+        windowHeight == window.innerHeight;
+        windowWidth == window.innerWidth;
+    }
+
+    // Render the scene
+    threeJS.renderer.render(threeJS.scene, threeJS.camera);
+}
+
+function keyRelease(event) {
+    keyCode[event.which] = false;
+}
+
+function keyPress(event, gameSocket) {
+    keyCode[event.which] = true;
+
+    if (keyCode[38]) {
+        movePaddleServer(gameSocket, 'right', 'move_up');
+    }
+    if (keyCode[40]) {
+        movePaddleServer(gameSocket, 'right', 'move_down');
+    }
+    if (keyCode[87]) {
+        movePaddleServer(gameSocket, 'left', 'move_up');
+    }
+    if (keyCode[83]) {
+        movePaddleServer(gameSocket, 'left', 'move_down');
+    }
+}
+
+function movePaddleServer(gameSocket, paddle, action) {
+    const message = {
+        type: 'control',
+        paddle: paddle,
+        action: action
+    };
+    gameSocket.send(JSON.stringify(message));
+}
+
+// Start the game when the page loads
+startGame();
+
+/*function getCSRFToken() {
     const metaTag = document.querySelector('meta[name="csrf-token"]');
     return metaTag ? metaTag.getAttribute('content') : null;
 }
 
 function startGame() {
-    fetch('/api/regulargames/create_game/', {
+    fetch('/api/games/create_game/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -80,7 +145,7 @@ function startGame() {
 }
 
 function updateGameState(gameSessionID) {
-	fetch('/api/regulargames/${gameSessionID}/update_state/', {
+	fetch('/api/games/${gameSessionID}/update_state/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -101,8 +166,6 @@ function updateGameState(gameSessionID) {
 
 function game(gameSessionID) {
 	requestAnimationFrame( game );
-	/*puckMouvement()
-	colision()*/
 	updateGameState(gameSessionID);
 	if (windowHeight != window.innerHeight || windowWidth != window.innerWidth)
 	{
@@ -125,108 +188,30 @@ function keyPress(event, gameSessionID) {
     keyCode[event.which] = true;
 
     if (keyCode[38]) {
-        movePaddleServer('one', 'move_up', gameSessionID);
+        movePaddleServer('right', 'move_up', gameSessionID);
     }
     if (keyCode[40]) {
-        movePaddleServer('one', 'move_down', gameSessionID);
+        movePaddleServer('right', 'move_down', gameSessionID);
     }
     if (keyCode[87]) {
-        movePaddleServer('two', 'move_up', gameSessionID);
+        movePaddleServer('left', 'move_up', gameSessionID);
     }
     if (keyCode[83]) {
-        movePaddleServer('two', 'move_down', gameSessionID);
+        movePaddleServer('left', 'move_down', gameSessionID);
     }
 }
 
-function movePaddleServer(player, action, gameSessionID) {
-    fetch('/api/regulargames/${gameSessionID}/control/', {
+function movePaddleServer(paddle, action, gameSessionID) {
+    fetch('/api/games/${gameSessionID}/control/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCSRFToken()
         },
-        body: JSON.stringify({ player: player, action: action })
+        body: JSON.stringify({ paddle: paddle, action: action })
     });
 }
 
 
 startGame()
-
-/*
-const loader = new FontLoader();
-loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
-	const color = 0x006699;
-
-					const matDark = new THREE.LineBasicMaterial( {
-						color: color,
-						side: THREE.DoubleSide
-					} );
-
-					const matLite = new THREE.MeshBasicMaterial( {
-						color: color,
-						transparent: true,
-						opacity: 0.4,
-						side: THREE.DoubleSide
-					} );
-
-					const message = '   Three.js\nSimple text.';
-
-					const shapes = font.generateShapes( message, 100 );
-
-					const geometry = new THREE.ShapeGeometry( shapes );
-
-					geometry.computeBoundingBox();
-
-					const xMid = - 0.5 * ( geometry.boundingBox.max.x - geometry.boundingBox.min.x );
-
-					geometry.translate( xMid, 0, 0 );
-
-					// make shape ( N.B. edge view not visible )
-
-					const text = new THREE.Mesh( geometry, matLite );
-					text.position.z = - 150;
-					scene.add( text );
-
-					// make line shape ( N.B. edge view remains visible )
-
-					const holeShapes = [];
-
-					for ( let i = 0; i < shapes.length; i ++ ) {
-
-						const shape = shapes[ i ];
-
-						if ( shape.holes && shape.holes.length > 0 ) {
-
-							for ( let j = 0; j < shape.holes.length; j ++ ) {
-
-								const hole = shape.holes[ j ];
-								holeShapes.push( hole );
-
-							}
-
-						}
-
-					}
-
-					shapes.push.apply( shapes, holeShapes );
-
-					const lineText = new THREE.Object3D();
-
-					for ( let i = 0; i < shapes.length; i ++ ) {
-
-						const shape = shapes[ i ];
-
-						const points = shape.getPoints();
-						const geometry = new THREE.BufferGeometry().setFromPoints( points );
-
-						geometry.translate( xMid, 0, 0 );
-
-						const lineMesh = new THREE.Line( geometry, matDark );
-						lineText.add( lineMesh );
-
-					}
-
-					scene.add( lineText );
-
-					render();
-});*/
+*/
