@@ -31,11 +31,14 @@
                         {% endif %}
                     </div>
                 {% endfor %}
+                {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
                 <div class="form-group text-center">
                     <button type="submit" class="btn btn-primary">Se connecter</button>
                 </div>
             </form>
-            <p class="text-center mt-3">Vous n'avez pas de compte ? <a href="{% url 'register' %}">Inscrivez-vous ici</a></p>
+            <p class="text-center mt-3">Vous n'avez pas de compte ? <a href="{{ register_url }}">Inscrivez-vous ici</a></p>
         </div>
     </div>
 {% endblock %}
