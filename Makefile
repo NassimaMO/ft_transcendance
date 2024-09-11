@@ -23,11 +23,10 @@ docker:
 	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) up --build -d $(WAIT)
 
 clean:
-	@-docker stop $$(docker ps -a -q)
-	@-docker rm $$(docker ps -a -q)
+	@-docker compose down
+	@-docker volume rm $$(docker volume ls -q)
 
 fclean: clean
-	@-docker volume rm $$(docker volume ls -q)
 	@docker system prune -af
 
 re: fclean all
