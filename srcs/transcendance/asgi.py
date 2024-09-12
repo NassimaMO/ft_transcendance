@@ -16,15 +16,15 @@ django.setup()
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-from matchmaker.routing import ws_urlpatterns as matchmaker_ulrs
-from account.routing import ws_urlpatterns as account_ulrs
-
+from matchmaker.routing import ws_urlpatterns as matchmaker_urls
+from account.routing import ws_urlpatterns as account_urls
+from pong.routing import ws_urlpatterns as pong_urls
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            matchmaker_ulrs + account_ulrs
+            matchmaker_urls + account_urls + pong_urls
         )
     ),
 })

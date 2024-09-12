@@ -1,5 +1,5 @@
 from django import forms
-from matchmaker.models import MatchChoice, GameMode, Connecitvity, MatchmakingMode
+from matchmaker.models import MatchChoice
 
 class MatchChoiceForm(forms.ModelForm):
     class Meta:

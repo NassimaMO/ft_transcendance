@@ -21,7 +21,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
  """
     # Receive message from WebSocket
-    async def receive(self, text_data):
+    """ async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
@@ -32,7 +32,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'type': 'game_message',
                 'message': message
             }
-        )
+        ) """
 
     # Receive message from game group
     """ async def game_message(self, event):

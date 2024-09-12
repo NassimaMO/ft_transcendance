@@ -20,15 +20,22 @@ const controls = new OrbitControls(threeJS.camera, threeJS.renderer.domElement)
 document.addEventListener("keydown", keyPress, false);
 document.addEventListener("keyup", keyRelease, false);
 
+const statusElement = document.getElementById("status");
+
 
 function startGame() {
     // Open a WebSocket connection to the server
-    const gameSocket = new WebSocket(
+    /* const gameSocket = new WebSocket(
         'ws://' + window.location.host + '/ws/game/create_game/'
-    );
+    ); */
 
+    const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+    const port = window.location.protocol === 'http:' ? '8000' : '443';
+    gameSocket = new WebSocket(`${protocol}//${window.location.hostname}:${port}/ws/`);
     // When the connection is open, send a message to create a game
     gameSocket.onopen = function() {
+        console.error("websocket opened")
+        statusElement.textContent = "websocket opened"
         const message = {
             type: 'create_game',
             player_one_id: 1,
@@ -39,6 +46,7 @@ function startGame() {
 
     // Handle messages received from the server
     gameSocket.onmessage = function(e) {
+        statusElement.textContent = "message received"
         const data = JSON.parse(e.data);
 
         if (data.type === 'game_created') {
@@ -49,11 +57,13 @@ function startGame() {
 
     // Handle any errors
     gameSocket.onerror = function(e) {
+        statusElement.textContent = "error"
         console.error('WebSocket error:', e);
     };
 
     // Handle connection close
     gameSocket.onclose = function(e) {
+        statusElement.textContent = "websocket closed"
         console.error('WebSocket connection closed:', e);
     };
 }
