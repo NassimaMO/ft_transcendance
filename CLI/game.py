@@ -2,7 +2,6 @@ import curses, time, asyncio, aiohttp
 
 ball_symbol = "O"
 paddle_symbol = "H"
-end = 0
 
 def main(stdscr):
     curses.curs_set(0)   # Hide cursor
@@ -13,19 +12,14 @@ def main(stdscr):
 
 class Game:
     def __init__(self):
-        self.site_url = ""
-        self.api_key = ""
-        self.headers = {""}
-        self.pong_table_size = 0
-        self.left_paddle = 0
-        self.right_paddle = 0
+        self.pong_table_size = [0, 0]
+        self.enemy_paddle = 0
         self.ball = 0
-        self.score_left = 0
-        self.score_right = 0
+        self.score = [0, 0]
         
     def update(self, stdscr):
         while True:
-            print("pong")
+            self.ball, self.enemy_paddle, self.score = get_game_logic()
             break
 
     def fetch_game_logic():

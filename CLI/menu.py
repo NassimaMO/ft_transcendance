@@ -1,5 +1,6 @@
-import pyfiglet, colorama, time, curses, os, time
+import pyfiglet, colorama, time, curses, os, time, getpass
 from game import main
+#from api_requests import API_requests
 from colorama import Fore, Style
 
 AUTH = 0
@@ -9,6 +10,7 @@ COLOR_AUTHORS = Fore.GREEN
 
 class Menu:
     def __init__(self):
+        #self.api = API_requests()
         return 
     
     def screentitle(self):
@@ -32,11 +34,11 @@ class Menu:
                     #curses.wrapper(main)
                     print("pong")
                 elif cmd == 'history':
-                    self.show_history()
+                    print("pong")
                 elif cmd == 'colors':
                     self.color_change()
                 elif cmd == 'log out':
-                    self.authentication()
+                    #self.authentication()
                     AUTH = 0
                 elif cmd == 'quit':
                     print("> Hope you had some nice little games. Sayounara !")
@@ -46,10 +48,10 @@ class Menu:
             else:
                 cmd = input("> Enter command (login/sign up/quit): ")
                 if cmd == 'login':
-                    self.authentication()
+                    #self.api.authentication(self.api.get_creditentials())
                     AUTH = 1
                 elif cmd == 'sign up':
-                    self.authentication()
+                    #self.authentication()
                     AUTH = 1
                 elif cmd == 'quit':
                     print("> Didn't even bother to log in.. Ha ! Good riddance !")
@@ -57,18 +59,9 @@ class Menu:
                 else:
                     print("> Invalid command")
 
-    def show_history(self):
-        print("something")
-
-    def show_profile(self):
-        print("something")
-
-    def authentication(self):
-        print("something")
-
     def color_change(self):
         while True:
-            color = input("> Enter color (cyan/red/green/blue/magenta/white/menu): " + Style.RESET_ALL)
+            color = input("> Enter color (cyan/red/green/blue/magenta/white/menu): ")
             if color == 'cyan':
                 COLOR = Fore.CYAN
                 print(COLOR + "> Color changed to " + color + " successfully !")
