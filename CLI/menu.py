@@ -31,8 +31,7 @@ class Menu:
                 if cmd == 'profile':
                     self.show_profile()
                 elif cmd == 'pong':
-                    #curses.wrapper(main)
-                    print("pong")
+                    curses.wrapper(main)
                 elif cmd == 'history':
                     print("pong")
                 elif cmd == 'colors':
