@@ -4,5 +4,5 @@ from django.apps import apps
 
 urlpatterns = [
     path('', views.play, name='play'),
-    path('game/', views.game, name='game'),
+    path('game/<int:game_id>/', views.game, name='game'),
 ]

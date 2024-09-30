@@ -3,6 +3,10 @@
 
 {% block content %}
 	<h1>Pong</h1>
+	<p id="status">Connecting...</p>
+	<p id="message"></p>
+	<script> var game_id = "{{ game_id }}"; </script>
+	<script type="module" src="{% static 'pong/js/ws.js' %}"></script>
 {% endblock %}
 
 {% block extraJS %}

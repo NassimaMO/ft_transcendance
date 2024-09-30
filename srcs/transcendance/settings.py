@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+import rom.util
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -116,6 +117,8 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+rom.util.set_connection_settings(host='redis', port=6379, db=0)
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases

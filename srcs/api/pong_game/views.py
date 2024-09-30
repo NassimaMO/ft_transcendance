@@ -3,15 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from account.models import User
-from .models import RegularGameSession
-from .serializers import RegularGameSessionSerializer
-from .serializers import UserSerializer
-from .logic import updateGameState
+from pong.models import RegularGameSession
+#from .logic import updateGameState
 
-class RegularGameSessionViewSet(viewsets.ModelViewSet):
+""" class RegularGameSessionViewSet(viewsets.ModelViewSet):
     queryset = RegularGameSession.objects.all()
-    serializer_class = RegularGameSessionSerializer
-    # permission = [permissions.IsAuthenticated]
+    #serializer_class = RegularGameSessionSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     @action(detail=False, methods=['post'])
     def create_game(self, request):
@@ -23,15 +21,15 @@ class RegularGameSessionViewSet(viewsets.ModelViewSet):
             player_two=player_two
         )
 
-        serializer = RegularGameSessionSerializer(new_game)
+        #serializer = RegularGameSessionSerializer(new_game)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
     def update_state(self, request, pk=None):
         game = self.get_object()
-        updateGameState(game.id)
+        #updateGameState(game.id)
         game.save()
-        return Response(RegularGameSessionSerializer(game).data)
+        #return Response(RegularGameSessionSerializer(game).data)
 
     @action(detail=True, methods=['post'])
     def control(self, request, pk=None):
@@ -56,7 +54,7 @@ class RegularGameSessionViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    # permission = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated] """
 
 
 
