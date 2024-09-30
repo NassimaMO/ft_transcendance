@@ -1,4 +1,5 @@
 let ws = null;
+const match_choice_id = window.match_choice_id
 const cancelButton = document.getElementById("cancel-button");
 const statusElement = document.getElementById("status");
 
@@ -6,7 +7,7 @@ function startWebSocket()
 {
     const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
     const port = window.location.protocol === 'http:' ? '8000' : '443';
-    ws = new WebSocket(`${protocol}//${window.location.hostname}:${port}/ws/matchmaking/`);
+    ws = new WebSocket(`${protocol}//${window.location.hostname}:${port}/ws/matchmaking/${match_choice_id}`);
 
     ws.onopen = function()
     {
@@ -49,7 +50,7 @@ function startWebSocket()
         {
             statusElement.textContent = "Match found !";
             statusElement.style.color = "#28a745";
-            /* window.location.href = data.match_url; */
+            window.location.href = data.match_url;
         }
         else if (data.message)
         {

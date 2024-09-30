@@ -2,5 +2,5 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.matchmaking_view, name='matchmaking'),
+    path('<int:match_choice_id>/', views.matchmaking_view, name='matchmaking'),
 ]
