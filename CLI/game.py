@@ -1,4 +1,4 @@
-import curses, time, asyncio, aiohttp
+import curses, time
 
 ball_symbol = "O"
 paddle_symbol = "H"
@@ -21,8 +21,8 @@ class Game:
         self.prev_ball_pos_y = 7
         self.ball_pos_x = 30
         self.ball_pos_y = 7
-        self.ball_velocity_x = 1
-        self.ball_velocity_y = 1
+        self.ball_velocity_x = 1 # make it random
+        self.ball_velocity_y = 1 # make it random
         self.score = [0, 0]
         
     def update(self):
@@ -68,7 +68,7 @@ class Game:
         self.stdscr.refresh()
 
     def controls(self):
-        #action = await input("> Enter move (up/down/menu): ")
+        #action = await input("> Enter a move (UP/DOWN/MENU): ")
         key = self.stdscr.getch()
         if key == ord('w') and self.paddle[0] > 1:
             self.stdscr.addch(self.paddle[0] + 1, 2, ' ')
