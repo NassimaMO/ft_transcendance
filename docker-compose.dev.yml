@@ -9,6 +9,10 @@ services:
       - dev.env
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000 || exit 1"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
       
   postgres:
     env_file:
