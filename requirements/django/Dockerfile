@@ -18,6 +18,6 @@ COPY requirements/django/tools/start.sh .
 
 RUN chmod 755 ./start.sh
 
-COPY srcs /app/srcs
+COPY srcs/web /app/srcs
 
 ENTRYPOINT ["./start.sh"]

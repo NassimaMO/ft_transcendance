@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load profile_tags %}
+
+{% block extraCSS %}
+    <link rel="stylesheet" type="text/css" href="{% static 'account/css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2 class="mb-4 text-primary">Mon Profil</h2>
+        {% if edit_mode %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="card profile-card">
+                    <div class="card-header">
+                        <h4>Modifier le Profil</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <table class="table table-borderless">
+                            <tbody>
+                                {% for field in form %}
+                                    {% if field.name == 'rank' %}
+                                    {% else %}
+                                        <tr>
+                                            <td class="form-label">
+                                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                            </td>
+                                            <td class="form-input">
+                                                {% if field.name == 'avatar' %}
+                                                    <img src="{{ field.value.url }}" alt="Avatar actuel" class="img-fluid rounded-circle mb-2" style="max-width: 40px;">
+                                                    <input type="file" name="{{ field.name }}" id="{{ field.id_for_label }}" class="form-control form-control-sm">
+                                                {% else %}
+                                                    {{ field|add_class:"form-control-sm rank-widget" }}
+                                                {% endif %}
+                                                {% if field.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {% for error in field.errors %}
+                                                            <p>{{ error }}</p>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="submit" class="btn btn-custom-primary btn-sm">Sauvegarder les modifications</button>
+                        <a href="{% url 'profile' %}" class="btn btn-custom-secondary btn-sm">Annuler</a>
+                    </div>
+                </div>
+            </form>
+        {% else %}
+            <div class="card profile-card">
+                <div class="card-header">
+                    <h4>Informations du Profil</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            {% for field in form %}
+                                <tr>
+                                    <td class="form-label">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    </td>
+                                    <td class="form-value">
+                                        {% if field.name == 'avatar' %}
+                                            <img src="{{ field.value.url }}" alt="Avatar" class="img-fluid rounded-circle" />
+                                        {% else %}
+                                            {% if field.name == 'rank' %}
+                                                <span class="form-control-plaintext rank-widget">{{ field.value }}</span>
+                                            {% else %}
+                                                {{ field.value }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <a href="{% url 'profile' %}?edit=true" class="btn btn-custom-primary btn-sm">Modifier</a>
+                    <a href="{% url 'logout' %}?edit=true" class="btn btn-custom-primary btn-sm">Se déconnecter</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

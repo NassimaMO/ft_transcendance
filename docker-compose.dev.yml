@@ -4,7 +4,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./srcs:/app/srcs
+      - ./srcs/web:/app/srcs
     env_file:
       - dev.env
     healthcheck:
@@ -17,6 +17,10 @@ services:
   postgres:
     env_file:
       - dev.env
+  
+  cli:
+    environment:
+        - CONTEXT=dev
 
 networks:
   transcendence:

@@ -1,0 +1,74 @@
+.barre
+{
+	grid-area: barre;
+	background-color: white;
+	height: 100%;
+	width: 100%;
+	margin-top: 0em;
+	animation: 1s linear 0s infinite alternate barre_slide;
+	animation-delay: -0.5s;
+}
+
+@keyframes barre_slide
+{
+	from
+	{
+		margin-top: -10em;
+	}
+	to
+	{
+		margin-top: 10em;
+	}
+}
+
+.ball
+{
+	grid-area: ball;
+	background-color: white;
+	height: 5em;
+	width: 5em;
+	margin-top: auto;
+	margin-bottom: auto;
+	border-radius: 50%;
+	animation: 0.5s linear 0s infinite alternate ball_bounce;
+}
+
+@keyframes ball_bounce
+{
+	from
+	{
+		margin-left: -1%;
+	}
+	to
+	{
+		margin-left: 90%;
+	}
+}
+
+.anim_ex_01
+{
+	border: 0.1em rgb(240, 240, 240) solid;
+	grid-area: anim_ex_01;
+	height: 30em;
+	width: 80%;
+	margin-left: 10%;
+	margin-right: 10%;
+	overflow: hidden;
+	display: grid;
+	grid-template-columns: 1fr 20fr;
+	grid-template-areas:
+	". ."
+	"barre ball"
+	". .";
+}
+
+.template_01
+{
+	display: grid;
+	grid-template-columns: 0.5fr 2fr 2fr 0.5fr;
+	grid-template-areas:
+	". anim_ex_01 . ."
+	". anim_ex_01 h2_01 ."
+	". anim_ex_01 p_01 ."
+	". anim_ex_01 . ."
+}

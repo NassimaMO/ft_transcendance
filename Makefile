@@ -25,7 +25,10 @@ get_ip:
 	@grep -qF "DJANGO_ALLOWED_HOSTS=" $(ENV_FILE) || echo "\nDJANGO_ALLOWED_HOSTS=$(LOCAL_IP)" >> $(ENV_FILE)
 
 docker:
-	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) up --build -d $(WAIT)
+	-docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) up --build -d $(WAIT)
+
+cli:
+	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) run --build cli python srcs/api_auth.py
 
 clean:
 	@-docker compose -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) down
