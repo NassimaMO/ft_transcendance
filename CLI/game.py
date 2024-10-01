@@ -15,6 +15,9 @@ class Game:
     def __init__(self, stdscr):
         self.stdscr = stdscr
         self.pong_table_size = [60, 16]
+        self.middle_y, self.middle_x = self.get_terminal_size()
+        self.middle_y = self.middle_y // 2 + self.pong_table_size[1]
+        self.middle_x = self.middle_x // 2 + self.pong_table_size[0]
         self.enemy_paddle = [7, 'right']
         self.paddle = [7, 'left']
         self.prev_ball_pos_x = 30
@@ -31,12 +34,12 @@ class Game:
             self.get_game_logic()
             self.display_paddles_ball()
             if self.score[0] == 3:
-                self.stdscr.addstr(7, 17, "You have won !")
+                self.stdscr.addstr(self.center(7, 'y'), self.center(17, 'x'), "You have won !")
                 self.stdscr.refresh()
                 time.sleep(1)
                 break
             elif self.score[1] == 3:
-                self.stdscr.addstr(7, 17, "You have lost...")
+                self.stdscr.addstr(self.center(7, 'y'), self.center(17, 'x'), "You have lost...")
                 self.stdscr.refresh()
                 time.sleep(1)
                 break
@@ -44,24 +47,23 @@ class Game:
 
     def display_pong_table(self):
         self.stdscr.clear()
-
         for x in range(self.pong_table_size[0]):
-            self.stdscr.addch(0, x, '-')
-            self.stdscr.addch(self.pong_table_size[1] - 1, x, '-')
+            self.stdscr.addch(self.center(0, 'y'), self.center(x, 'x'), '-')
+            self.stdscr.addch(self.center(self.pong_table_size[1] - 1, 'y'), self.center(x, 'x'), '-') # centering problem stdscr
     
         for y in range(self.pong_table_size[1]):
-            self.stdscr.addch(y, 0, '|')
-            self.stdscr.addch(y, self.pong_table_size[0] - 1, '|')
+            self.stdscr.addch(self.center(y, 'y'), self.center(0, 'x'), '|')
+            self.stdscr.addch(self.center(y, 'y'), self.center((self.pong_table_size[0] - 1), 'x'), '|')
 
         self.stdscr.refresh()
 
     def display_paddles_ball(self):
         for i in range(-1, 2):
-            self.stdscr.addch(self.paddle[0] + i, 2, paddle_symbol)
-            self.stdscr.addch(self.enemy_paddle[0] + i, self.pong_table_size[0] - 3, paddle_symbol)
+            self.stdscr.addch(self.center(self.paddle[0] + i, 'y'), self.center(2, 'x'), paddle_symbol)
+            self.stdscr.addch(self.center(self.enemy_paddle[0] + i, 'y'), self.center(self.pong_table_size[0] - 3, 'x'), paddle_symbol)
 
-        self.stdscr.addch(self.prev_ball_pos_y, self.prev_ball_pos_x, ' ')
-        self.stdscr.addch(self.ball_pos_y, self.ball_pos_x, ball_symbol)
+        self.stdscr.addch(self.center(self.prev_ball_pos_y, 'y'), self.center(self.prev_ball_pos_x, 'x'), ' ')
+        self.stdscr.addch(self.center(self.ball_pos_y, 'y'), self.center(self.ball_pos_x, 'x'), ball_symbol)
         self.prev_ball_pos_x = self.ball_pos_x
         self.prev_ball_pos_y = self.ball_pos_y
 
@@ -71,16 +73,16 @@ class Game:
         #action = await input("> Enter a move (UP/DOWN/MENU): ")
         key = self.stdscr.getch()
         if key == ord('w') and self.paddle[0] > 1:
-            self.stdscr.addch(self.paddle[0] + 1, 2, ' ')
+            self.stdscr.addch(self.center(self.paddle[0] + 1, 'y'), self.center(2, 'x'), ' ')
             self.paddle[0] -= 1
         elif key == ord('s') and self.paddle[0] < 14:
-            self.stdscr.addch(self.paddle[0] - 1, 2, ' ')
+            self.stdscr.addch(self.center(self.paddle[0] - 1, 'y'),  self.center(2, 'x'), ' ')
             self.paddle[0] += 1
         if key == curses.KEY_UP and self.enemy_paddle[0] > 1:
-            self.stdscr.addch(self.enemy_paddle[0] + 1, self.pong_table_size[0] - 3, ' ')
+            self.stdscr.addch(self.center(self.enemy_paddle[0] + 1, 'y'),  self.center(self.pong_table_size[0] - 3, 'x'), ' ')
             self.enemy_paddle[0] -= 1
         elif key == curses.KEY_DOWN and self.enemy_paddle[0] < 14:
-            self.stdscr.addch(self.enemy_paddle[0] - 1, self.pong_table_size[0] - 3, ' ')
+            self.stdscr.addch(self.center(self.enemy_paddle[0] - 1, 'y'),  self.center(self.pong_table_size[0] - 3, 'x'), ' ')
             self.enemy_paddle[0] += 1
 
     def get_game_logic(self):
@@ -92,12 +94,12 @@ class Game:
 
         if self.ball_pos_x > 57:
             self.score[0] += 1
-            self.stdscr.addstr(7, 24, "Point for You !")
+            self.stdscr.addstr(self.center(7, 'y'), self.center(24, 'x'), "Point for You !")
             self.stdscr.refresh()
             self.reset()
         elif self.ball_pos_x < 2:
             self.score[1] += 1
-            self.stdscr.addstr(7, 17, "Point for the enemy...")
+            self.stdscr.addstr(self.center(7, 'y'), self.center(17, 'x'), "Point for the enemy...")
             self.stdscr.refresh()
             self.reset()
 
@@ -117,13 +119,23 @@ class Game:
 
     def reset(self):
         time.sleep(1)
-        self.stdscr.addstr(7, 17, "                              ")
+        self.stdscr.addstr(self.center(7, 'y'), self.center(17, 'x'), "                              ")
         for i in range(-1, 2):
-            self.stdscr.addch(self.paddle[0] + i, 2, ' ')
-            self.stdscr.addch(self.enemy_paddle[0] + i, self.pong_table_size[0] - 3, ' ')
+            self.stdscr.addch(self.center(self.paddle[0] + i, 'y'),  self.center(2, 'x'), ' ')
+            self.stdscr.addch(self.center(self.enemy_paddle[0] + i, 'y'),  self.center(self.pong_table_size[0] - 3, 'x'), ' ')
         self.paddle[0] = 7
         self.enemy_paddle[0] = 7
         self.stdscr.refresh()
         self.ball_pos_x = 30
         self.ball_pos_y = 7
         self.ball_velocity_x *= -1
+
+    def center(self, coord, xy):
+        if xy == 'x':
+            return self.middle_x + coord
+        elif xy == 'y':
+            return self.middle_y + coord
+
+    def get_terminal_size(self):
+        height, width = self.stdscr.getmaxyx()
+        return height, width

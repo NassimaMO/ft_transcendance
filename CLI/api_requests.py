@@ -18,24 +18,26 @@ class API_requests:
         return
     
     def get_creditentials(self):
-        username = input("Enter your username: ")
         while True:
-            password = getpass.getpass("Enter your password: ")
+            username = input("> Enter your username: ")
+            if username:
+                break
+            print("> Please enter a username.")
+        while True:
+            password = getpass.getpass("> Enter your password: ")
             if password:
                 break
             print("> Please enter a VALID password ???????")
         return username, password
     
     def get_sign_up_details(self):
-        username = input("Enter your username: ")
+        username = input("> Enter your username: ")
         while True:
-            password = getpass.getpass("Enter your password: ") # Need to validate username
-            re_password = getpass.getpass("Confirm your password: ")
+            password = getpass.getpass("> Enter your password: ") # Need to validate username
+            re_password = getpass.getpass("> Confirm your password: ")
             if username and password and password == re_password: # Maybe also check if the password is valid (ex: > 8 length)
                 break
-            command = input("The passwords entered are different. Try again or go back to the main menu. (RETRY/MENU): ")
-            if command == 'MENU':
-                return
+            print("> The passwords entered are different. Try again.")
         return username, password
     
     def authentication(self, username, password):
@@ -54,7 +56,7 @@ class API_requests:
         self.history = self.update_history()
 
     def delog(self):
-        self.username, self.profile, self.history = None
+        #self.username, self.profile, self.history = None
         return 0
 
     def get_profile(self):
