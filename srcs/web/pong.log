@@ -1,8 +1,0 @@
-user
-<User: user>
-<User: user>
-<class 'account.models.User'>
-{'_state': <django.db.models.base.ModelState object at 0x7f29442268c0>, 'id': 1, 'password': 'pbkdf2_sha256$600000$9ERVlGqbpKXfD0Cqo1GQnY$AmDv97oswSxaQmKUjK4KUPA1tm4SUxk9PAQcV/Mzg3Q=', 'last_login': None, 'is_superuser': False, 'username': 'user', 'first_name': '', 'last_name': '', 'email': '', 'is_staff': False, 'is_active': True, 'date_joined': datetime.datetime(2024, 9, 28, 17, 49, 57, 39401, tzinfo=datetime.timezone.utc), 'avatar': <ImageFieldFile: static/account/media/avatar.png>, 'status': Status.OFF, 'rank': GameRank.BRONZE, 'division': 4, 'mark': 0, '_password': None}
-<Token: 4c1f49585a6d952d3251863a6060ae013cc866db>
-<Token: 1d1d5992699f23c612961d9473094981da485c2b>
-<Token: 9d37f02679470bc0ad5fbdf81534efe14a412c3e>
