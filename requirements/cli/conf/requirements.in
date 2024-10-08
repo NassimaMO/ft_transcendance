@@ -1,1 +1,4 @@
 requests
+websockets
+djangorestframework-simplejwt
+pyjwt
