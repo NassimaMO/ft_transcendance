@@ -19,10 +19,4 @@ class ProfileForm(ModelForm):
 
     class Meta:
         model = User
-        fields = ('username', 'avatar', 'status', 'rank')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['rank'].widget.attrs.update({'readonly': 'readonly'})
-        self.fields['rank'].required = False
-        self.fields['rank'].widget.attrs['disabled'] = 'disabled'
+        fields = ('username', 'avatar', 'status')

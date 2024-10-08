@@ -7,15 +7,15 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateFields() {
         const mode = modeField.value;
 
-        if (mode === "multi") {
-            connectField.style.display = "block";
-            if (!matchmakingField.contains(tournamentOption)) {
-                matchmakingField.appendChild(tournamentOption);
-            }
-        } else {
+        if (mode === "solo") {
             connectField.style.display = "none";
             if (matchmakingField.contains(tournamentOption)) {
                 tournamentOption.remove();
+            }
+        } else {
+            connectField.style.display = "block";
+            if (!matchmakingField.contains(tournamentOption)) {
+                matchmakingField.appendChild(tournamentOption);
             }
         }
     }

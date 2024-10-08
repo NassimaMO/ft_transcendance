@@ -9,7 +9,8 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.match_id = self.scope['url_route']['kwargs']['game_id']
         self.match_group_name = f'match_{self.match_id}'
-        self.match_session = RegularGameSession.create()
+        self.session = GameSession.get_or_create(self.match_id)
+        self.session.add_player()
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -21,6 +22,17 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
 
+    """ async def send_game_state(self):
+        game = await self.get_game_state()
+
+        await self.channel_layer.group_send(
+            self.game_group_name,
+            {
+                'type': 'game_state',
+                'game': game
+            }
+        ) """
+
     """ async def move_paddle(self, data):
         player = data['player']
         new_position = data['position']
@@ -29,7 +41,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def update_player_position(self, player, new_position):
-        game = RegularGameSession.objects.get(id=self.game_id)
+        game = GameSession.objects.get(id=self.game_id)
         if player == 'one':
             player_session = game.player_sessions.filter(position=0).first()  # Gauche
         else:
@@ -49,7 +61,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def update_ball_position(self, x, y, velocity_x, velocity_y):
-        game = RegularGameSession.objects.get(id=self.game_id)
+        game = GameSession.objects.get(id=self.game_id)
         ball = game.ball
         ball.position_x = x
         ball.position_y = y
@@ -71,7 +83,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_game_state(self):
-        game = RegularGameSession.objects.get(id=self.game_id)
+        game = GameSession.objects.get(id=self.game_id)
         ball = game.ball
         player_one = game.player_sessions.filter(position=0).first()  # Joueur à gauche
         player_two = game.player_sessions.filter(position=1).first()  # Joueur à droite

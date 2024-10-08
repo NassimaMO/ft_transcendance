@@ -1,5 +1,101 @@
 import rom
 from account.models import User
+from matchmaker.models import Match
+from django.db import models
+
+
+# ********************************************* POSTGRES ORM MODELS *********************************************
+
+
+class GameRank(models.TextChoices):
+    BRONZE = "bronze", "Bronze"
+    SILVER = "silver", "Silver"
+    GOLD = "gold", "Gold"
+    PLAT = "platinium", "Platinium"
+    DIAM = "diamond", "Diamond"
+    MASTER = "master", "Master"
+
+    @classmethod
+    def sorted_ranks(cls):
+        return [
+            cls.BRONZE,
+            cls.SILVER,
+            cls.GOLD,
+            cls.PLAT,
+            cls.DIAM,
+            cls.MASTER,
+        ]
+    
+    @classmethod
+    def next_rank(cls, current_rank):
+        ranks = cls.sorted_ranks()
+        try:
+            current_index = ranks.index(current_rank)
+            if current_index < len(ranks) - 1:
+                return ranks[current_index + 1]
+            else:
+                return current_rank
+        except ValueError:
+            return None
+        
+
+    @classmethod
+    def previous_rank(cls, current_rank):
+        ranks = cls.sorted_ranks()
+        try:
+            current_index = ranks.index(current_rank)
+            if current_index > 0 :
+                return ranks[current_index - 1]
+            else:
+                return current_rank
+        except ValueError:
+            return None
+    
+    @classmethod
+    def marks_per_rank(cls):
+        return {
+            cls.BRONZE: 2,
+            cls.SILVER: 3,
+            cls.GOLD: 4,
+            cls.PLAT: 5,
+            cls.DIAM: 10,
+            cls.MASTER: 20,
+        }
+    
+
+class UserRank(models.Model) :
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rank = models.CharField(max_length=11, choices=GameRank.choices, default=GameRank.BRONZE)
+    division = models.IntegerField(default=4)
+    mark = models.IntegerField(default=0)
+
+    def promote(self) :
+        if (self.mark == GameRank.marks_per_rank()[self.rank]) :
+            if (self.division == 1) :
+                if (self.rank != GameRank.sorted_ranks()[-1]) :
+                    self.division = 4
+                    self.mark = 0
+                self.rank = GameRank.next_rank(self.rank)
+            else :
+                self.division -= 1
+                self.mark = 0
+        else :
+            self.mark += 1
+        self.save()
+
+    def demote(self) :
+        if (self.mark == 0) :
+            if (self.division == 4) :
+                if (self.rank != GameRank.sorted_ranks()[0]) :
+                    self.division = 1
+                    self.mark = GameRank.marks_per_rank()[self.rank]
+                self.rank = GameRank.previous_rank(self.rank)
+            else:
+                self.division += 1
+                self.mark = GameRank.marks_per_rank()[self.rank]
+        else :
+            self.mark -= 1
+        self.save()
 
 
 # ********************************************* REDIS ORM MODELS *********************************************
@@ -26,17 +122,26 @@ class Ball(rom.Model):
         return f'Ball at ({self.position_x}, {self.position_y}) with velocity ({self.velocity_x}, {self.velocity_y})'
 
 
-class RegularGameSession(rom.Model):
+class GameSession(rom.Model):
+    match = rom.ForeignModel(Match, required=True)
     ball = rom.OneToOne("Ball", on_delete='cascade')
     player_sessions = rom.OneToMany('PlayerSession')
 
     @classmethod
-    def create(cls) :
+    def create(cls, match_id) :
         ball = Ball()
         ball.save()
-        game_session = cls(ball=ball)
+        game_session = cls(ball=ball, match=match_id)
         game_session.save()
         return game_session
+    
+    @classmethod
+    def get_or_create(cls, match_id):
+        session = cls.query.filter(match=match_id).first()
+        if not session:
+            session = cls.create(match_id)
+            session.save()
+        return session
 
     def add_player(self, player_id, field_position) :
         existing_player = PlayerSession.query.filter_by(game_session=self, player_id=player_id).first()
@@ -90,7 +195,7 @@ class FieldPosition:
 
 
 class PlayerSession(rom.Model):
-    game_session = rom.ManyToOne("RegularGameSession", on_delete='cascade')
+    game_session = rom.ManyToOne("GameSession", on_delete='cascade')
     user = rom.ForeignModel(User)
     score = rom.Integer(default=0)
     coordinates = rom.Float(default=0)

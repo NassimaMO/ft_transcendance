@@ -1,6 +1,6 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from matchmaker.forms import MatchChoiceForm
-from matchmaker.models import GameMode, Connecitvity, Match, MatchChoice
+from matchmaker.models import GameMode, Connecitvity, Match, MatchChoice, History
 from django.contrib.auth.decorators import login_required
 import logging
 
@@ -18,12 +18,12 @@ def play(request):
             mm = cleaned_data.get('mm')
             match_choice = MatchChoice.create(connect=connect, mode=mode, mm=mm)
             match_choice.save()
-            if (mode == GameMode.SOLO or connect == Connecitvity.LOCAL) :
+            if match_choice.need_matchmaking() :
+                return redirect('matchmaking', match_choice.id)
+            else :
                 match = Match.objects.create(info=match_choice)
                 match.save()
                 return redirect('game', match.id)
-            else :
-                return redirect('matchmaking', match_choice.id)
         else :
             logger.info("invalid form")
     else:
