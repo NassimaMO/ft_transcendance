@@ -1,5 +1,4 @@
-from .auth.urls import router as auth_router
+from .auth.urls import urlpatterns as auth_urls
+from .match.urls import urlpatterns as match_urls
 
-urlpatterns = list()
-
-urlpatterns += auth_router.urls
+urlpatterns = auth_urls + match_urls
