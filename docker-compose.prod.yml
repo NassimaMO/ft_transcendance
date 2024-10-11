@@ -8,12 +8,17 @@ services:
       - media_volume:/app/mediafiles
     env_file:
       - prod.env
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fk https://host.docker.internal || exit 1"]
       
   postgres:
     env_file:
       - prod.env
+
+  cli:
+    depends_on:
+      nginx:
+        condition: service_healthy
+    environment:
+      - CONTEXT=prod
 
 networks:
   transcendence:
