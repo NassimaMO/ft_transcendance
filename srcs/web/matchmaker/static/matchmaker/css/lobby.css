@@ -1,0 +1,576 @@
+/* ------------------ */
+/*         BODY       */
+/* ------------------ */
+
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: url('https://wallpapercave.com/wp/wp4670802.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: #ffffff;
+    overflow: hidden;
+}
+
+.lobby-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.lobby-body {
+    display: flex;
+    flex: 1;
+    height: calc(100% - 62px);
+}
+
+.hidden {
+    display: none;
+}
+
+/* input {
+    background-color: rgb(51, 51, 51, 0);
+    outline: none;
+} */
+
+/* -------------------- */
+/*         NAVBAR       */
+/* -------------------- */
+
+.navbar {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+    background-color: #000;
+}
+
+.nav-list {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    z-index: 1;
+}
+
+.nav-button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 10px 40px;
+    transition: background-color 0.3s;
+    height: 100%;
+    z-index: 1;
+}
+
+.nav-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.nav-button.active {
+    font-weight: bold;
+    border-bottom: 2px solid #16a085;
+}
+
+.separator {
+    width: 100%;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0;
+    z-index: 1;
+}
+
+/* ------------------ */
+/*      MODES MENU    */
+/* ------------------ */
+
+.modes-container {
+    flex: 0 0 220px;
+    background-color: rgba(30, 30, 30, 0.95);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    height: 250px;
+    overflow-y: auto;
+    color: white;
+    padding: 20px;
+    align-self: center;
+    margin: 20px;
+}
+
+.modes-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.modes-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+}
+
+.mode-option {
+    display: flex;
+    justify-content: center;
+    padding: 5px 0;
+    font-size: 18px;
+}
+
+.mode-action {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.btn.mode-button {
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #16a085;
+    color: white;
+    padding: 10px;
+    width: 100%;
+}
+
+.btn.mode-button:hover {
+    background-color: hwb(174 16% 40%);
+}
+
+/* ----------------------- */
+/*      MODES EDIT MENU    */
+/* ----------------------- */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 5px;
+    width: 400px;
+    color: white;
+    text-align: center;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+h3 {
+    padding: 10px;
+}
+
+.modal-section {
+    margin-bottom: 20px;
+    flex-direction: row;
+}
+
+.modal-section label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.modal-section select {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background-color: #444;
+    color: white;
+}
+
+.modal-action {
+    margin-top: 20px;
+}
+
+.btn.mode-button {
+    background-color: #16a085;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn.mode-button:hover {
+    background-color: hwb(174 16% 40%);
+}
+
+/* ----------------------- */
+/*         BANNIERES       */
+/* ----------------------- */
+
+.matchmaking-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.lobby-players {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+}
+
+.player-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%
+}
+
+.player-item {
+    margin: 0 10px;
+    position: relative;
+}
+
+.banner-container {
+    position: relative;
+    width: 200px;
+    height: 400px;
+    overflow: hidden;
+}
+
+.player-banner {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.player-name {
+    font-size: 18px;
+    font-weight: bold;
+    background-color: rgb(51, 51, 51, 0);
+}
+
+.name-edit-input {
+    font-size: 18px;
+    font-weight: bold;
+    width: 100%;
+    height: 80%;
+    align-self: center;
+    background-color: rgb(51, 51, 51, 0);
+    outline: none;
+    color: white;
+    border: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+.player-status {
+    font-size: 14px;
+    text-align: right;
+}
+
+.status {
+    font-weight: bold;
+    margin-left: auto;
+}
+
+.status.ready {
+    color: #2ecc71;
+}
+
+.status.not-ready {
+    color: #e74c3c;
+}
+
+/* ----------------------- */
+/*      BANNIERE INVITE    */
+/* ----------------------- */
+
+.invite-container {
+    position: relative;
+}
+
+.invite-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 200px;
+    height: 400px;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    align-self: center;
+    transition: background 0.3s;
+}
+
+.invite-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.invite-menu {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(30, 30, 30, 0.95);
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.invite-menu.active {
+    display: block;
+}
+
+.invite-menu input {
+    padding: 5px;
+    margin-bottom: 10px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.invite-menu ul {
+    list-style: none;
+    padding: 0;
+}
+
+.invite-menu li {
+    padding: 5px;
+    cursor: pointer;
+}
+
+.invite-menu li:hover {
+    background-color: #444;
+}
+
+/* ------------------- */
+/*      MATCHMAKING    */
+/* ------------------- */
+
+.matchmaking-button-container {
+    display: flex;
+    justify-content: top;
+    margin-top: 0;
+    flex-direction: column;
+    height: 20%;
+}
+
+.btn.start-matchmaking {
+    font-size: 19px;
+    cursor: pointer;
+    background-color: #28ccbc;
+    width: 200px;
+    height: 50px;
+    color: white;
+    align-self: center;
+    border-radius: 0;
+}
+
+.btn.start-matchmaking:hover {
+    background-color: hwb(174 16% 40%);
+}
+
+/* -------------------------- */
+/*         FRIENDS LIST       */
+/* -------------------------- */
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+.friends-container {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 300px;
+    background-color: rgba(30, 30, 30, 0.95);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    height: 100%;
+    border: none;
+    color: white;
+    z-index: 1;
+    overflow-y: hidden;
+}
+
+.friends-window {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.friends-section {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.list-group {
+    list-style: none;
+    border-radius: 5px;
+    overflow: hidden;
+    display: none;
+    padding: 0;
+    margin: 0;
+    border: none;
+    color: white;
+}
+
+.list-group.visible {
+    display: block;
+}
+
+.list-group-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 10px;
+    margin: 0;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    background-color: rgba(30, 30, 30, 0);
+}
+
+.list-group-item:hover {
+    background-color: rgba(50, 50, 50, 1);
+    transition: background 0.1s;
+}
+
+.friend-avatar {
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.status.online {
+    color: #3498db;
+}
+
+.status.offline {
+    color: #95a5a6;
+}
+
+.toggle-button {
+    background-color: rgba(30, 30, 30, 1);
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+    text-align: left;
+    font-size: 16px;
+}
+
+.toggle-button:hover {
+    background-color: rgba(70, 70, 70, 0.9);
+}
+
+.friend-actions-menu {
+    display: none;
+    position: absolute;
+    background-color: #333;
+    z-index: 1000;
+    width: 300px;
+}
+
+.friend-actions-menu ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.friend-actions-menu li {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.friend-actions-menu li:hover {
+    background-color: #444;
+}
+
+/* ----------------------- */
+/*      FRIEND REQUESTS    */
+/* ----------------------- */
+
+.friend-requests-section {
+    padding: 10px 0;
+    flex: none;
+}
+
+
+.request-buttons {
+    margin-top: 10px;
+}
+
+.accept-request, .reject-request {
+    padding: 5px 10px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.accept-request {
+    background-color: #27ae60;
+    color: white;
+}
+
+.reject-request {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* ------------------ */
+/*      ADD FRIEND    */
+/* ------------------ */
+
+.add-friend-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.add-friend-input {
+    background-color: #444;
+    color: white;
+}
+
+.add-friend-button {
+    color: white;
+}
+
+.add-friend-button:hover {
+    color: #95a5a6;
+}
+
+.carousel-item {
+    transition: transform 0.5s ease;
+}

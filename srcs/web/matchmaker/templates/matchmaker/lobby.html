@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extraCSS %}
+	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="lobby-container">
+
+    <!-- Menu de navigation -->
+    <div class="navbar">
+        <ul class="nav-list">
+            <li><button class="nav-button active">Salon</button></li>
+            <li><button class="nav-button">Tournoi</button></li>
+            <li><button class="nav-button">Profil</button></li>
+            <li><button class="nav-button">Carrière</button></li>
+        </ul>
+    </div>
+    <div class="separator"></div>
+
+    <div class="lobby-body">
+
+        <!-- Menu d'affichage des modes à gauche -->
+        <div class="modes-container">
+            <div class="modes-window">
+                <div class="modes-section">
+                    <div class="mode-option">
+                        <span id="connectivity-status">Local</span>
+                    </div>
+                    <div class="mode-option">
+                        <span id="game-mode">vsIA</span>
+                    </div>
+                    <div class="mode-option">
+                        <span id="matchmaking-status">Non classé</span>
+                    </div>
+
+                    <!-- Bouton en bas pour changer de mode / se mettre prêt -->
+                    <div class="mode-action">
+                        <button id="mode-action-button" class="btn mode-button"><br></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu sélection des modes (caché) -->
+        <div id="modeSelectionModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="close-modal-button">&times;</span>
+                <h3>Mode de jeu</h3>
+                <div class="modal-section">
+                    <label for="connectivity"></label>
+                    <select id="connectivity">
+                        <option value="Local">Local</option>
+                        <option value="En ligne">En ligne</option>
+                    </select>
+                </div>
+                <div class="modal-section">
+                    <label for="mode"></label>
+                    <select id="mode">
+                        <option value="vsIA">vsIA</option>
+                        <option value="1v1">1v1</option>
+                        <option value="2v2">2v2</option>
+                    </select>
+                </div>
+                <div class="modal-section">
+                    <label for="matchmaking"></label>
+                    <select id="matchmaking">
+                        <option value="Non classé">Non classé</option>
+                        <option value="Classé">Classé</option>
+                    </select>
+                </div>
+                <div class="modal-action">
+                    <button class="btn mode-button" id="apply-mode-button">Appliquer</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="matchmaking-container">
+            <!-- Bannières au mileu -->
+            <div class="lobby-players">
+                <div class="player-row">
+                    <div class="player-item">
+                        <div class="banner-container">
+                            <img src="https://via.placeholder.com/200x400" alt="Bannière" class="player-banner">
+                            <div class="player-info">
+                                <div class="player-name" id="editable-name">Joueur1</div>
+                                <div class="player-status"><span class="status not-ready">Pas Prêt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="player-item">
+                        <div class="banner-container">
+                            <img src="https://via.placeholder.com/200x400" alt="Bannière" class="player-banner">
+                            <div class="player-info">
+                                <div class="player-name">Joueur2</div>
+                                <div class="player-status"><span class="status not-ready">Pas prêt</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="invite-container">
+                        <!-- Bannière d'invitation à la suite -->
+                        <div class="player-item invite-button">
+                            <button class="invite-button" id="inviteButton">+</button>
+                        </div>
+                        <!-- Menu d'invitation (caché) -->
+                        <div id="inviteMenu" class="invite-menu">
+                            <input type="text" id="friendSearch" placeholder="Rechercher un ami...">
+                            <ul id="friendList">
+                                <li class="friend-item">Alice</li>
+                                <li class="friend-item">Bob</li>
+                                <li class="friend-item">Charlie</li>
+                                <li class="friend-item">David</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Bouton matchmaking en bas -->
+            <div class="matchmaking-button-container">
+                <button class="btn start-matchmaking">JOUER</button>
+            </div>
+        </div>
+
+        <!-- Colonne de droite -->
+        <div class="friends-container">
+            <div class="friends-window">
+                <div class="friends-section">
+                    <!-- En haut : joueurs du lobby -->
+                    <ul class="list-group visible" id="lobbyPlayers">
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            Joueur1 <span class="status not-ready">Pas Prêt</span>
+                        </li>
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            Joueur2 <span class="status not-ready">Pas prêt</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="friends-section">
+                    <!-- Au milieu : liste d'amis -->
+                    <button class="toggle-button" id="toggle-online-button">Amis en ligne</button>
+                    <ul class="list-group" id="onlineFriends">
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            Alice <span class="status online">En ligne</span>
+                        </li>
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            Bob <span class="status online">En ligne</span>
+                        </li>
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            Tom <span class="status online">En ligne</span>
+                        </li>
+                    </ul>                    
+                </div>
+                <div class="friends-section">
+                    <button class="toggle-button" id="toggle-offline-button">Amis hors ligne</button>
+                    <ul class="list-group" id="offlineFriends">
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            Charlie <span class="status offline">Hors ligne</span>
+                        </li>
+                        <li class="list-group-item">
+                            <img src="https://via.placeholder.com/40" alt="Avatar" class="friend-avatar">
+                            David <span class="status offline">Hors ligne</span>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Menu pour inviter / rejoindre ses amis (caché) -->
+                <div id="friend-actions-menu" class="friend-actions-menu">
+                    <ul>
+                        <li id="invite-group">Inviter dans le groupe</li>
+                        <li id="join-group">Rejoindre le groupe</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- En bas : Menu pour voir les demandes d'amis -->
+            <div class="card-body friend-requests-section">
+                <div id="friendRequestsCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <div class="friend-request-content text-center">
+                                <span id="requesterName">Alice</span>
+                                <div class="request-buttons">
+                                    <button class="btn btn-success accept-request" id="acceptRequest">Accepter</button>
+                                    <button class="btn btn-danger reject-request" id="rejectRequest">Refuser</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="friend-request-content text-center">
+                                <span id="requesterName">Bob</span>
+                                <div class="request-buttons">
+                                    <button class="btn btn-success accept-request" id="acceptRequest">Accepter</button>
+                                    <button class="btn btn-danger reject-request" id="rejectRequest">Refuser</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <button class="carousel-control-prev" type="button" data-bs-target="#friendRequestsCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Précédent</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#friendRequestsCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Suivant</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Tout en bas : Menu pour ajouter un ami -->
+            <div class="add-friend-section">
+                <input type="text" id="addFriendInput" placeholder="Entrer un username..." class="add-friend-input">
+                <button id="addFriendButton" class="btn add-friend-button">+</button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- jQuery et Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script type="module" src="{% static 'matchmaker/js/lobby.js' %}"></script>
+
+{% endblock %}
