@@ -1,6 +1,5 @@
 import getpass
-
-API_url = 'https://localhost'
+from cli_api.api_auth import APIAuth
 
 class User_info:
 
@@ -8,12 +7,11 @@ class User_info:
         self.username = None
         self.history = None
         self.profile = None
-        self.token = None
 
-class API_requests:
+class API_requests(APIAuth):
 
     def __init__(self):
-        self.key = ""
+        super().__init__()
         self.user = User_info()
         return
     
@@ -27,36 +25,33 @@ class API_requests:
             password = getpass.getpass("> Enter your password: ")
             if password:
                 break
-            print("> Please enter a VALID password ???????")
-        return username, password
+            print("> Please enter a password.")
+        response = super().login(username, password)
+        if response == 200:
+            self.log(username)
+        elif response == 401:
+            print("> Wrong login creditentials.")
+            return 0
+        return 1
     
     def get_sign_up_details(self):
         username = input("> Enter your username: ")
         while True:
-            password = getpass.getpass("> Enter your password: ") # Need to validate username
+            password = getpass.getpass("> Enter your password: ")
             re_password = getpass.getpass("> Confirm your password: ")
-            if username and password and password == re_password: # Maybe also check if the password is valid (ex: > 8 length)
+            if username and password and password == re_password:
                 break
             print("> The passwords entered are different. Try again.")
-        return username, password
-    
-    def authentication(self, username, password):
-        self.token = 0
-        if username and password:
-            #websocket thingy
-            self.log(username)
-            self.token = 1
-        else:
-            print("> Back to the menu we go...")
-        return self.token
+        return super().register(username, password)
 
     def log(self, username):
         self.username = username
+        #self.token = super().get_token()
         self.profile = self.get_profile()
         self.history = self.update_history()
 
-    def delog(self):
-        #self.username, self.profile, self.history = None
+    def logout(self):
+        #self.user.username, self.user.profile, self.user.history = None
         return 0
 
     def get_profile(self):

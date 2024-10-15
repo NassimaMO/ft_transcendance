@@ -28,7 +28,7 @@ cli: PROFILE=development
 cli: ENV_FILE=dev.env
 cli: DOCKER_FILE=docker-compose.dev.yml
 cli: get_ip docker
-	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) run cli python srcs/api_play.py
+	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) run cli python srcs/cli_app/main.py
 
 clean:
 	@-docker compose -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) down

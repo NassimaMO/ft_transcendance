@@ -1,4 +1,4 @@
-from api_auth import APIAuth
+from cli_api.api_auth import APIAuth
 import asyncio
 import websockets
 import json
@@ -148,9 +148,11 @@ class APIPlay(APIAuth):
         if self.need_matchmaking:
             asyncio.run(self.matchmaking())
 
+"""
 if __name__ == "__main__" :
     api_play = APIPlay()
     api_play.register("user1", "password")
     api_play.login("user1", "password")
     api_play.select_mode("online", "multi", "unranked")
     api_play.play()
+"""

@@ -77,6 +77,8 @@ services:
       dockerfile: requirements/cli/Dockerfile
     extra_hosts:
       - host.docker.internal:host-gateway
+    environment:
+      - PYTHONPATH=/app/srcs
     restart: "no"
 
 

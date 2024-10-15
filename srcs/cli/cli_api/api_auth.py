@@ -2,7 +2,7 @@ import requests
 import jwt
 import time
 from typing import Optional
-from api_connector import APIConnector
+from cli_api.api_connector import APIConnector
 
 
 class APIAuth(APIConnector):
@@ -149,19 +149,3 @@ class APIAuth(APIConnector):
             self.refresh_token = response.json().get('refresh')
             print("Login successful")
         return response
-
-
-if __name__ == "__main__":
-    # Example usage of APIAuth:
-    
-    # Initialize the APIAuth class
-    auth = APIAuth()
-
-    # Register a new user
-    response = auth.register("user", "password")
-
-    # Optional : get the access token for authenticated requests
-    token = auth.get_token()
-
-    # Log in an existing user
-    response = auth.login("user", "password")

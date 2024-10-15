@@ -1,4 +1,4 @@
-from api_play import APIPlay
+from cli_api.api_play import APIPlay
 
 class APIPong(APIPlay) :
 
