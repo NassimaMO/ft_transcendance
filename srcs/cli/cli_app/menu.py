@@ -28,30 +28,34 @@ class Menu:
         while True:
             print("\033[u\033[J") # the color does not change
             if AUTH:
-                cmd = input("> Enter a command (PROFILE/PONG/HISTORY/COLORS/LOGOUT/QUIT): ")
-                if cmd == 'PROFILE':
+                cmd = input("> Enter a command (PROFILE/PONG/FRIENDS/HISTORY/COLORS/LOGOUT/QUIT): ").lower()
+                if cmd == 'profile':
                     self.api.display_profile()
-                elif cmd == 'PONG':
-                    curses.wrapper(main)
-                    self.api.update_history()
-                elif cmd == 'HISTORY':
+                elif cmd == 'pong':
+                    if self.api.game_init():
+                        print("\033[u\033[J\033[A")
+                        curses.wrapper(main)
+                        self.api.update_history()
+                elif cmd == 'friends':
+                    self.api.display_friends()
+                elif cmd == 'history':
                     self.api.display_history()
-                elif cmd == 'COLORS':
+                elif cmd == 'colors':
                     self.color_change()
-                elif cmd == 'LOGOUT':
+                elif cmd == 'logout':
                     AUTH = self.api.logout()
-                elif cmd == 'QUIT':
+                elif cmd == 'quit':
                     print("Exiting the CLI...")
                     break
                 else:
                     print("Invalid command")
             else:
-                cmd = input("> Enter a command (LOGIN/SIGNUP/QUIT): ")
-                if cmd == 'LOGIN':
+                cmd = input("> Enter a command (LOGIN/SIGNUP/QUIT): ").lower()
+                if cmd == 'login':
                     AUTH = self.api.get_creditentials()
-                elif cmd == 'SIGNUP':
+                elif cmd == 'signup':
                     self.api.get_sign_up_details()
-                elif cmd == 'QUIT':
+                elif cmd == 'quit':
                     print("Exiting the CLI...")
                     break
                 else:
@@ -59,26 +63,26 @@ class Menu:
 
     def color_change(self):
         while True:
-            color = input("> Enter a color (CYAN/RED/GREEN/BLUE/MAGENTA/WHITE/MENU): ")
-            if color == 'CYAN':
+            color = input("> Enter a color (CYAN/RED/GREEN/BLUE/MAGENTA/WHITE/MENU): ").lower()
+            if color == 'cyan':
                 COLOR = Fore.CYAN
                 print(COLOR + "Color changed to " + color + " successfully")
-            elif color == 'RED':
+            elif color == 'red':
                 COLOR = Fore.RED
                 print(COLOR + "> Color changed to " + color + " successfully")
-            elif color == 'GREEN':
+            elif color == 'green':
                 COLOR = Fore.GREEN
                 print(COLOR + "> Color changed to " + color + " successfully")
-            elif color == 'BLUE':
+            elif color == 'blue':
                 COLOR = Fore.BLUE
                 print(COLOR + "> Color changed to " + color + " successfully")
-            elif color == 'MAGENTA':
+            elif color == 'magenta':
                 COLOR = Fore.MAGENTA
                 print(COLOR + "> Color changed to " + color + " successfully")
-            elif color == 'WHITE':
+            elif color == 'white':
                 COLOR = Fore.WHITE
                 print(COLOR + "> Color changed to " + color + " successfully")
-            elif color == 'MENU':
+            elif color == 'menu':
                 break
             else:
                     print("Invalid command")
