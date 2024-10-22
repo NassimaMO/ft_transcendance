@@ -30,7 +30,7 @@ class Menu:
             if AUTH:
                 cmd = input("> Enter a command (PROFILE/PONG/FRIENDS/HISTORY/COLORS/LOGOUT/QUIT): ").lower()
                 if cmd == 'profile':
-                    self.api.display_profile()
+                    self.display_profile()
                 elif cmd == 'pong':
                     if self.api.game_init():
                         print("\033[u\033[J\033[A")
@@ -43,7 +43,7 @@ class Menu:
                 elif cmd == 'colors':
                     self.color_change()
                 elif cmd == 'logout':
-                    AUTH = self.api.logout()
+                    AUTH = 0
                 elif cmd == 'quit':
                     print("Exiting the CLI...")
                     break
@@ -86,3 +86,24 @@ class Menu:
                 break
             else:
                     print("Invalid command")
+
+    def display_profile(self):
+        print("\033[u\033[J") # + self.api.get_avatar())
+        print("\033[u\033[50C" + "Player: " + self.api.get_username())
+        print("\033[50C" + "Description: " + self.api.get_description())
+        print("\033[50C" + "Rank: " + self.api.get_rank())
+        print("\033[50C" + "Friends: " + self.api.get_friends())
+        print("\033[50C" + "Stats: " + self.api.get_stats())
+        cmd = input("\033[u\033[50H> Display more statistics (YES/NO): ").lower()
+        if cmd == "yes":
+            print("\033[u\033[J\033[50C" + "Detailed stats: " + self.api.get_stats())
+            cmd = input("\033[u\033[50H> Back to the menu (MENU): ").lower()
+
+    def display_friends(self):
+        cmd = input("> Choose option: (ADD/REMOVE/LIST/MENU)").lower()
+        return
+    
+    def display_history(self):
+        # display mode, dates, score, performance
+        cmd = input("> Move page (PREV/NEXT/MENU): ").lower()
+        return

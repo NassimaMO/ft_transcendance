@@ -1,12 +1,17 @@
 import getpass, time
 from cli_api.api_pong import APIPong
+from cli_app.image_to_ascii import image_to_ascii
 
 class User_info:
 
     def __init__(self):
         self.username = None
+        self.avatar = None
+        self.description = None
         self.history = None
-        self.profile = None
+        self.rank = None
+        self.stats = None
+        self.friends = None
 
 class API_requests(APIPong):
 
@@ -27,12 +32,11 @@ class API_requests(APIPong):
             if password:
                 break
             print("> Please enter a password.")
-        response = super().login(username, password) #auth
-        if int(response.status_code / 100) != 2:
+        if int(super().login(username, password).status_code / 100) != 2: #auth
             print("> Wrong login creditentials.")
             time.sleep(0.4)
             return 0
-        self.log(username)
+        self._log(username)
         time.sleep(0.4)
         return 1
     
@@ -44,39 +48,42 @@ class API_requests(APIPong):
             if username and password and password == re_password:
                 break
             print("> The passwords entered are different. Try again.")
-        if super().register(username, password)[:1] == 2: #auth
+        if int(super().register(username, password).status_code / 100) == 2: #auth
             print("Player registered successfully.")
             return
         print("") #response error
 
-    def log(self, username):
-        self.username = username
-        #self.token = super().get_token()
-        self.profile = self.get_profile()
-        self.history = self.update_history()
+    def _log(self, username):
+        self.user.username = username
+        self.user.avatar = image_to_ascii("/app/srcs/cli/cli_app/sheil.png")
+        self.user.description = ""
+        self.user.rank = ""
+        self.user.history = self.update_history()
+        self.user.stats = ""
+        self.user.friends = ""
 
-    def logout(self):
-        #self.user.username, self.user.profile, self.user.history = None
-        return 0
+    def get_username(self):
+        return self.user.username
 
-    def get_profile(self):
-        return
+    def get_avatar(self):
+        return self.user.avatar
     
-    def display_profile(self):
-        # display avatar, name, rank, number of matches, number of wins, friends
-        cmd = input("> Display more statistics (YES/NO/MENU): ").lower()
-        return
+    def get_description(self):
+        return self.user.description
     
-    def display_friends(self):
-        cmd = input("> Choose option: (ADD/REMOVE/LIST/MENU)").lower()
-        return
+    def get_history(self):
+        return self.user.history
+    
+    def get_rank(self):
+        return self.user.rank
+    
+    def get_stats(self):
+        return self.user.stats
+    
+    def get_friends(self):
+        return self.user.friends
 
     def update_history(self):
-        return
-    
-    def display_history(self):
-        # display mode, dates, score, performance
-        cmd = input("> Move page (PREV/NEXT/MENU): ").lower()
         return
 
     def game_init(self):
@@ -89,7 +96,7 @@ class API_requests(APIPong):
                 
                 while True:
                     mode = input("> Choose game mode (SOLO/1V1/BACK): ").lower()
-                    if mode == "solo" or mode == "1v1" or mode == "back":
+                    if mode in ("solo", "1v1", "back"):
                         mm_preferences = "unranked"
                         break
                     else:
@@ -99,7 +106,7 @@ class API_requests(APIPong):
             elif connexion == "online":
                 while True:
                     mode = input("> Choose game mode (SOLO/1V1/2V2/BACK): ").lower()
-                    if mode == "solo" or mode == "1v1" or mode == "2v2":
+                    if mode in ("solo", "1v1", "2v2"):
                         while True:
                             mm_preferences = input("> Choose matchmaking preference (RANKED/UNRANKED/TOURNAMENT/BACK):")
                             if mm_preferences == "ranked" or mm_preferences == "unranked" or mm_preferences == "tournament" or mm_preferences == "back":
@@ -119,10 +126,11 @@ class API_requests(APIPong):
             
             if connexion == "back":
                 return 0
-            elif mode and (mode != "back" and mm_preferences != "back"):
+            elif mode and {mode, mm_preferences} != {"back"}:
                 break
         
         
         response = super().select_mode(connexion, mode, mm_preferences) #play
         if int(response.status_code / 100) == 2:
+            time.sleep(1)
             return 1 # get game logic
