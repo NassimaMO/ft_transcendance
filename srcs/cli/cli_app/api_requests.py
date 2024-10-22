@@ -82,6 +82,12 @@ class API_requests(APIPong):
     
     def get_friends(self):
         return self.user.friends
+    
+    def add_friend(self, name):
+        return 1
+
+    def remove_friend(self, name):
+        return 1
 
     def update_history(self):
         return
@@ -132,5 +138,4 @@ class API_requests(APIPong):
         
         response = super().select_mode(connexion, mode, mm_preferences) #play
         if int(response.status_code / 100) == 2:
-            time.sleep(1)
             return 1 # get game logic

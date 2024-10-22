@@ -26,20 +26,18 @@ class Menu:
     def options_display(self):
         global AUTH
         while True:
-            print("\033[u\033[J") # the color does not change
             if AUTH:
-                cmd = input("> Enter a command (PROFILE/PONG/FRIENDS/HISTORY/COLORS/LOGOUT/QUIT): ").lower()
+                cmd = input("\033[u\033[J> Enter a command (PROFILE/PONG/FRIENDS/HISTORY/COLORS/LOGOUT/QUIT): ").lower()
                 if cmd == 'profile':
                     self.display_profile()
                 elif cmd == 'pong':
                     if self.api.game_init():
-                        print("\033[u\033[J\033[A")
                         curses.wrapper(main)
                         self.api.update_history()
                 elif cmd == 'friends':
-                    self.api.display_friends()
+                    self.display_friends()
                 elif cmd == 'history':
-                    self.api.display_history()
+                    self.display_history()
                 elif cmd == 'colors':
                     self.color_change()
                 elif cmd == 'logout':
@@ -50,7 +48,7 @@ class Menu:
                 else:
                     print("Invalid command")
             else:
-                cmd = input("> Enter a command (LOGIN/SIGNUP/QUIT): ").lower()
+                cmd = input("\033[u\033[J> Enter a command (LOGIN/SIGNUP/QUIT): ").lower()
                 if cmd == 'login':
                     AUTH = self.api.get_creditentials()
                 elif cmd == 'signup':
@@ -63,7 +61,7 @@ class Menu:
 
     def color_change(self):
         while True:
-            color = input("> Enter a color (CYAN/RED/GREEN/BLUE/MAGENTA/WHITE/MENU): ").lower()
+            color = input("\033[u\033[J> Enter a color (CYAN/RED/GREEN/BLUE/MAGENTA/WHITE/MENU): ").lower()
             if color == 'cyan':
                 COLOR = Fore.CYAN
                 print(COLOR + "Color changed to " + color + " successfully")
@@ -88,22 +86,61 @@ class Menu:
                     print("Invalid command")
 
     def display_profile(self):
-        print("\033[u\033[J") # + self.api.get_avatar())
-        print("\033[u\033[50C" + "Player: " + self.api.get_username())
+        os.system("clear")
+        #print("\033[u\033[J")
+        for i in range(25):
+            print("*" * 50) # + self.api.get_avatar(), end='')
+        print(f"\033[H\033[50C" + "Player: " + self.api.get_username())
         print("\033[50C" + "Description: " + self.api.get_description())
         print("\033[50C" + "Rank: " + self.api.get_rank())
         print("\033[50C" + "Friends: " + self.api.get_friends())
         print("\033[50C" + "Stats: " + self.api.get_stats())
-        cmd = input("\033[u\033[50H> Display more statistics (YES/NO): ").lower()
+        cmd = input("\033[26H> Display more statistics (YES/NO): ").lower()
         if cmd == "yes":
-            print("\033[u\033[J\033[50C" + "Detailed stats: " + self.api.get_stats())
-            cmd = input("\033[u\033[50H> Back to the menu (MENU): ").lower()
+            print("\033[H\033[50C" + "Detailed stats: " + self.api.get_stats())
+            cmd = input("\033[26H\033[J> Back to the menu (MENU): ").lower()
+        self.screentitle()
 
     def display_friends(self):
-        cmd = input("> Choose option: (ADD/REMOVE/LIST/MENU)").lower()
+        while True:
+            cmd = input("\033[u\033[J> Choose option (ADD/REMOVE/LIST/MENU):").lower()
+            if cmd == "add":
+                name = input("> Enter user name: ")
+                if self.api.add_friend(name):
+                    print("Friend added successfully.")
+                else:
+                    print("No user of this name found.")
+                time.sleep(0.4)
+            elif cmd == "remove":
+                name = input("> Enter user name: ")
+                if self.api.remove_friend(name):
+                    print("Friend removed successfully.")
+                else:
+                    print("No friend of this name found.")
+                time.sleep(0.4)
+            elif cmd == "list":
+                while True:
+                    print("\033[u\033[JFRIEND LIST: ")
+                    cmd = input("> Choose option (PREV/NEXT/ONLINE/ALL/BACK): ").lower()
+                    if cmd == "prev":
+                        print("")
+                    elif cmd == "next":
+                        print("")
+                    elif cmd == "online":
+                        print("")
+                    elif cmd == "all":
+                        print("")
+                    elif cmd == "back":
+                        break
+                    else:
+                        print("Invalid command.")
+            elif cmd == "menu":
+                break
+            else:
+                print("Invalid commad.")
         return
     
     def display_history(self):
         # display mode, dates, score, performance
-        cmd = input("> Move page (PREV/NEXT/MENU): ").lower()
+        cmd = input("\033[u\033[J> Move page (PREV/NEXT/MENU): ").lower()
         return
