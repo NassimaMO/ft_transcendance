@@ -87,14 +87,12 @@ class Menu:
 
     def display_profile(self):
         os.system("clear")
-        #print("\033[u\033[J")
-        for i in range(25):
-            print("*" * 50) # + self.api.get_avatar(), end='')
-        print(f"\033[H\033[50C" + "Player: " + self.api.get_username())
-        print("\033[50C" + "Description: " + self.api.get_description())
-        print("\033[50C" + "Rank: " + self.api.get_rank())
-        print("\033[50C" + "Friends: " + self.api.get_friends())
-        print("\033[50C" + "Stats: " + self.api.get_stats())
+        print(self.api.get_avatar(), end='')
+        print(f"\033[H\033[40C" + "Player: " + self.api.get_username())
+        print("\033[40C" + "Description: " + self.api.get_description())
+        print("\033[40C" + "Rank: " + self.api.get_rank())
+        print("\033[40C" + "Friends: " + self.api.get_friends())
+        print("\033[40C" + "Stats: " + self.api.get_stats())
         cmd = input("\033[26H> Display more statistics (YES/NO): ").lower()
         if cmd == "yes":
             print("\033[H\033[50C" + "Detailed stats: " + self.api.get_stats())

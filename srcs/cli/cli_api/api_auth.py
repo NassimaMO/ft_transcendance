@@ -119,6 +119,22 @@ class APIAuth(APIConnector):
             return {'Authorization': f'Bearer {self.get_token()}', **super().get_headers()}
         return super().get_headers()
     
+    def get_response_GET(self, url: str):
+        headers = self.get_headers()
+        response = requests.get(url, headers=headers)
+        if int(response.status_code / 100) == 2:
+            data = response.json()
+            image_response = requests.get(data['avatar']['avatar_url'])
+
+            if image_response.status_code == 200:
+                with open('avatar.png', 'wb') as file:
+                    file.write(image_response.content)
+            print(data)
+            time.sleep(3)
+            return data
+        else:
+            print(f"Error: {response.status_code} - {response.json()}")
+    
     def register(self, username: str, password: str) -> requests.Response:
         """
         Registers a new user via the API.

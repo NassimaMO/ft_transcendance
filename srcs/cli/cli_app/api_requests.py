@@ -51,16 +51,19 @@ class API_requests(APIPong):
         if int(super().register(username, password).status_code / 100) == 2: #auth
             print("Player registered successfully.")
             return
-        print("") #response error
 
     def _log(self, username):
+        data = self.get_response_GET(self.get_profile_url())
         self.user.username = username
-        self.user.avatar = image_to_ascii("/app/srcs/cli/cli_app/sheil.png")
+        self.user.avatar = image_to_ascii('avatar.png')
         self.user.description = ""
-        self.user.rank = ""
+        self.user.rank = self.update_rank()
         self.user.history = self.update_history()
-        self.user.stats = ""
+        self.user.stats = self.update_stats()
         self.user.friends = ""
+
+    def get_profile_url(self):
+        return self.get_base_url() + "profile/"
 
     def get_username(self):
         return self.user.username
@@ -90,6 +93,12 @@ class API_requests(APIPong):
         return 1
 
     def update_history(self):
+        return
+    
+    def update_stats(self):
+        return
+    
+    def update_rank(self):
         return
 
     def game_init(self):

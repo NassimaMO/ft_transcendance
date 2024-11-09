@@ -26,7 +26,7 @@ def map_pixels_to_ascii(image, range_width=25):
     return ascii_str
 
 # Convert image to ASCII art
-def image_to_ascii(image_path, new_width=50):
+def image_to_ascii(image_path, new_width=40):
     try:
         image = Image.open(image_path)
     except Exception as e:
