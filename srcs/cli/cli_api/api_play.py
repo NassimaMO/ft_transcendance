@@ -97,13 +97,13 @@ class APIPlay(APIAuth):
         if response.status_code == 201:
             self.match_choice_id = response.json().get("match_choice_id")
             self.need_matchmaking = response.json().get("matchmaking")
-            print('Mode de jeu selectionné avec succès.')
+            print('Mode successfully selected.')
         elif response.status_code == 400:
-            print("Erreur de paramètres. Veuillez consulter la documentation de l'API.", response)
+            print("Parameter error. Consult the API documentation.", response)
         elif response.status_code == 401:
-            print(f"Erreur d'authentification : vous devez être correctement authentifié avant de lancer cette requête.")
+            print(f"Authentication error : You must be properly authenticated before initiating this request.")
         else:
-            print(f"Erreur : {response.status_code} - {response}")
+            print(f"Error : {response.status_code} - {response}")
         return response
     
     async def matchmaking(self) -> None:
@@ -138,21 +138,12 @@ class APIPlay(APIAuth):
         """
         if not connect_choice or not mode_choice or not mm_choice:
             if not self.match_choice_id:
-                print("Veuillez choisir un mode de jeu")
+                print("Please choose the game mode")
                 return
         else:
             self.select_mode(connect_choice, mode_choice, mm_choice)
         if not self.match_choice_id:
-            print("Veuillez choisir un mode de jeu")
+            print("Please choose the game mode")
             return
         if self.need_matchmaking:
             asyncio.run(self.matchmaking())
-
-"""
-if __name__ == "__main__" :
-    api_play = APIPlay()
-    api_play.register("user1", "password")
-    api_play.login("user1", "password")
-    api_play.select_mode("online", "multi", "unranked")
-    api_play.play()
-"""

@@ -95,7 +95,7 @@ class Menu:
         print("\033[40C" + "Stats: " + self.api.get_stats())
         cmd = input("\033[26H> Display more statistics (YES/NO): ").lower()
         if cmd == "yes":
-            print("\033[H\033[50C" + "Detailed stats: " + self.api.get_stats())
+            print("\033[H\033[40C" + "Detailed stats: " + self.api.get_stats())
             cmd = input("\033[26H\033[J> Back to the menu (MENU): ").lower()
         self.screentitle()
 

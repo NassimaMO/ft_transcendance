@@ -93,13 +93,13 @@ class API_requests(APIPong):
         return 1
 
     def update_history(self):
-        return
+        return ""
     
     def update_stats(self):
-        return
+        return ""
     
     def update_rank(self):
-        return
+        return ""
 
     def game_init(self):
         mode = None
