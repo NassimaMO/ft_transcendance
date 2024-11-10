@@ -1,0 +1,18 @@
+                {% for lobby_player in lobby_players %}
+                    <div class="player-item">
+                        <div class="banner-container">
+                            <img src="{{ lobby_player.player.user.banner }}" alt="Bannière" class="player-banner">
+                            <div class="player-info">
+                                <div class="player-name" id="editable-name">{{ lobby_player.player.pseudo }}</div>
+                                <div class="player-status">
+                                    <span class="status {% if lobby_player.is_ready %}ready{% else %}not-ready{% endif %}">
+                                        {% if lobby_player.is_ready %}Prêt{% else %}Pas Prêt{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                <div class="invite-container" id="invite-banner">
+                    {% include "matchmaker/invite_banner.html" with friends=friends %}
+                </div>

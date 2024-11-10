@@ -5,7 +5,7 @@
 body {
     margin: 0;
     font-family: 'Arial', sans-serif;
-    background: url('https://wallpapercave.com/wp/wp4670802.jpg') no-repeat center center fixed;
+    background: var(--background-image) no-repeat center center fixed;
     background-size: cover;
     color: #ffffff;
     overflow: hidden;
@@ -89,6 +89,10 @@ body {
 /* ------------------ */
 /*      MODES MENU    */
 /* ------------------ */
+
+.lobby-modes {
+    display: flex;
+}
 
 .modes-container {
     flex: 0 0 220px;
@@ -434,7 +438,7 @@ h3 {
 
 .list-group {
     list-style: none;
-    border-radius: 5px;
+    border-radius: 0px;
     overflow: hidden;
     display: none;
     padding: 0;
@@ -450,12 +454,13 @@ h3 {
 .list-group-item {
     display: flex;
     align-items: center;
-    padding: 10px 10px;
+    padding: 0;
     margin: 0;
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     background-color: rgba(30, 30, 30, 0);
+    height: 50px;
 }
 
 .list-group-item:hover {
@@ -464,8 +469,10 @@ h3 {
 }
 
 .friend-avatar {
-    border-radius: 50%;
-    margin-right: 10px;
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    display: block;
 }
 
 .status.online {

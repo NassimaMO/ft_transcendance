@@ -3,18 +3,19 @@ from django.contrib.auth.models import AbstractUser
 
 
 class Status(models.TextChoices):
-    ON = "actif", "Actif"
-    OFF = "inactif", "Inactif"
-    IG = "en jeu", "En Jeu"
-    INV = "invisible", "Invisible"
-    BUSY = "occupé", "Occupé"
+    ON = "Actif", "Actif"
+    OFF = "Inactif", "Inactif"
+    IG = "En jeu", "En Jeu"
+    INV = "Invisible", "Invisible"
+    BUSY = "Occupé", "Occupé"
 
 
 class User(AbstractUser):
-    avatar = models.ImageField(upload_to='', default="static/account/media/avatar.png")
+    avatar = models.ImageField(upload_to='', default="static/account/media/default_avatar.png")
+    banner = models.ImageField(upload_to='', default="static/account/media/default_banner.jpg")
+    status = models.CharField(max_length=9, choices=Status.choices, default=Status.ON)
     friends = models.ManyToManyField('self', blank=True)
-    requests = models.ManyToManyField('self', blank=True)
-    status = models.CharField(max_length=9, choices=Status.choices, default=Status.OFF)
+    requests = models.ManyToManyField('self',  symmetrical=False, blank=True)
 
     groups = models.ManyToManyField(
         'auth.Group',
@@ -30,11 +31,19 @@ class User(AbstractUser):
         related_query_name='user',
     )
 
+    @property
+    def offline_friends_count(self):
+        return self.friends.filter(status=Status.OFF).count()
+
+    @property
+    def online_friends_count(self):
+        return self.friends.count() - self.offline_friends_count
+
     def __str__(self):
         return self.username
     
     def __repr__(self):
-        return self.__str__()
+        return f"<User {self.__str__()}>"
     
     @classmethod
     def get(cls, pk):
@@ -45,3 +54,6 @@ class User(AbstractUser):
         
     def get_status(self) :
         return self.status
+    
+    def get_pseudo(self) :
+        return self.username
