@@ -168,7 +168,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             
     async def accept_invite(self, username):
         if not self.player :
-            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(user=self.user)
+            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(self.user)
         request = await sync_to_async(self.player.get_request)(username, "invite")
         await sync_to_async(request.delete)()
         await self.send(text_data=json.dumps({
@@ -205,7 +205,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
     async def leave_lobby(self):
         if not self.player :
-            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(user=self.user)
+            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(self.user)
         if not self.player.is_leader :
             await self.send_lobby_notif("leave")
         await sync_to_async(self.player.leave_lobby)()
@@ -252,7 +252,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         sender_name = event['sender']
         sender_user = await sync_to_async(User.objects.get)(username=sender_name)
         if not self.player :
-            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(user=self.user)
+            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(self.user)
         request = await sync_to_async(models.LobbyRequest)(recipient=self.player, sender=sender_name, type="invite")
         await sync_to_async(request.save)()
         await self.send(text_data=json.dumps({

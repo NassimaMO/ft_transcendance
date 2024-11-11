@@ -135,38 +135,23 @@ class LobbyRequest(rom.Model):
     type = rom.String()
 
 
-class Player(rom.Model) :
+class LobbyPlayer(rom.Model) :
     user = rom.ForeignModel(User)
     pseudo = rom.String()
-    
-    @classmethod
-    def get_or_create(cls, user, pseudo=None):
-        players = cls.query.all()
-        for player in players:
-            if player.user == user:
-                return player
-        if not pseudo:
-            pseudo = user.get_pseudo()
-        player = cls(user=user.id, pseudo=pseudo)
-        player.save()
-        return player
-
-class LobbyPlayer(rom.Model) :
-    player = rom.OneToOne("Player", on_delete='cascade')
     is_ready = rom.Boolean(default=True)
     is_leader = rom.Boolean(default=True)
     lobby = rom.OneToOne("Lobby", on_delete="set null")
     requests = rom.OneToMany("LobbyRequest")
 
     @classmethod
-    def get_or_create(cls, user=None, player=None):
+    def get_or_create(cls, user, pseudo=None, lobby=None):
         lobby_players = cls.query.all()
         for lobby_player in lobby_players:
-            if user and lobby_player.player.user == user or player and lobby_player.player == player :
+            if user and lobby_player.user == user :
                 return lobby_player
-        if not player :
-            player = Player.get_or_create(user)
-        lobby_player = cls(player=player)
+        if not pseudo :
+            pseudo=user.get_pseudo()
+        lobby_player = cls(user=user, pseudo=pseudo, lobby=lobby)
         lobby_player.save()
         return lobby_player
     
@@ -205,7 +190,7 @@ class Lobby(rom.Model) :
 
     @classmethod
     def get_or_create(cls, user):
-        lobby_player = LobbyPlayer.get_or_create(user=user)
+        lobby_player = LobbyPlayer.get_or_create(user)
         if lobby_player.lobby:
             return lobby_player.lobby
         new_lobby = cls()
@@ -215,5 +200,5 @@ class Lobby(rom.Model) :
         return new_lobby
     
     def add_player(self, user) :
-        player = LobbyPlayer.get_or_create(user=user)
+        player = LobbyPlayer.get_or_create(user)
         player.join_lobby(self)
