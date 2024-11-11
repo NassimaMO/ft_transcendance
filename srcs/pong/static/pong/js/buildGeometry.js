@@ -61,12 +61,12 @@ export function wallVertical(positionX, positionY, positionZ)
 
 export function wallHorizontal(positionX, positionY, positionZ)
 {
-    const geometryWallVertical = new THREE.BoxGeometry( 431, 5, 5 );
+    const geometryWallVertical = new THREE.BoxGeometry( Config.tableWidth - 20, 5, 5 );
     const materialWallVertical = new THREE.MeshStandardMaterial( { color: 0xff0000, lightMap: lightMap, lightMapIntensity: 3} );
     const wallHorizontal =
     {
         object: new THREE.Mesh( geometryWallVertical, materialWallVertical ),
-        rectLight: new THREE.RectAreaLight( 0xff0000, 3, 431, 5)
+        rectLight: new THREE.RectAreaLight( 0xff0000, 3, Config.tableWidth - 20, 5)
     }
     wallHorizontal.object.position.set(positionX, positionY, positionZ)
     wallHorizontal.rectLight.position.set(positionX, positionY, positionZ + 3)
@@ -75,7 +75,7 @@ export function wallHorizontal(positionX, positionY, positionZ)
 
 function table()
 {
-	const geometryTable = new THREE.PlaneGeometry( 450, 240, 30, 10 );
+	const geometryTable = new THREE.PlaneGeometry( Config.tableWidth, Config.tableHeight, 30, 10 );
 	const materialTable = new THREE.MeshStandardMaterial( { color: 0xffffff, fog: false, wireframe: false} );
 	const table = new THREE.Mesh( geometryTable, materialTable );
 	table.receiveShadow = true;
@@ -87,10 +87,8 @@ export function map()
 {
 	const map =
 	{
-		wallLeft : wallVertical(-213, 0, 0),
-		wallRight : wallVertical(213, 0, 0),
-		wallUp : wallHorizontal(0, 120, 0),
-		wallDown : wallHorizontal(0, -120, 0),
+		wallUp : wallHorizontal(0, (Config.tableHeight / 2), 0),
+		wallDown : wallHorizontal(0, -1 * (Config.tableHeight / 2), 0),
 		table : table()
 	}
 	return (map)

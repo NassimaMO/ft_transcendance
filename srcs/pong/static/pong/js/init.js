@@ -5,6 +5,16 @@ import * as Object from './buildGeometry.js'
 export let windowWidth = window.innerWidth
 export let windowHeight = window.innerHeight
 
+export function setWindowHeight(innerHeight)
+{
+	windowWidth = innerHeight;
+}
+
+export function setWindowWidth(innerWidth)
+{
+	windowWidth = innerWidth;
+}
+
 function initThreeJs()
 {
 	const renderer = new THREE.WebGLRenderer({antialias: true})
@@ -15,7 +25,7 @@ function initThreeJs()
 		renderer
 	}
 	threeJs.renderer.shadowMap.enabled = true
-	threeJs.renderer.setSize( window.innerWidth, window.innerHeight - 200)
+	threeJs.renderer.setSize( window.innerWidth, window.innerHeight - 150)
 	document.body.appendChild( renderer.domElement )
 	return (threeJs)
 }

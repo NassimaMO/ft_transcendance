@@ -19,12 +19,12 @@ function game()
 	Move.movePaddle(Obj.paddleLeft, Obj.paddleRight);
 	if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
 	{
-		threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 200)
+		threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 150)
 		threeJS.camera.position.z = 200;
 		threeJS.camera.aspect = (window.innerWidth / window.innerHeight)
 		threeJS.camera.updateProjectionMatrix();
-		Init.windowHeight = window.innerHeight
-		Init.windowWidth = window.innerWidth
+		Init.setWindowHeight(window.innerHeight);
+		Init.setWindowWidth(window.innerWidth);
 	}
 	threeJS.renderer.render( threeJS.scene, threeJS.camera );
 }
