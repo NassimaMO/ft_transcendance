@@ -2,9 +2,9 @@
                     <!-- En haut : joueurs du lobby -->
                     <ul class="list-group visible" id="lobbyPlayers">
                     {% for lobby_player in lobby_players %}
-                        <li class="list-group-item" data-username="{{ lobby_player.player.user.username }}">
-                            <img src="{{ lobby_player.player.user.avatar }}" alt="Avatar" class="friend-avatar">
-                            {{ lobby_player.player.pseudo }} <span class="status {% if lobby_player.is_ready %}ready{% else %}not-ready{% endif %}">
+                        <li class="list-group-item" data-username="{{ lobby_player.user.username }}">
+                            <img src="{{ lobby_player.user.avatar }}" alt="Avatar" class="friend-avatar">
+                            {{ lobby_player.pseudo }} <span class="status {% if lobby_player.is_ready %}ready{% else %}not-ready{% endif %}">
                                 {% if lobby_player.is_ready %}Prêt{% else %}Pas Prêt{% endif %}
                             </span>
                         </li>

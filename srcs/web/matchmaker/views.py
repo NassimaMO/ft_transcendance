@@ -32,14 +32,14 @@ def modes_view(request):
         mode_form.save()
     else :
         mode_form = MatchChoiceForm()
-    lobby_player = LobbyPlayer.get_or_create(user=request.user)
+    lobby_player = LobbyPlayer.get_or_create(request.user)
     return render(request, 'matchmaker/modes.html', {'mode_form': mode_form, 'lobby_player': lobby_player})
 
 @login_required
 def lobby_list_view(request) :
     lobby = LobbySerializer(Lobby.get_or_create(request.user), context={'request': request}).data
     user = UserSerializer(request.user, context={'request':request}).data
-    return render(request, 'matchmaker/lobby_list.html', {'lobby_players': lobby['players'], 'lobby_users': [lobby_player['player']['user'] for lobby_player in lobby['players']], 'user': user})
+    return render(request, 'matchmaker/lobby_list.html', {'lobby_players': lobby['players'], 'lobby_users': [lobby_player['user'] for lobby_player in lobby['players']], 'user': user})
 
 @login_required
 def friends_list_view(request) :
@@ -53,7 +53,7 @@ def invite_banner_view(request) :
 
 @login_required
 def lobby_requests_view(request) :
-    lobby_player = LobbyPlayer.get_or_create(user=request.user)
+    lobby_player = LobbyPlayer.get_or_create(request.user)
     data = LobbyPlayerSerializer(lobby_player, context={'request': request}).data
     return render(request, 'matchmaker/lobby_requests.html', {'requests': data['requests']})
 
@@ -78,5 +78,7 @@ def lobby_view(request, lobby_id) :
         if response.get("status") == 403 :
             return redirect("lobby-home")
         lobby = json.loads(response.content.decode('utf-8')).get("lobby", None)
+        if not lobby :
+            return redirect("lobby-home")
         user = UserSerializer(request.user, context={'request': request}).data
-    return render(request, 'matchmaker/lobby.html', {"lobby": lobby, 'lobby_users': [lobby_player['player']['user'] for lobby_player in lobby['players']], 'mode_form': mode_form, 'user': user})
+    return render(request, 'matchmaker/lobby.html', {"lobby": lobby, 'lobby_users': [lobby_player['user'] for lobby_player in lobby['players']], 'mode_form': mode_form, 'user': user})
