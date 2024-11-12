@@ -20,7 +20,7 @@ function game()
 	if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
 	{
 		threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 150)
-		threeJS.camera.position.z = 200;
+		threeJS.camera.position.z = Config.cameraZ;
 		threeJS.camera.aspect = (window.innerWidth / window.innerHeight)
 		threeJS.camera.updateProjectionMatrix();
 		Init.setWindowHeight(window.innerHeight);
@@ -58,7 +58,7 @@ function updatePaddleMovement()
 }
 
 threeJS.camera.rotation.x =  Math.PI / 2
-threeJS.camera.position.y = -200
+threeJS.camera.position.y = -1 * Config.cameraZ
 
 Animation.start()
 game()

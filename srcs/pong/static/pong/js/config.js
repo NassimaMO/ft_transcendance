@@ -2,15 +2,18 @@
 /*               Table                */
 /* ---------------------------------- */
 
-export let tableHeight = 250;
-export let tableWidth = 450;
+export const tableHeight = 250;
+export const tableWidth = 400;
+export let cameraZ = tableHeight * 0.8;
+if (tableWidth * 0.44 > cameraZ)
+	cameraZ = tableWidth * 0.44
 
 /* ---------------------------------- */
 /*               Puck                 */
 /* ---------------------------------- */
 
-export let puckSpeed = 1.5
-export let puckSize = [5, 5, 3]
+export const puckSpeed = 1.5
+export const puckSize = [5, 5, 3]
 export let directionX = 1;
 export function changeDirectionX() { directionX *= -1 }
 export let directionY = 1;
@@ -21,8 +24,8 @@ export function changeDirectionY() { directionY *= -1 }
 /* ---------------------------------- */
 
 export let paddleRightPosition = 3 * (tableWidth / 8)
-export let paddleRightSize = [10, 30, 5] // [Width, Length, Height]
-export let paddleRightSpeed = 10
+export const paddleRightSize = [10, 30, 5] // [Width, Length, Height]
+export const paddleRightSpeed = 10
 
 
 /* ---------------------------------- */
@@ -30,7 +33,7 @@ export let paddleRightSpeed = 10
 /* ---------------------------------- */
 
 export let paddleLeftPosition = -3 * (tableWidth / 8)
-export let paddleLeftSize = [10, 30, 5] // [Width, Length, Height]
-export let paddleLeftSpeed = 10
+export const paddleLeftSize = [10, 30, 5] // [Width, Length, Height]
+export const paddleLeftSpeed = 10
 
 
