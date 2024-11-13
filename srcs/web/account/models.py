@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-
 class Status(models.TextChoices):
     ON = "actif", "Actif"
     OFF = "inactif", "Inactif"
@@ -45,3 +44,13 @@ class User(AbstractUser):
         
     def get_status(self) :
         return self.status
+    
+    def get_all_games_played(self):
+        from matchmaker.models import Match
+        all_matches = []
+        for match in Match.objects.all():
+            for team in match.teams:
+                if self in team.players:
+                    all_matches.append(match)
+        #Match.objects.filter(teams__players=self).distinct()
+        return all_matches.order_by('-date')

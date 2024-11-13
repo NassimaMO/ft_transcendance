@@ -2,7 +2,13 @@ import pyfiglet, colorama, time, curses, os, time
 from game import main
 from cli_app.api_requests import API_requests
 from colorama import Fore, Style
-
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.columns import Columns
+from rich.text import Text
+from rich.align import Align
+console = Console()
 AUTH = 0
 COLOR = Fore.CYAN
 COLOR_TITLE = Fore.YELLOW
@@ -31,9 +37,7 @@ class Menu:
                 if cmd == 'profile':
                     self.display_profile()
                 elif cmd == 'pong':
-                    if self.api.game_init():
-                        curses.wrapper(main)
-                        self.api.update_history()
+                    self.play()
                 elif cmd == 'friends':
                     self.display_friends()
                 elif cmd == 'history':
@@ -87,17 +91,39 @@ class Menu:
 
     def display_profile(self):
         os.system("clear")
-        print(self.api.get_avatar(), end='')
+        user_profile = Table(title="User Profile")
+        user_profile.add_column("Profile")
+        user_profile.add_row("Player: " + self.api.get_username())
+        user_profile.add_row("Description: " + self.api.get_description())
+        user_profile.add_row("Rank: " + self.api.get_rank())
+        user_profile.add_row("Friends: " + self.api.get_friends())
+        game_stats = Table(title="Game Statistics")
+        game_stats.add_column("Statistic", justify="left", style="cyan")
+        game_stats.add_column("Value", justify="right", style="magenta")
+        game_stats.add_row("Games Played", "120")
+        game_stats.add_row("Games Won", "75")
+        avatar_panel = Panel(Text(self.api.get_avatar(), justify="center"), title="Avatar", width=45)
+        profile_and_stats = Columns([user_profile, game_stats])
+        columns = Columns([avatar_panel, Align.right(profile_and_stats)])
+        console.print(Panel(columns, title="User Profile", border_style="blue"))
+        """print(self.api.get_avatar(), end='')
         print(f"\033[H\033[40C" + "Player: " + self.api.get_username())
         print("\033[40C" + "Description: " + self.api.get_description())
         print("\033[40C" + "Rank: " + self.api.get_rank())
         print("\033[40C" + "Friends: " + self.api.get_friends())
-        print("\033[40C" + "Stats: " + self.api.get_stats())
+        print("\033[40C" + "Stats: \n")"""
         cmd = input("\033[26H> Display more statistics (YES/NO): ").lower()
         if cmd == "yes":
             print("\033[H\033[40C" + "Detailed stats: " + self.api.get_stats())
+
             cmd = input("\033[26H\033[J> Back to the menu (MENU): ").lower()
         self.screentitle()
+
+    def play(self):
+        if self.api.game_init():
+            curses.wrapper(main)
+            self.screentitle()
+            self.api.update_history()
 
     def display_friends(self):
         while True:

@@ -65,6 +65,7 @@ class Match(models.Model):
 class Team(models.Model):
     players = models.ManyToManyField(User, through="History")
     match = models.ForeignKey(Match, related_name="team_match", on_delete=models.CASCADE)
+    score = models.IntegerField(default=0)
 
     def __str__(self):
         return f"Team {self.id}"

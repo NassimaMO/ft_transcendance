@@ -64,6 +64,9 @@ class API_requests(APIPong):
 
     def get_profile_url(self):
         return self.get_base_url() + "profile/"
+    
+    def get_statistics_url(self):
+        return self.get_base_url() + "statistics/"
 
     def get_username(self):
         return self.user.username
@@ -72,19 +75,19 @@ class API_requests(APIPong):
         return self.user.avatar
     
     def get_description(self):
-        return self.user.description
+        return "Hi ! I'm so cool !"
     
     def get_history(self):
         return self.user.history
     
     def get_rank(self):
-        return self.user.rank
+        return "Ranked beyond comprehension."
     
     def get_stats(self):
         return self.user.stats
     
     def get_friends(self):
-        return self.user.friends
+        return "8"
     
     def add_friend(self, name):
         return 1
@@ -96,6 +99,7 @@ class API_requests(APIPong):
         return ""
     
     def update_stats(self):
+        #data = self.get_response_GET(self.get_statistics_url())
         return ""
     
     def update_rank(self):
