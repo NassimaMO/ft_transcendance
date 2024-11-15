@@ -7,7 +7,7 @@ import * as Config from './config.js'
 
 const keyCode = {};
 //const controls = new OrbitControls(threeJS.camera, threeJS.renderer.domElement)
-export const threeJS = Init.init(Obj.puck, Obj.paddleLeft, Obj.paddleRight)
+export const threeJS = Init.init(Obj.puck, Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleRight)
 document.addEventListener("keydown", keyPress);
 document.addEventListener("keyup", keyRelease);
 

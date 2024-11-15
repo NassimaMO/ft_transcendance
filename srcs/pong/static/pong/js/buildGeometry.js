@@ -9,17 +9,19 @@ var backMap = textureLoader.load('../../static/pong/media/Background.png')
 //var tableMap = textureLoader.load('')
 
 export const puck = cylinder()
-export const paddleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize)
-export const paddleRight = paddle(Config.paddleRightPosition, Config.paddleRightSize)
+export const paddleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor)
+export const paddleRight = paddle(Config.paddleRightPosition, Config.paddleRightSize, Config.paddleRightColor)
+//export const paddleDoubleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor)
+//export const paddleDoubleRight = paddle(Config.paddleDoubleRightPosition, Config.paddleDoubleRightSize, Config.paddleDoubleRightColor)
 
 function cylinder()
 {
     const geometryCylinder = new THREE.CylinderGeometry( 5, 5, 3, 64 );
-    const materialCylinder = new THREE.MeshStandardMaterial( { color: 0x00ff00, lightMap: lightMap, lightMapIntensity: 5} );
+    const materialCylinder = new THREE.MeshStandardMaterial( { color: Config.puckColor, lightMap: lightMap, lightMapIntensity: 5} );
     const cylinder =
     {
         object: new THREE.Mesh( geometryCylinder, materialCylinder ),
-        pointLight: new THREE.PointLight( 0x00ff00, 50, 0, 1),
+        pointLight: new THREE.PointLight( Config.puckColor, 50, 0, 1),
     }
     cylinder.object.rotation.x = Math.PI / 2
     cylinder.pointLight.position.z = 1.5
@@ -27,18 +29,18 @@ function cylinder()
     return cylinder;
 }
 
-function paddle(positionX, Size)
+function paddle(position, Size, Color)
 {
     const geometryPaddle = new THREE.BoxGeometry( Size[0], Size[1], Size[2] );
-    const materialPaddle = new THREE.MeshStandardMaterial( { color: 0xff0000, lightMap: lightMap, lightMapIntensity: 3} );
+    const materialPaddle = new THREE.MeshStandardMaterial( { color: Color, lightMap: lightMap, lightMapIntensity: 3} );
     const paddle =
     {
         object: new THREE.Mesh( geometryPaddle, materialPaddle ),
-        rectLight: new THREE.RectAreaLight( 0xff0000, 5, 10, 30),
+        rectLight: new THREE.RectAreaLight( Color, Size[2], Size[0], Size[1]),
 		move: 0
     }
-    paddle.object.position.set(positionX, 0, 192)
-    paddle.rectLight.position.set(positionX, 0, 195)
+    paddle.object.position.set(position[0], position[1], position[2])
+    paddle.rectLight.position.set(position[0], position[1], position[2] + 5)
     paddle.object.castShadow = true
     paddle.object.receiveShadow = true;
     return paddle
