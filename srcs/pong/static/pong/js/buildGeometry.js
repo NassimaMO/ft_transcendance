@@ -11,8 +11,8 @@ var backMap = textureLoader.load('../../static/pong/media/Background.png')
 export const puck = cylinder()
 export const paddleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor)
 export const paddleRight = paddle(Config.paddleRightPosition, Config.paddleRightSize, Config.paddleRightColor)
-//export const paddleDoubleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor)
-//export const paddleDoubleRight = paddle(Config.paddleDoubleRightPosition, Config.paddleDoubleRightSize, Config.paddleDoubleRightColor)
+export const paddleDoubleLeft = paddle(Config.paddleDoubleLeftPosition, Config.paddleDoubleLeftSize, Config.paddleDoubleLeftColor)
+export const paddleDoubleRight = paddle(Config.paddleDoubleRightPosition, Config.paddleDoubleRightSize, Config.paddleDoubleRightColor)
 
 function cylinder()
 {

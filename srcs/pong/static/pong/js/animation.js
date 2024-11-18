@@ -14,6 +14,10 @@ export function start()
 	Geo.paddleLeft.rectLight.position.z -= 3
 	Geo.paddleRight.object.position.z -= 3
 	Geo.paddleRight.rectLight.position.z -= 3
+	Geo.paddleDoubleLeft.object.position.z -= 3
+	Geo.paddleDoubleLeft.rectLight.position.z -= 3
+	Geo.paddleDoubleRight.object.position.z -= 3
+	Geo.paddleDoubleRight.rectLight.position.z -= 3
 	idx++
 	if (idx == 64)
 	{

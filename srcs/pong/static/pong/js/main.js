@@ -7,7 +7,7 @@ import * as Config from './config.js'
 
 const keyCode = {};
 //const controls = new OrbitControls(threeJS.camera, threeJS.renderer.domElement)
-export const threeJS = Init.init(Obj.puck, Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleRight)
+export const threeJS = Init.init(Obj.puck, Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleRight, Obj.paddleDoubleLeft)
 document.addEventListener("keydown", keyPress);
 document.addEventListener("keyup", keyRelease);
 
@@ -16,7 +16,7 @@ function game()
 	requestAnimationFrame( game );
 	Move.puckMovement(Obj.puck)
 	Move.collision(Obj.puck, Obj.paddleRight, Obj.paddleLeft)
-	Move.movePaddle(Obj.paddleLeft, Obj.paddleRight);
+	Move.movePaddle(Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleLeft, Obj.paddleDoubleRight);
 	if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
 	{
 		threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 150)
@@ -55,6 +55,18 @@ function updatePaddleMovement()
         Obj.paddleLeft.move = -1;
     else
         Obj.paddleLeft.move = 0;
+    if (keyCode[79])
+        Obj.paddleDoubleRight.move = 1;
+    else if (keyCode[75])
+        Obj.paddleDoubleRight.move = -1;
+    else
+        Obj.paddleDoubleRight.move = 0;
+    if (keyCode[69])
+        Obj.paddleDoubleLeft.move = 1;
+    else if (keyCode[68])
+        Obj.paddleDoubleLeft.move = -1;
+    else
+        Obj.paddleDoubleLeft.move = 0;
 }
 
 threeJS.camera.rotation.x =  Math.PI / 2

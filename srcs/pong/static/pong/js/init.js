@@ -40,10 +40,12 @@ function buildMap(threeJs)
 	)
 }
 
-function buildObject(threeJs, puck, paddleLeft, paddleRight)
+function buildObject(threeJs, puck, paddleLeft, paddleRight, paddleDoubleRight, paddleDoubleLeft)
 {
 	threeJs.scene.add(paddleLeft.object, paddleLeft.rectLight,
 				paddleRight.object, paddleRight.rectLight,
+				paddleDoubleRight.object, paddleDoubleRight.rectLight,
+				paddleDoubleLeft.object, paddleDoubleLeft.rectLight,
 				puck.object, puck.pointLight);
 }
 
@@ -52,11 +54,11 @@ function buildLight(threeJs)
 
 }
 
-export function init(puck, paddleLeft, paddleRight)
+export function init(puck, paddleLeft, paddleRight, paddleDoubleRight, paddleDoubleLeft)
 {
 	const threeJs = initThreeJs()
 	buildMap(threeJs)
 	buildLight(threeJs)
-	buildObject(threeJs, puck, paddleLeft, paddleRight)
+	buildObject(threeJs, puck, paddleLeft, paddleRight, paddleDoubleRight, paddleDoubleLeft)
 	return threeJs
 }

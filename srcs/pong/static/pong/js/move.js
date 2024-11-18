@@ -2,7 +2,7 @@ import * as Config from './config.js'
 
 let idx = 0
 
-export function movePaddle(paddleLeft, paddleRight)
+export function movePaddle(paddleLeft, paddleRight, paddleDoubleLeft, paddleDoubleRight)
 {
 	if ((paddleLeft.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleLeft.move == 1) || (paddleLeft.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleLeft.move == -1))
 	{
@@ -13,6 +13,16 @@ export function movePaddle(paddleLeft, paddleRight)
 	{
 		paddleRight.object.position.y += paddleRight.move * Config.paddleRightSpeed
 		paddleRight.rectLight.position.y += paddleRight.move * Config.paddleRightSpeed
+	}
+	if ((paddleDoubleLeft.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleDoubleLeft.move == 1) || (paddleDoubleLeft.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleDoubleLeft.move == -1))
+	{
+		paddleDoubleLeft.object.position.y += paddleDoubleLeft.move * Config.paddleDoubleLeftSpeed
+		paddleDoubleLeft.rectLight.position.y += paddleDoubleLeft.move * Config.paddleDoubleLeftSpeed
+	}
+	if ((paddleDoubleRight.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleDoubleRight.move == 1) || (paddleDoubleRight.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleDoubleRight.move == -1))
+	{
+		paddleDoubleRight.object.position.y += paddleDoubleRight.move * Config.paddleDoubleRightSpeed
+		paddleDoubleRight.rectLight.position.y += paddleDoubleRight.move * Config.paddleDoubleRightSpeed
 	}
 }
 
