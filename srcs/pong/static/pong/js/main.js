@@ -15,7 +15,7 @@ function game()
 {
 	requestAnimationFrame( game );
 	Move.puckMovement(Obj.puck)
-	Move.collision(Obj.puck, Obj.paddleRight, Obj.paddleLeft)
+	Move.collision(Obj.puck, Obj.paddleRight, Obj.paddleLeft, Obj.paddleDoubleRight, Obj.paddleDoubleLeft)
 	Move.movePaddle(Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleLeft, Obj.paddleDoubleRight);
 	if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
 	{

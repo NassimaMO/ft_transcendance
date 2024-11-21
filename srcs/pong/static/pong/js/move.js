@@ -4,29 +4,29 @@ let idx = 0
 
 export function movePaddle(paddleLeft, paddleRight, paddleDoubleLeft, paddleDoubleRight)
 {
-	if ((paddleLeft.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleLeft.move == 1) || (paddleLeft.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleLeft.move == -1))
+	if ((paddleLeft.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleLeft.move == 1) || (paddleLeft.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleLeft.move == -1 && (paddleLeft.object.position.y - 15 > paddleDoubleLeft.object.position.y + 15)))
 	{
 		paddleLeft.object.position.y += paddleLeft.move * Config.paddleLeftSpeed
 		paddleLeft.rectLight.position.y += paddleLeft.move * Config.paddleLeftSpeed
 	}
-	if ((paddleRight.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleRight.move == 1) || (paddleRight.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleRight.move == -1))
+	if ((paddleRight.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleRight.move == 1) || (paddleRight.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleRight.move == -1 && (paddleRight.object.position.y - 15 > paddleDoubleRight.object.position.y + 15)))
 	{
 		paddleRight.object.position.y += paddleRight.move * Config.paddleRightSpeed
 		paddleRight.rectLight.position.y += paddleRight.move * Config.paddleRightSpeed
 	}
-	if ((paddleDoubleLeft.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleDoubleLeft.move == 1) || (paddleDoubleLeft.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleDoubleLeft.move == -1))
+	if ((paddleDoubleLeft.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleDoubleLeft.move == 1 && (paddleDoubleLeft.object.position.y + 15 < paddleLeft.object.position.y - 15)) || (paddleDoubleLeft.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleDoubleLeft.move == -1))
 	{
 		paddleDoubleLeft.object.position.y += paddleDoubleLeft.move * Config.paddleDoubleLeftSpeed
 		paddleDoubleLeft.rectLight.position.y += paddleDoubleLeft.move * Config.paddleDoubleLeftSpeed
 	}
-	if ((paddleDoubleRight.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleDoubleRight.move == 1) || (paddleDoubleRight.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleDoubleRight.move == -1))
+	if ((paddleDoubleRight.object.position.y <= (Config.tableHeight / 2 ) - 30 && paddleDoubleRight.move == 1 && (paddleDoubleRight.object.position.y + 15 < paddleRight.object.position.y - 15)) || (paddleDoubleRight.object.position.y >= -1 * (Config.tableHeight / 2 ) + 30 && paddleDoubleRight.move == -1))
 	{
 		paddleDoubleRight.object.position.y += paddleDoubleRight.move * Config.paddleDoubleRightSpeed
 		paddleDoubleRight.rectLight.position.y += paddleDoubleRight.move * Config.paddleDoubleRightSpeed
 	}
 }
 
-export function puckMovement(puck)
+export function puckMovement(puck)	
 {
 	puck.object.rotation.y += Config.puckSpeed * Config.directionY
 	puck.object.position.x += Config.puckSpeed * Config.directionX;
@@ -35,7 +35,7 @@ export function puckMovement(puck)
 	puck.pointLight.position.y += Config.puckSpeed * Config.directionY;
 }
 
-export function collision(puck, paddleRight, paddleLeft)
+export function collision(puck, paddleRight, paddleLeft, paddleDoubleRight, paddleDoubleLeft)
 {
 	if (puck.object.position.x + (Config.puckSize[0] / 2) >= paddleRight.object.position.x - (Config.paddleRightSize[0] / 2) && puck.object.position.x + (Config.puckSize[0] / 2) <= paddleRight.object.position.x && puck.object.position.y <= paddleRight.object.position.y + (Config.paddleRightSize[1] / 2) && puck.object.position.y >= paddleRight.object.position.y - (Config.paddleRightSize[1] / 2))
 	{
@@ -48,6 +48,18 @@ export function collision(puck, paddleRight, paddleLeft)
 		Config.changeDirectionX()
 		puck.object.position.x = paddleLeft.object.position.x + Config.paddleLeftSize[0]
 		puck.pointLight.position.x = paddleLeft.object.position.x + Config.paddleLeftSize[0]
+	}
+	if (puck.object.position.x + (Config.puckSize[0] / 2) >= paddleDoubleRight.object.position.x - (Config.paddleDoubleRightSize[0] / 2) && puck.object.position.x + (Config.puckSize[0] / 2) <= paddleDoubleRight.object.position.x && puck.object.position.y <= paddleDoubleRight.object.position.y + (Config.paddleDoubleRightSize[1] / 2) && puck.object.position.y >= paddleDoubleRight.object.position.y - (Config.paddleDoubleRightSize[1] / 2))
+	{
+		Config.changeDirectionX()
+		puck.object.position.x = paddleDoubleRight.object.position.x - Config.paddleDoubleRightSize[0]
+		puck.pointLight.position.x = paddleDoubleRight.object.position.x - Config.paddleDoubleRightSize[0]
+	}
+	if (puck.object.position.x - (Config.puckSize[0] / 2) <= paddleDoubleLeft.object.position.x + (Config.paddleDoubleRightSize[0] / 2) && puck.object.position.x - (Config.puckSize[0] / 2) >= paddleDoubleLeft.object.position.x && puck.object.position.y <= paddleDoubleLeft.object.position.y + (Config.paddleDoubleLeftSize[1] / 2) && puck.object.position.y >= paddleDoubleLeft.object.position.y - (Config.paddleDoubleLeftSize[1] / 2) )
+	{
+		Config.changeDirectionX()
+		puck.object.position.x = paddleDoubleLeft.object.position.x + Config.paddleDoubleLeftSize[0]
+		puck.pointLight.position.x = paddleDoubleLeft.object.position.x + Config.paddleDoubleLeftSize[0]
 	}
 	if (puck.object.position.y + Config.puckSize[0] >= (Config.tableHeight / 2 ) - 5)
 		Config.changeDirectionY()
