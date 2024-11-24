@@ -7,7 +7,6 @@ pyjwt
 pyfiglet
 colorama
 aiohttp
-rich
 
 #avatar
 Pillow

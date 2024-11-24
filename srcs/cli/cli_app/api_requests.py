@@ -1,13 +1,12 @@
-import getpass, time
+import getpass, time, requests
 from cli_api.api_pong import APIPong
 from cli_app.image_to_ascii import image_to_ascii
 
-class User_info:
+class User:
 
     def __init__(self):
         self.username = None
         self.avatar = None
-        self.description = None
         self.history = None
         self.rank = None
         self.stats = None
@@ -17,7 +16,8 @@ class API_requests(APIPong):
 
     def __init__(self):
         super().__init__()
-        self.user = User_info()
+        self.user = User()
+        self.profile = None
         self.websocket = None
         return
     
@@ -34,10 +34,10 @@ class API_requests(APIPong):
             print("> Please enter a password.")
         if int(super().login(username, password).status_code / 100) != 2: #auth
             print("> Wrong login creditentials.")
-            time.sleep(0.4)
+            time.sleep(0.3)
             return 0
         self._log(username)
-        time.sleep(0.4)
+        time.sleep(0.3)
         return 1
     
     def get_sign_up_details(self):
@@ -53,58 +53,37 @@ class API_requests(APIPong):
             return
 
     def _log(self, username):
-        data = self.get_response_GET(self.get_profile_url())
         self.user.username = username
-        self.user.avatar = image_to_ascii('avatar.png')
-        self.user.description = ""
-        self.user.rank = self.update_rank()
-        self.user.history = self.update_history()
-        self.user.stats = self.update_stats()
-        self.user.friends = ""
+        self.update_profile()
+        self.update_stats()
 
     def get_profile_url(self):
         return self.get_base_url() + "profile/"
     
     def get_statistics_url(self):
-        return self.get_base_url() + "statistics/"
-
-    def get_username(self):
-        return self.user.username
-
-    def get_avatar(self):
-        return self.user.avatar
-    
-    def get_description(self):
-        return "Hi ! I'm so cool !"
-    
-    def get_history(self):
-        return self.user.history
-    
-    def get_rank(self):
-        return "Ranked beyond comprehension."
-    
-    def get_stats(self):
-        return self.user.stats
-    
-    def get_friends(self):
-        return "8"
+        return self.get_base_url() + "stats/"
     
     def add_friend(self, name):
         return 1
 
     def remove_friend(self, name):
         return 1
-
-    def update_history(self):
-        return ""
     
+    def update_profile(self):
+        self.profile = self.get_response_GET(self.get_profile_url())
+        image_response = requests.get(self.profile['avatar']['avatar_url'])
+        if image_response.status_code == 200:
+            with open('avatar.png', 'wb') as file:
+                file.write(image_response.content)
+            self.user.avatar = image_to_ascii('avatar.png')
+        self.user.rank = "Ranked beyond comprehension." #requests.get(self.profile['rank']['rank'])
+        self.user.history = "" #requests.get(self.profile['history'])
+        self.user.friends = [{'username': 'Nily', 'status': 'online'}, {'username': 'Theo', 'status': 'in game'}, {'username': 'Bot1', 'status': 'online'}] #, {'username': 'Bot2', 'status': 'offline'}] #requests.get(self.profile['friends'])
+
     def update_stats(self):
-        #data = self.get_response_GET(self.get_statistics_url())
-        return ""
+        self.user.stats = self.get_response_GET(self.get_statistics_url())
+        return self.user.stats
     
-    def update_rank(self):
-        return ""
-
     def game_init(self):
         mode = None
         mm_preferences = None

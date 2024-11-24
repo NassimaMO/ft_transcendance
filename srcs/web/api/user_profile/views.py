@@ -22,7 +22,7 @@ class UserStatisticsView(APIView):
     def get(self, request):
         user = request.user
         all_games_played = user.get_all_games_played()
-        games_played = all_games_played.count()
+        games_played = len(all_games_played)
         games_won = self._get_total_games_won(all_games_played, user)
         win_streak = self._get_win_streak(all_games_played, user)
         average_score = self._get_average_score(all_games_played, user)
@@ -46,7 +46,7 @@ class UserStatisticsView(APIView):
     
     def _get_average_score(self, all_games_played, user):
         average_score = sum(Team.objects.filter(match=match, players=user).first().score for match in all_games_played)
-        average_score = average_score / all_games_played.count() if all_games_played.count() > 0 else 0
+        average_score = average_score / len(all_games_played) if len(all_games_played) > 0 else 0
         return average_score
     
     def _get_win_streak(self, all_games_played, user):

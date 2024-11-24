@@ -53,4 +53,4 @@ class User(AbstractUser):
                 if self in team.players:
                     all_matches.append(match)
         #Match.objects.filter(teams__players=self).distinct()
-        return all_matches.order_by('-date')
+        return all_matches #.order_by('-date')

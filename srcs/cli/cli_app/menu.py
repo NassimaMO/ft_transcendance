@@ -1,22 +1,17 @@
 import pyfiglet, colorama, time, curses, os, time
 from game import main
+from profile import Profile
 from cli_app.api_requests import API_requests
 from colorama import Fore, Style
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.columns import Columns
-from rich.text import Text
-from rich.align import Align
-console = Console()
-AUTH = 0
-COLOR = Fore.CYAN
+global COLOR
 COLOR_TITLE = Fore.YELLOW
 COLOR_AUTHORS = Fore.GREEN
 
 class Menu:
     def __init__(self):
         self.api = API_requests()
+        self.auth = 0
+        self.color = Fore.CYAN
         return 
     
     def screentitle(self):
@@ -26,14 +21,13 @@ class Menu:
         print(COLOR_TITLE + title + Style.RESET_ALL)
         time.sleep(0.2)
         print(COLOR_AUTHORS + authors)
-        print(COLOR)
+        print(self.color)
         print("\033[s")
 
     def options_display(self):
-        global AUTH
         while True:
-            if AUTH:
-                cmd = input("\033[u\033[J> Enter a command (PROFILE/PONG/FRIENDS/HISTORY/COLORS/LOGOUT/QUIT): ").lower()
+            if self.auth:
+                cmd = input("\033[u\033[J" + self.color + "> Enter a command (PROFILE/PONG/FRIENDS/HISTORY/COLORS/LOGOUT/QUIT): ").lower()
                 if cmd == 'profile':
                     self.display_profile()
                 elif cmd == 'pong':
@@ -45,16 +39,16 @@ class Menu:
                 elif cmd == 'colors':
                     self.color_change()
                 elif cmd == 'logout':
-                    AUTH = 0
+                    self.auth = 0
                 elif cmd == 'quit':
                     print("Exiting the CLI...")
                     break
                 else:
                     print("Invalid command")
             else:
-                cmd = input("\033[u\033[J> Enter a command (LOGIN/SIGNUP/QUIT): ").lower()
+                cmd = input("\033[u\033[J" + self.color + "> Enter a command (LOGIN/SIGNUP/QUIT): ").lower()
                 if cmd == 'login':
-                    AUTH = self.api.get_creditentials()
+                    self.auth = self.api.get_creditentials()
                 elif cmd == 'signup':
                     self.api.get_sign_up_details()
                 elif cmd == 'quit':
@@ -65,65 +59,61 @@ class Menu:
 
     def color_change(self):
         while True:
-            color = input("\033[u\033[J> Enter a color (CYAN/RED/GREEN/BLUE/MAGENTA/WHITE/MENU): ").lower()
+            color = input("\033[u\033[J" + self.color + "> Enter a color (CYAN/RED/GREEN/BLUE/MAGENTA/WHITE/MENU): ").lower()
             if color == 'cyan':
-                COLOR = Fore.CYAN
-                print(COLOR + "Color changed to " + color + " successfully")
+                self.color = Fore.CYAN
+                print(self.color + "Color changed to " + color + " successfully")
+                time.sleep(0.3)
             elif color == 'red':
-                COLOR = Fore.RED
-                print(COLOR + "> Color changed to " + color + " successfully")
+                self.color = Fore.RED
+                print(self.color + "> Color changed to " + color + " successfully")
+                time.sleep(0.3)
             elif color == 'green':
-                COLOR = Fore.GREEN
-                print(COLOR + "> Color changed to " + color + " successfully")
+                self.color = Fore.GREEN
+                print(self.color + "> Color changed to " + color + " successfully")
+                time.sleep(0.3)
             elif color == 'blue':
-                COLOR = Fore.BLUE
-                print(COLOR + "> Color changed to " + color + " successfully")
+                self.color = Fore.BLUE
+                print(self.color + "> Color changed to " + color + " successfully")
+                time.sleep(0.3)
             elif color == 'magenta':
-                COLOR = Fore.MAGENTA
-                print(COLOR + "> Color changed to " + color + " successfully")
+                self.color = Fore.MAGENTA
+                print(self.color + "> Color changed to " + color + " successfully")
+                time.sleep(0.3)
             elif color == 'white':
-                COLOR = Fore.WHITE
-                print(COLOR + "> Color changed to " + color + " successfully")
+                self.color = Fore.WHITE
+                print(self.color + "> Color changed to " + color + " successfully")
+                time.sleep(0.3)
             elif color == 'menu':
                 break
             else:
-                    print("Invalid command")
+                print("Invalid command")
+                time.sleep(0.3)
 
     def display_profile(self):
         os.system("clear")
-        user_profile = Table(title="User Profile")
-        user_profile.add_column("Profile")
-        user_profile.add_row("Player: " + self.api.get_username())
-        user_profile.add_row("Description: " + self.api.get_description())
-        user_profile.add_row("Rank: " + self.api.get_rank())
-        user_profile.add_row("Friends: " + self.api.get_friends())
-        game_stats = Table(title="Game Statistics")
-        game_stats.add_column("Statistic", justify="left", style="cyan")
-        game_stats.add_column("Value", justify="right", style="magenta")
-        game_stats.add_row("Games Played", "120")
-        game_stats.add_row("Games Won", "75")
-        avatar_panel = Panel(Text(self.api.get_avatar(), justify="center"), title="Avatar", width=45)
-        profile_and_stats = Columns([user_profile, game_stats])
-        columns = Columns([avatar_panel, Align.right(profile_and_stats)])
-        console.print(Panel(columns, title="User Profile", border_style="blue"))
-        """print(self.api.get_avatar(), end='')
-        print(f"\033[H\033[40C" + "Player: " + self.api.get_username())
-        print("\033[40C" + "Description: " + self.api.get_description())
-        print("\033[40C" + "Rank: " + self.api.get_rank())
-        print("\033[40C" + "Friends: " + self.api.get_friends())
-        print("\033[40C" + "Stats: \n")"""
-        cmd = input("\033[26H> Display more statistics (YES/NO): ").lower()
+        self.api.update_profile()
+        self.api.update_stats()
+        print(f"\033[H{self.api.user.avatar}")
+        print(f"\033[1;41HPlayer: {self.api.user.username}")
+        print(f"\033[2;41HRank: {self.api.user.rank}")
+        print(f"\033[3;41HFriends: {len(self.api.user.friends)}")
+        print(f"\033[5;41HGames played: {self.api.user.stats['total_games_played']}")
+        print(f"\033[6;41HGames Won: {self.api.user.stats['games_won']}")
+        print(f"\033[7;41HGames Lost: {self.api.user.stats['total_games_played'] - self.api.user.stats['games_won']}")
+        cmd = input("\033[23;0H> Display statistics and performance metrics (YES/NO): ").lower()
         if cmd == "yes":
-            print("\033[H\033[40C" + "Detailed stats: " + self.api.get_stats())
-
-            cmd = input("\033[26H\033[J> Back to the menu (MENU): ").lower()
+            print(f"\033[9;41HAverage Score: {self.api.user.stats['average_score']}")
+            print(f"\033[10;41HWin Streak: {self.api.user.stats['win_streak']}")
+            print(f"\033[11;41HWin Loss Ratio: {self.api.user.stats['win_loss_ratio']}")
+            cmd = input("\033[23;0H\033[J> Back to the menu (MENU): ").lower()
+        os.system("clear")
         self.screentitle()
 
     def play(self):
         if self.api.game_init():
             curses.wrapper(main)
             self.screentitle()
-            self.api.update_history()
 
     def display_friends(self):
         while True:
@@ -143,17 +133,43 @@ class Menu:
                     print("No friend of this name found.")
                 time.sleep(0.4)
             elif cmd == "list":
+                self.api.update_profile()
+                page = 0
+                size = 2
+                online = 0
+                #idx = 0
                 while True:
                     print("\033[u\033[JFRIEND LIST: ")
+                    """if online == 1:
+                        for i in range(size):
+                            if page * size + idx >= len(self.api.user.friends):
+                                break
+                            while not self.api.user.friends[page * size + idx]['status'] == {'online', 'in game'}:
+                                idx +=1
+                            if self.api.user.friends[page * size + idx]['status'] == {'online', 'in game'}:
+                                print(f"{self.api.user.friends[page * size + idx]['username']} | {self.api.user.friends[page * size + idx]['status']}")"""
+
+                    for i in range(size):
+                        if page * size + i >= len(self.api.user.friends):
+                            break
+                        if online == 1 and self.api.user.friends[page * size + i]['status'] == {'online', 'in game'}:
+                            print(f"{self.api.user.friends[page * size + i]['username']} | {self.api.user.friends[page * size + i]['status']}")
+                        elif online == 0:
+                            print(f"{self.api.user.friends[page * size + i]['username']} | {self.api.user.friends[page * size + i]['status']}")
                     cmd = input("> Choose option (PREV/NEXT/ONLINE/ALL/BACK): ").lower()
                     if cmd == "prev":
-                        print("")
+                        if page >= 1:
+                            page -= 1
                     elif cmd == "next":
-                        print("")
+                        if page * size + size < len(self.api.user.friends):
+                            page += 1
                     elif cmd == "online":
-                        print("")
+                        online = 1
+                        page = 0
+                        #idx = 0
                     elif cmd == "all":
-                        print("")
+                        online = 0
+                        page = 0
                     elif cmd == "back":
                         break
                     else:
