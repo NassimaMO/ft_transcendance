@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'api',
     'account',
     'matchmaker',
+    'dashboard'
 ]
 
 MIDDLEWARE = [

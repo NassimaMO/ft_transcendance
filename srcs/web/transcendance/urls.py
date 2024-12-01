@@ -39,6 +39,8 @@ if apps.is_installed('api'):
     urlpatterns += [path('api/', include('api.urls'))]
 if apps.is_installed('matchmaker'):
     urlpatterns += [path('match/', include('matchmaker.urls'))]
+if apps.is_installed('dashboard'):
+    urlpatterns += [path('dashboard/', include('dashboard.urls'))]
 
 if settings.DEBUG:
     urlpatterns += [path('media/static/<path:file_path>', views.media, name='media')]

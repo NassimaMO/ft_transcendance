@@ -82,7 +82,7 @@ class API_requests(APIPong):
 
     def update_stats(self):
         self.user.stats = self.get_response_GET(self.get_statistics_url())
-        return self.user.stats
+
     
     def game_init(self):
         mode = None
