@@ -1,8 +1,32 @@
 from rest_framework import serializers
 from account.serializers import UserSerializer
 import logging
+from .models import MatchChoice
 
 logger = logging.getLogger('default')
+
+
+class MatchChoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MatchChoice
+        fields = ['connect', 'mode', 'mm']
+
+    def is_valid(self):
+        valid = super().is_valid()
+        if valid:
+            return True
+        if self.errors.get("non_field_errors") :
+            for error in self.errors["non_field_errors"] :
+                if error.code != "unique" :
+                    return False
+            return True
+        return False
+
+    def save(self, **kwargs):
+        match_choice = MatchChoice.objects.filter(**kwargs).first()
+        if match_choice:
+            return match_choice
+        return super().save(**kwargs)
 
 
 class LobbyRequestSerializer(serializers.Serializer):
@@ -45,16 +69,19 @@ class LobbyPlayerSerializer(serializers.Serializer):
 
 class LobbySerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    players = LobbyPlayerSerializer(many=True)
+    members = LobbyPlayerSerializer(many=True)
+    match_choice = MatchChoiceSerializer()
+    is_open = serializers.BooleanField()
+    is_in_queue = serializers.BooleanField()
 
     def get_players(self, obj):
         request = self.context.get('request')
         if request :
-            sorted_players = sorted(obj.players, key=lambda player: player.user.id == self.context.get('request').user.id, reverse=True)
+            sorted_players = sorted(obj.members, key=lambda player: player.user.id == self.context.get('request').user.id, reverse=True)
             return LobbyPlayerSerializer([player for player in sorted_players], many=True, context=self.context).data
-        return LobbyPlayerSerializer(obj.players, many=True, context=self.context).data
+        return LobbyPlayerSerializer(obj.members, many=True, context=self.context).data
     
     def to_representation(self, instance) :
         data = super().to_representation(instance)
-        data['players'] = self.get_players(instance)
+        data['members'] = self.get_players(instance)
         return data

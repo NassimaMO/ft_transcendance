@@ -2,6 +2,7 @@ import logging
 from rest_framework_simplejwt.backends import TokenBackend
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 logger = logging.getLogger('default')
 
@@ -25,9 +26,29 @@ class JWTAuthMiddleware:
             except Exception as e :
                 logger.debug(f"Middleware Exception: {e}")
                 return
+        # else:
+        #     logger.info(f"[MIDDLEWARE] - No token provided. Can't authenticate request.")
         return await self.inner(scope, receive, send)
     
     @database_sync_to_async
     def get_user(self, user_id):
         User = get_user_model()
         return User.objects.get(id=user_id)
+
+
+class DisableDebugForCLI:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+        if request.META.get('HTTP_X_CLI_REQUEST') == 'true' or \
+        'curl' in user_agent or 'httpie' in user_agent or 'python-requests' in user_agent:
+            original_debug = settings.DEBUG
+            settings.DEBUG = False
+            logger.info("DEBUG: ", settings.DEBUG)
+            response = self.get_response(request)
+            settings.DEBUG = original_debug
+            return response
+        logger.info("DEBUG UNCHANGED")
+        return self.get_response(request)
