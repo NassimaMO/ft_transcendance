@@ -20,9 +20,12 @@ def modes_view(request):
     if not lobby :
         return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST)
-        lobby.match_choice = mode_form.save()
-        lobby.save()
+        mode_form = MatchChoiceForm(data=request.POST, instance=lobby.match_choice)
+        if mode_form.is_valid():
+            lobby.match_choice = mode_form.save()
+            lobby.save()
+        else:
+            logger.info("erreur formulaire modes")
     else :
         mode_form = MatchChoiceForm(instance=lobby.match_choice)
     lobby_player = LobbyPlayer.get_or_create(request.user)

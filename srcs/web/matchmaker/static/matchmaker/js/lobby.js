@@ -141,6 +141,7 @@ function updateSection(section)
     if (section === 'lobby-modes')
     {
         url = '/lobby/modes/';
+        console.log("Lobby: ", lobby)
     }
     else if (section === 'lobby-players')
     {
@@ -211,7 +212,7 @@ function updateModeUI()
     }
 }
 
-function applyModeSelection()
+async function applyModeSelection()
 {
     const data = {
         'match-choice': {
@@ -220,7 +221,7 @@ function applyModeSelection()
             'matchmaking': document.getElementById('id_mm').value
         }
     };
-    const response = APIRequest('/api/users/me/lobbies/main/', data, 'PATCH');
+    const response = await APIRequest('/api/users/me/lobbies/main/', data, 'PATCH');
     if (response.ok)
     {
         closeModeSelection();
@@ -253,7 +254,7 @@ function unsetReadyStatus()
     }
 }
 
-function updatePlayerStatus(status)
+async function updatePlayerStatus(status)
 {
     const friendStatus = document.querySelector('#lobbyPlayers .status');
     const statusText = status === 'ready' ? 'Prêt' : 'Pas prêt';
@@ -275,10 +276,10 @@ function updatePlayerStatus(status)
     const data = {
         is_ready: status === 'ready'
     };
-    APIRequest(`/api/users/me/lobbies/main/members/me/`, data, "PATCH");
+    await APIRequest(`/api/users/me/lobbies/main/members/me/`, data, "PATCH");
 }
 
-function enableNameEdit(element)
+async function enableNameEdit(element)
 {
     const currentName = element.textContent;
     const input = document.createElement('input');
@@ -299,7 +300,7 @@ function enableNameEdit(element)
             const data = {
                 pseudo: newName
             };
-            APIRequest(`/api/users/me/lobbies/main/members/me/`, data, "PATCH");
+            await APIRequest(`/api/users/me/lobbies/main/members/me/`, data, "PATCH");
         }
     });
 
@@ -337,24 +338,24 @@ function closeMenu(menu)
     menu.style.display = 'none';
 }
 
-function inviteToGroup(playerName)
+async function inviteToGroup(playerName)
 {
     const data = {
         type: 'invite'
     };
-    const response = APIRequest(`/api/users/me/friends/${playerName}/lobby/requests/`, data, "POST");
+    const response = await APIRequest(`/api/users/me/friends/${playerName}/lobby/requests/`, data, "POST");
     if (response.ok)
     {
         console.log("Invite request sent to: ", playerName);
     }
 }
 
-function joinPlayerGroup(playerName)
+async function joinPlayerGroup(playerName)
 {
     const data = {
         type: 'join'
     };
-    const response = APIRequest(`/api/users/me/friends/${playerName}/lobby/requests/`, data, "POST");
+    const response = await APIRequest(`/api/users/me/friends/${playerName}/lobby/requests/`, data, "POST");
     if (response.ok)
     {
         console.log("Join request sent to: ", playerName);
@@ -418,51 +419,51 @@ function handleFriendClick(event, menu, selectedFriend)
     return selectedFriend;
 }
 
-function addFriend(userName)
+async function addFriend(userName)
 {
-    const response = APIRequest(`/api/users/${userName}/requests/`, {}, "POST");
+    const response = await APIRequest(`/api/users/${userName}/requests/`, {}, "POST");
     if (response.ok)
     {
         console.log("Friend request sent to:", userName);
     }
 }
 
-function acceptFriendRequest(friendName)
+async function acceptFriendRequest(friendName)
 {
-    const response = APIRequest(`/api/users/me/requests/${friendName}/`, {}, "PUT");
+    const response = await APIRequest(`/api/users/me/requests/${friendName}/`, {}, "PUT");
     if (response.ok)
     {
         console.log("Friend request from ", friendName, " accepted");
     }
 }
 
-function rejectFriendRequest(friendName)
+async function rejectFriendRequest(friendName)
 {
-    const response = APIRequest(`/api/users/me/requests/${friendName}/`, {}, "DELETE");
+    const response = await APIRequest(`/api/users/me/requests/${friendName}/`, {}, "DELETE");
     if (response.ok)
     {
         console.log("Friend request from ", friendName, " rejected");
     }
 }
 
-function acceptLobbyRequest(requesterName, request_type)
+async function acceptLobbyRequest(requesterName, request_type)
 {
     const data = {
         type: request_type
     };
-    const response = APIRequest(`/api/users/me/lobbies/main/requests/${requesterName}/`, data, "PUT");
+    const response = await APIRequest(`/api/users/me/lobbies/main/requests/${requesterName}/`, data, "PUT");
     if (response.ok)
     {
         console.log(request_type, " request from ", requesterName, " accepted");
     }
 }
 
-function rejectLobbyRequest(requesterName, request_type)
+async function rejectLobbyRequest(requesterName, request_type)
 {
     const data = {
         type: request_type
     };
-    const response = APIRequest(`/api/users/me/lobbies/main/requests/${requesterName}/`, data, "DELETE");
+    const response = await APIRequest(`/api/users/me/lobbies/main/requests/${requesterName}/`, data, "DELETE");
     if (response.ok)
     {
         console.log(request_type, " request from ", requesterName, " accepted");
@@ -472,6 +473,7 @@ function rejectLobbyRequest(requesterName, request_type)
 document.addEventListener("DOMContentLoaded", async function () 
 {
     await updateLobbyVar();
+    console.log("Lobby: ", lobby)
     updateModeUI();
     initWebSocket();
     let selectedFriend = null;

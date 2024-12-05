@@ -72,9 +72,16 @@ class MatchChoiceFilter(django_filters.FilterSet):
 		fields = ['connect', 'mode', 'mm']
 
 
+def get_default_match_choice():
+    return MatchChoice.objects.get_or_create()[0]
+
+
+def get_default_match_choice_id():
+	return get_default_match_choice().id
+
 class Match(models.Model):
 	date = models.DateTimeField(default=timezone.now)
-	info = models.ForeignKey('MatchChoice', related_name="match_info", on_delete=models.CASCADE)
+	info = models.ForeignKey('MatchChoice', related_name="match_info", default=get_default_match_choice_id, on_delete=models.CASCADE)
 	teams = models.ManyToManyField('Team', related_name="match_team")
 
 	def __str__(self):
@@ -197,7 +204,7 @@ class LobbyPlayer(rom.Model) :
 	pseudo = rom.String()
 	is_ready = rom.Boolean(default=True)
 	is_leader = rom.Boolean(default=True)
-	lobby = rom.OneToOne("Lobby", on_delete="set null")
+	lobby = rom.OneToOne("Lobby", on_delete="cascade")
 	requests = rom.OneToMany("LobbyRequest")
 
 	@classmethod
@@ -230,16 +237,21 @@ class LobbyPlayer(rom.Model) :
 				return request
 		return None
 
-	def join_lobby(self, lobby) :
-		self.is_leader = False
+	def join_lobby(self, lobby=None) :
+		if lobby:
+			self.lobby = lobby
+			self.is_leader = False
+		else:
+			self.lobby = Lobby.get_or_create(self.user)
+			self.is_leader = True
 		self.is_ready = False
-		self.lobby = lobby
+		self.requests.clear()
 		self.save()
 
 	def leave_lobby(self) :
 		if len(self.lobby.members) == 1 :
-			self.lobby.delete()
-		elif self.is_leader :
+			return self.lobby.delete()
+		if self.is_leader :
 			for player in self.lobby.members :
 				if player != self :
 					player.is_leader = True
@@ -247,11 +259,20 @@ class LobbyPlayer(rom.Model) :
 					break
 		self.delete()
 
+	def change_lobby(self, lobby=None):
+		if self.is_leader :
+			for player in self.lobby.members :
+				if player != self :
+					player.is_leader = True
+					player.save()
+					break
+		self.join_lobby(lobby)
+
 
 class Lobby(rom.Model) :
 	id = rom.PrimaryKey(index=True)
 	members = rom.OneToMany("LobbyPlayer")
-	match_choice = rom.ForeignModel(MatchChoice)
+	match_choice = rom.ForeignModel(MatchChoice, default=get_default_match_choice)
 	is_open = rom.Boolean(default=False)
 	is_in_queue = rom.Boolean(default=False)
 
