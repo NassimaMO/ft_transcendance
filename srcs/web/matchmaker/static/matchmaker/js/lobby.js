@@ -1,8 +1,8 @@
 let lobby = null
 let lobby_player = null
+let ws = null
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
-let ws = null
 const csrftoken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 async function APIRequest(url, data=null, http_method='GET')
@@ -25,7 +25,8 @@ async function APIRequest(url, data=null, http_method='GET')
         const jsonResponse = await response.json();
         if (!response.ok)
         {
-            if (jsonResponse.errors) {
+            if (jsonResponse.errors)
+            {
                 for (const [key, message] of Object.entries(jsonResponse.errors))
                 {
                     console.error(`Erreur (${key}): ${message}`);
@@ -55,6 +56,7 @@ async function updateLobbyVar()
         const data = await APIRequest('/api/users/me/lobbies/main/');
         lobby = data.lobby;
         lobby_player = lobby.members[0];
+        console.log("Lobbyplayer updated: ", lobby_player)
     }
     catch (error)
     {
@@ -62,77 +64,97 @@ async function updateLobbyVar()
     }
 }
 
-async function initWebSocket()
-{
-    ws = new WebSocket(`${protocol}//${window.location.hostname}:${port}/ws/lobby`);
-    ws.onmessage = async function(event)
-    {
-        const data = JSON.parse(event.data);
-        if (data.type == "notif")
-        {
-            await updateLobbyVar();
-            for (const change of data.changes)
-            {
-                switch (change.type)
-                {
-                    case "join":
-                        updateSection('lobby-list');
-                        updateSection('lobby-players');
-                        if (change.username)
-                        {
-                            console.log(change.username, "joined the lobby");
+async function initWebSocket() {
+    try {
+        ws = new WebSocket(`${protocol}//${window.location.hostname}:${port}/ws/lobby`);
+        
+        ws.onopen = function() {
+            console.log("WebSocket connection opened successfully.");
+        };
+        
+        ws.onmessage = async function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("Receiving ws data: ", data);
+                if (data.type == "notif") {
+                    await updateLobbyVar();
+                    for (const change of data.changes) {
+                        switch (change.type) {
+                            case "join":
+                                updateSection('lobby-list');
+                                updateSection('lobby-players');
+                                if (change.username) {
+                                    console.log(change.username, "joined the lobby");
+                                } else {
+                                    console.log("A player joined the lobby");
+                                }
+                                break;
+                            case "leave":
+                                updateSection('lobby-list');
+                                updateSection('lobby-players');
+                                if (change.username) {
+                                    console.log(change.username, "left the lobby");
+                                } else {
+                                    console.log("A player left the lobby");
+                                }
+                                break;
+                            case "lobby":
+                                updateSection('lobby-list');
+                                updateSection('lobby-players');
+                                updateSection('lobby-modes');
+                                console.log("You have joined the lobby");
+                                break;
+                            case "friend-request":
+                                updateSection("friend-requests");
+                                break;
+                            case "friend":
+                                updateSection("friends-list");
+                                updateSection("invite-banner");
+                                break;
+                            case "lobby-request":
+                                updateSection("lobby-requests");
+                                if (change.username) {
+                                    console.log("New lobby request received from ", change.username);
+                                } else {
+                                    console.log("Lobby request changes");
+                                }
+                                break;
+                            case "match-choice":
+                                updateSection("lobby-modes");
+                                break;
+                            case "player":
+                                updateSection('lobby-players');
+                                updateSection('lobby-list');
+                                break;
+                            default:
+                                console.log("Unhandled change:", change.type);
                         }
-                        else
-                        {
-                            console.log("A player joined the lobby");
-                        }
-                        break;
-                    case "leave":
-                        updateSection('lobby-list');
-                        updateSection('lobby-players');
-                        if (change.username)
-                        {
-                            console.log(change.username, "left the lobby");
-                        }
-                        else
-                        {
-                            console.log("A player left the lobby");
-                        }
-                        break;
-                    case "lobby":
-                        updateSection('lobby-list');
-                        updateSection('lobby-players');
-                        updateSection('lobby-modes');
-                        console.log("You have joined the lobby");
-                        break;
-                    case "friend-request":
-                        updateSection("friend-requests");
-                        break;
-                    case "friend":
-                        updateSection("friends-list");
-                        updateSection("invite-banner");
-                        break;
-                    case "lobby-request":
-                        updateSection("lobby-requests");
-                        if (change.username)
-                        {
-                            console.log("New lobby request received from ", change.username);
-                        }
-                        else
-                        {
-                            console.log("Lobby request changes");
-                        }
-                        break;
-                    case "match-choice":
-                        updateSection("lobby-modes");
-                        break;
-                    default:
-                        console.log("Unhandled change:", change.type);
+                    }
                 }
-            }            
-        }
-    };
+            } catch (error) {
+                console.error("Error handling WebSocket message: ", event.data, error);
+            }
+        };
+
+        ws.onerror = function(error) {
+            console.error("WebSocket error observed: ", error);
+        };
+
+        ws.onclose = function(event) {
+            if (event.wasClean) {
+                console.log("WebSocket connection closed cleanly.");
+                console.log("Code:", event.code, "Reason:", event.reason);
+            } else {
+                console.error("WebSocket connection closed unexpectedly.");
+                console.error("Code:", event.code, "Reason:", event.reason);
+            }
+        };
+
+    } catch (error) {
+        console.error("Failed to initialize WebSocket: ", error);
+    }
 }
+
 
 function updateSection(section)
 {
@@ -194,11 +216,13 @@ function toggleSection(sectionId)
 
 function openModeSelection()
 {
+    console.log('opening mode selection')
     document.getElementById('modeSelectionModal').style.display = 'flex';
 }
 
 function closeModeSelection()
 {
+    console.log('closing mode selection')
     document.getElementById('modeSelectionModal').style.display = 'none';
 }
 
@@ -208,17 +232,17 @@ function updateModeUI()
     if (button)
     {
         button.textContent = lobby_player.is_leader ? 'Changer le mode' : 'Prêt';
-        button.onclick = lobby_player.is_leader ? openModeSelection : setReadyStatus;
     }
 }
 
 async function applyModeSelection()
 {
+    console.log("apply mode selection")
     const data = {
         'match-choice': {
-            'connect': document.getElementById('id_connect').value,
+            'connectivity': document.getElementById('id_connectivity').value,
             'mode': document.getElementById('id_mode').value,
-            'matchmaking': document.getElementById('id_mm').value
+            'matchmaking': document.getElementById('id_matchmaking').value
         }
     };
     const response = await APIRequest('/api/users/me/lobbies/main/', data, 'PATCH');
@@ -228,7 +252,7 @@ async function applyModeSelection()
     }
 }
 
-function setReadyStatus()
+async function setReadyStatus()
 {
     const button = document.getElementById('mode-action-button');
     if (button)
@@ -236,12 +260,11 @@ function setReadyStatus()
         button.textContent = 'Annuler';
         button.style.backgroundColor = '#7f8c8d';
         button.style.color = '#fff';
-        button.onclick = unsetReadyStatus;
-        updatePlayerStatus('ready');
+        await updatePlayerStatus('ready');
     }
 }
 
-function unsetReadyStatus()
+async function unsetReadyStatus()
 {
     const button = document.getElementById('mode-action-button');
     if (button)
@@ -249,8 +272,7 @@ function unsetReadyStatus()
         button.textContent = 'Prêt';
         button.style.backgroundColor = '#16a085';
         button.style.color = '#fff';
-        button.onclick = setReadyStatus;
-        updatePlayerStatus('not-ready');
+        await updatePlayerStatus('not-ready');
     }
 }
 
@@ -291,7 +313,7 @@ async function enableNameEdit(element)
     element.replaceWith(input);
     input.focus();
 
-    input.addEventListener('keydown', (event) =>
+    input.addEventListener('keydown', async (event) =>
     {
         if (event.key === 'Enter')
         {
@@ -475,13 +497,16 @@ document.addEventListener("DOMContentLoaded", async function ()
     await updateLobbyVar();
     console.log("Lobby: ", lobby)
     updateModeUI();
-    initWebSocket();
+    await initWebSocket();
     let selectedFriend = null;
-    document.addEventListener('click', function(event)
+    document.addEventListener('click', async function(event)
     {
         const menu = document.getElementById('friend-actions-menu');
         const inviteMenu = document.getElementById('inviteMenu');
         const inviteButton = document.getElementById('inviteButton');
+
+        console.log("Player ready status:", lobby_player.is_ready);
+
         if (event.target.id === 'toggle-online-button')
         {
             toggleSection("onlineFriends");
@@ -493,6 +518,21 @@ document.addEventListener("DOMContentLoaded", async function ()
         else if (event.target.id === 'close-modal-button')
         {
             closeModeSelection();
+        }
+        else if (event.target.id === 'mode-action-button')
+        {
+            if (lobby_player.is_leader)
+            {
+                openModeSelection();
+            }
+            else if (lobby_player.is_ready)
+            {
+                await unsetReadyStatus();
+            }
+            else
+            {
+                await setReadyStatus();
+            }
         }
         else if (event.target.id === 'apply-mode-button')
         {
@@ -510,31 +550,31 @@ document.addEventListener("DOMContentLoaded", async function ()
         else if (event.target.id === 'acceptFriendRequest')
         {
             const requesterName = document.getElementById('requesterName').textContent;
-            acceptFriendRequest(requesterName);
+            await acceptFriendRequest(requesterName);
         }
         else if (event.target.id === 'rejectFriendRequest')
         {
             const requesterName = document.getElementById('requesterName').textContent;
-            rejectFriendRequest(requesterName);
+            await rejectFriendRequest(requesterName);
         }
         else if (event.target.id === 'acceptLobbyRequest')
         {
             const requesterName = document.getElementById('lobbyRequesterName').textContent;
             const request = document.querySelector('span[data-request-type]');
             const requestType = request.getAttribute('data-request-type');
-            acceptLobbyRequest(requesterName, requestType);
+            await acceptLobbyRequest(requesterName, requestType);
         }
         else if (event.target.id === 'rejectLobbyRequest')
         {
             const requesterName = document.getElementById('lobbyRequesterName').textContent;
             const request = document.querySelector('span[data-request-type]');
             const requestType = request.getAttribute('data-request-type');
-            rejectLobbyRequest(requesterName, requestType);
+           await rejectLobbyRequest(requesterName, requestType);
         }
         else if (event.target.id === 'addFriendButton')
         {
             const addFriendInput = document.getElementById('addFriendInput');
-            addFriend(addFriendInput.value);
+            await addFriend(addFriendInput.value);
         }
         else if (event.target.id === 'friendSearch')
         {

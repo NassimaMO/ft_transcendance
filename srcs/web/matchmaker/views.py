@@ -25,7 +25,8 @@ def modes_view(request):
             lobby.match_choice = mode_form.save()
             lobby.save()
         else:
-            logger.info("erreur formulaire modes")
+            return render(request, 'matchmaker/modes.html', 
+                          {'mode_form': mode_form, 'lobby_player': lobby_player, 'form_errors': mode_form.errors})
     else :
         mode_form = MatchChoiceForm(instance=lobby.match_choice)
     lobby_player = LobbyPlayer.get_or_create(request.user)
@@ -74,14 +75,14 @@ def lobby_players_view(request) :
 
 @login_required
 def lobby_view(request, lobby_id) :
+    lobby = Lobby.get_by_user(request.user)
+    if not lobby :
+        return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST)
+        mode_form = MatchChoiceForm(data=request.POST, instance=lobby.match_choice)
         mode_form.save()
     else :
-        mode_form = MatchChoiceForm()
-        lobby = Lobby.get_by_user(request.user)
-        if not lobby :
-            return redirect("lobby-home")
+        mode_form = MatchChoiceForm(instance=lobby.match_choice)
         lobby = LobbySerializer(lobby, context={'request':request, 'type':'template'}).data
         user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
     return render(request, 'matchmaker/lobby.html', 

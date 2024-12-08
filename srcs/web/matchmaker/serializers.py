@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from account.serializers import UserSerializer
 import logging
-from .models import MatchChoice
+from .models import MatchChoice, Lobby, LobbyPlayer
 
 logger = logging.getLogger('default')
 
@@ -9,24 +9,41 @@ logger = logging.getLogger('default')
 class MatchChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = MatchChoice
-        fields = ['connect', 'mode', 'mm']
+        fields = ['connectivity', 'mode', 'matchmaking']
 
-    def is_valid(self):
-        valid = super().is_valid()
+    def is_valid(self, *, raise_exception=False):
+        valid = super().is_valid(raise_exception=raise_exception)
         if valid:
             return True
-        if self.errors.get("non_field_errors") :
-            for error in self.errors["non_field_errors"] :
-                if error.code != "unique" :
+        logger.info(f"invalid serializer: {self.errors}")
+        non_field_errors = self.errors.get("non_field_errors")
+        if non_field_errors:
+            for error in non_field_errors:
+                if error.code != "unique":
+                    if raise_exception:
+                        raise serializers.ValidationError(self.errors)
                     return False
+            attrs = {field: self.initial_data.get(field) for field in self.fields}
+            self.validated_data = self.validate(attrs)
+            self.errors.clear()
             return True
+        if raise_exception:
+            raise serializers.ValidationError(self.errors)
         return False
 
     def save(self, **kwargs):
+        fields = {field.name for field in self.Meta.model._meta.fields}
+        logger.info(f"VALIDATED DATA: {self.validated_data}")
+        for field in fields:
+            if field not in kwargs and field in self.validated_data:
+                kwargs[field] = self.validated_data[field]
+        logger.info(f"KWARGS: {kwargs}")
         match_choice = MatchChoice.objects.filter(**kwargs).first()
+        logger.info(f"MATCH CHOICE: {match_choice}")
         if match_choice:
             return match_choice
         return super().save(**kwargs)
+
 
 
 class LobbyRequestSerializer(serializers.Serializer):
@@ -65,6 +82,15 @@ class LobbyPlayerSerializer(serializers.Serializer):
         data['pseudo'] = decoded_pseudo
         data['user'] = UserSerializer(instance.user, context=self.context).data
         return data
+    
+    def create(self, validated_data):
+        return LobbyPlayer(**validated_data)
+    
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 class LobbySerializer(serializers.Serializer):
@@ -85,3 +111,12 @@ class LobbySerializer(serializers.Serializer):
         data = super().to_representation(instance)
         data['members'] = self.get_players(instance)
         return data
+    
+    def create(self, validated_data):
+        return Lobby(**validated_data)
+    
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance

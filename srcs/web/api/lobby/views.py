@@ -69,14 +69,16 @@ class UserLobbiesMainView(APIView):
                 return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
             if not lobby.is_leader(request.user):
                 return Response({"errors": {"no_leader": "You are not the lobby leader."}}, status=status.HTTP_403_FORBIDDEN)
-            match_choice = request.data.get("match-choice")
             is_in_queue = request.data.get("is_in_queue")
+            match_choice = request.data.get("match-choice")
             if match_choice:
                 serializer = MatchChoiceSerializer(data=match_choice)
                 if serializer.is_valid():
                     match_choice_instance = serializer.save()
                     lobby.match_choice = match_choice_instance
                     lobby.save()
+                    logger.info(f"[API] Match choice patch request data: {match_choice}")
+                    logger.info(f"[API] Match choice deserialized: {MatchChoiceSerializer(instance=match_choice_instance).data}")
                     send_notifications("lobby", lobby.id, {'type':MATCH_CHOICE_CHANGE})
                     return Response(
                         {
@@ -203,13 +205,11 @@ class UserLobbiesMainRequestView(APIView):
                 return Response({"errors": {"invalid_request": "This request is no longer valid."}}, status=status.HTTP_400_BAD_REQUEST)
             request_data = LobbyRequestSerializer(lobby_request).data
             if request_data['type'] == "invite":
-                lobby_player.lobby = sender_player.lobby
-                lobby_player.save()
+                lobby_player.change_lobby(sender_player.lobby)
                 send_notifications("lobby", sender_player.lobby.id, {'type':JOIN_CHANGE})
                 send_notifications("lobby_player", lobby_player.id, {'type':LOBBY_CHANGE})
             elif request_data['type'] == "join":
-                sender_player.lobby = lobby_player.lobby
-                sender_player.save()
+                sender_player.change_lobby(lobby_player.lobby)
                 send_notifications("lobby", lobby_player.lobby.id, {'type':JOIN_CHANGE})
                 send_notifications("lobby_player", sender_player.id, {'type':LOBBY_CHANGE})
             lobby_request.delete()
@@ -256,7 +256,7 @@ class UserLobbiesMainMemberView(APIView):
                 return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
             if not member:
                 return Response({"errors": {"unknown_user": "This member does not exist."}}, status=status.HTTP_404_NOT_FOUND)
-            member.leave_lobby()
+            member.change_lobby()
             send_notifications("lobby_player", lobby_player.id, {'type':LEAVE_CHANGE, "username": member.username})
             return Response({"message": f"Member '{member.username}' has been removed."}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -365,9 +365,10 @@ class UserLobbiesMainMembersMeView(APIView):
         if not lobby_player:
             message["errors"]["no_lobby"] = "You are not in a lobby."
             return Response(message, status=status.HTTP_404_NOT_FOUND)
-        serializer = LobbyPlayerSerializer(data=request.data, context={"request": request}, partial=True)
+        serializer = LobbyPlayerSerializer(lobby_player, data=request.data, context={"request": request}, partial=True)
         if serializer.is_valid():
             lobby_player = serializer.save()
-            send_notifications("lobby", lobby_player.lobby.id, {'type':PLAYER_CHANGE})
+            logger.info(f"LobbyPlayer updated: {LobbyPlayerSerializer(lobby_player).data}")
+            send_notifications("lobby", lobby_player.lobby.id, {'type': PLAYER_CHANGE})
             return Response({"message": "Player info partially updated."}, status=status.HTTP_200_OK)
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

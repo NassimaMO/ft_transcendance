@@ -49,9 +49,9 @@ class APIPlay(APIAuth):
     def select_mode(self, connect_choice: str, mode_choice: str, mm_choice: str, verbose=False) -> requests.Response:
         data = {
             'match-choice': {
-                'connect': connect_choice,
+                'connectivity': connect_choice,
                 'mode': mode_choice,
-                'mm': mm_choice
+                'matchmaking': mm_choice
             }
         }
         response = self.api_request(self.get_lobby_url(), data, method="PATCH")

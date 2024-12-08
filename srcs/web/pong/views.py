@@ -13,10 +13,10 @@ def play(request):
         if form.is_valid():
             form.save()
             cleaned_data = form.clean()
-            connect = cleaned_data.get('connect')
+            connectivity = cleaned_data.get('connectivity')
             mode = cleaned_data.get('mode')
-            mm = cleaned_data.get('mm')
-            match_choice = MatchChoice.create(connect=connect, mode=mode, mm=mm)
+            matchmaking = cleaned_data.get('matchmaking')
+            match_choice = MatchChoice.create(connectivity=connectivity, mode=mode, matchmaking=matchmaking)
             match_choice.save()
             if match_choice.need_matchmaking() :
                 return redirect('matchmaking', match_choice.id)

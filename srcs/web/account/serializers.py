@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import User, Session
 import logging
 
-logger = logging.getLogger('default')
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,10 +1,13 @@
 import rom
+import redis
 import django_filters
 import logging
+import time
 from django.db import models
 from django.utils import timezone
 from account.models import User
 from datetime import datetime
+
 
 logger = logging.getLogger('default')
 
@@ -30,19 +33,19 @@ class MatchmakingMode(models.TextChoices) :
 
 
 class MatchChoice(models.Model):
-	connect = models.CharField(max_length=20, choices=Connecitvity.choices, default=Connecitvity.LOCAL)
+	connectivity = models.CharField(max_length=20, choices=Connecitvity.choices, default=Connecitvity.LOCAL)
 	mode = models.CharField(max_length=20, choices=GameMode.choices, default=GameMode.SOLO)
-	mm = models.CharField(max_length=20, choices=MatchmakingMode.choices, default=MatchmakingMode.UNRANK)
+	matchmaking = models.CharField(max_length=20, choices=MatchmakingMode.choices, default=MatchmakingMode.UNRANK)
 
 	class Meta:
-		unique_together = ('connect', 'mode', 'mm')
+		unique_together = ('connectivity', 'mode', 'matchmaking')
 
 	@classmethod
-	def create(cls, connect=Connecitvity.LOCAL, mode=GameMode.SOLO, mm=MatchmakingMode.UNRANK):
+	def create(cls, connectivity=Connecitvity.LOCAL, mode=GameMode.SOLO, matchmaking=MatchmakingMode.UNRANK):
 		match_choice, created = cls.objects.get_or_create(
-			connect=connect,
+			connectivity=connectivity,
 			mode=mode,
-			mm=mm
+			matchmaking=matchmaking
 		)
 		return match_choice
 	
@@ -54,26 +57,31 @@ class MatchChoice(models.Model):
 			return None
 
 	def __str__(self):
-		return f"{self.mode} - {self.connect} - {self.mm}"
+		return f"{self.mode} - {self.connectivity} - {self.matchmaking}"
 	
 	def need_matchmaking(self) :
-		if (self.mode == GameMode.SOLO or self.connect == Connecitvity.LOCAL) :
+		if (self.mode == GameMode.SOLO or self.connectivity == Connecitvity.LOCAL) :
 			return False
 		return True
 
 
 class MatchChoiceFilter(django_filters.FilterSet):
-	connect = django_filters.CharFilter(lookup_expr='iexact')
+	connectivity = django_filters.CharFilter(lookup_expr='iexact')
 	mode = django_filters.CharFilter(lookup_expr='iexact')
-	mm = django_filters.CharFilter(lookup_expr='iexact')
+	matchmaking = django_filters.CharFilter(lookup_expr='iexact')
 
 	class Meta:
 		model = MatchChoice
-		fields = ['connect', 'mode', 'mm']
+		fields = ['connectivity', 'mode', 'matchmaking']
 
 
 def get_default_match_choice():
-    return MatchChoice.objects.get_or_create()[0]
+    defaults = {
+        'connectivity': MatchChoice._meta.get_field('connectivity').get_default(),
+        'mode': MatchChoice._meta.get_field('mode').get_default(),
+        'matchmaking': MatchChoice._meta.get_field('matchmaking').get_default(),
+    }
+    return MatchChoice.objects.get_or_create(**defaults)[0]
 
 
 def get_default_match_choice_id():
@@ -96,14 +104,14 @@ class MatchFilter(django_filters.FilterSet):
 	username = django_filters.CharFilter(field_name="teams__players__username")
 	date = django_filters.DateFilter(field_name="date", lookup_expr="exact")
 	date_range = django_filters.DateFromToRangeFilter(field_name="date")
-	connect = MatchChoiceFilter.declared_filters['connect']
+	connectivity = MatchChoiceFilter.declared_filters['connectivity']
 	mode = MatchChoiceFilter.declared_filters['mode']
-	mm = MatchChoiceFilter.declared_filters['mm']
+	matchmaking = MatchChoiceFilter.declared_filters['matchmaking']
 	win = django_filters.BooleanFilter(method="filter_by_win")
 
 	class Meta:
 		model = Match
-		fields = ['user_id', 'username', 'date', 'date_range', 'connect', 'mode', 'mm', 'win']
+		fields = ['user_id', 'username', 'date', 'date_range', 'connectivity', 'mode', 'matchmaking', 'win']
 
 	def filter_by_win(self, queryset, name, value):
 		user = self.request.user
@@ -148,7 +156,7 @@ class History(models.Model):
 	
 
 # ********************************************* REDIS ORM MODELS *********************************************
-	
+
 
 class WaitingLobby(rom.Model):
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
@@ -168,6 +176,28 @@ class WaitingLobby(rom.Model):
 	
 	def __str__(self) :
 		return f"<WLobby {self.lobby.leader}(start:{self.start})>"
+	
+	def save(self):
+		for _ in range(10):
+			try:
+				super().save()
+				if _:
+					logger.info(f"[WaitingLobby][DataRaceProtection] : SAVED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save WaitingLobby")
+
+	def update(self, **kwargs):
+		for _ in range(10):
+			try:
+				super().update(**kwargs)
+				if _:
+					logger.info(f"[WaitingLobby][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update WaitingLobby with fields: {list(kwargs.keys())}")
 
 
 class Matchmaking(rom.Model) :
@@ -191,12 +221,58 @@ class Matchmaking(rom.Model) :
 	
 	def __str__(self) :
 		return f"<MM {self.match_choice}: {self.queue}>"
+	
+	def save(self):
+		for _ in range(10):
+			try:
+				super().save()
+				if _:
+					logger.info(f"[Matchmaking][DataRaceProtection] : SAVED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save Matchmaking")
+
+	def update(self, **kwargs):
+		for _ in range(10):
+			try:
+				super().update(**kwargs)
+				if _:
+					logger.info(f"[Matchmaking][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update Matchmaking with fields: {list(kwargs.keys())}")
+
 
 
 class LobbyRequest(rom.Model):
 	recipient = rom.ManyToOne("LobbyPlayer", on_delete="cascade")
 	sender = rom.String()
 	type = rom.String()
+
+	def save(self):
+		for _ in range(10):
+			try:
+				super().save()
+				if _:
+					logger.info(f"[LobbyRequest][DataRaceProtection] : SAVED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save LobbyRequest")
+
+	def update(self, **kwargs):
+		for _ in range(10):
+			try:
+				super().update(**kwargs)
+				if _:
+					logger.info(f"[LobbyRequest][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update LobbyRequest with fields: {list(kwargs.keys())}")
+
 
 
 class LobbyPlayer(rom.Model) :
@@ -268,6 +344,27 @@ class LobbyPlayer(rom.Model) :
 					break
 		self.join_lobby(lobby)
 
+	def save(self):
+		for _ in range(10):
+			try:
+				super().save()
+				if _:
+					logger.info(f"[LobbyPlayer][DataRaceProtection] : SAVED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save LobbyPlayer")
+
+	def update(self, **kwargs):
+		for _ in range(10):
+			try:
+				super().update(**kwargs)
+				if _:
+					logger.info(f"[LobbyPlayer][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update LobbyPlayer with fields: {list(kwargs.keys())}")
 
 class Lobby(rom.Model) :
 	id = rom.PrimaryKey(index=True)
@@ -313,3 +410,25 @@ class Lobby(rom.Model) :
 		if lobby_player :
 			return lobby_player.is_leader
 		return False
+	
+	def save(self):
+		for _ in range(10):
+			try:
+				super().save()
+				if _:
+					logger.info(f"[Lobby][DataRaceProtection] : SAVED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save Lobby")
+
+	def update(self, **kwargs):
+		for _ in range(10):
+			try:
+				super().update(**kwargs)
+				if _:
+					logger.info(f"[Lobby][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
+				return
+			except rom.exceptions.DataRaceError :
+				time.sleep(0.1)
+		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update Lobby with fields: {list(kwargs.keys())}")
