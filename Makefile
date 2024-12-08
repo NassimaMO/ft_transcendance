@@ -34,7 +34,7 @@ clean:
 	@-docker compose -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) down
 
 fclean: clean
-# @-docker system prune -af
+#	@-docker system prune -af
 	@-docker volume rm postgres_volume_dev postgres_volume_prod static_volume media_volume
 
 re: fclean all

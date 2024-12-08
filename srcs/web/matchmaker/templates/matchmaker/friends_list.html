@@ -3,7 +3,7 @@
         <button class="toggle-button" id="toggle-online-button">Amis en ligne : {{ user.online_friends_count }}</button>
         <ul class="list-group" id="onlineFriends">
             {% for friend in user.friends %}
-                {% if friend.status != "offline" %}
+                {% if friend.status != "Inactif" %}
                     <li class="list-group-item" data-username="{{ friend.username }}">
                         <img src="{{ friend.avatar }}" alt="Avatar" class="friend-avatar">
                         {{ friend.username }} <span class="status {{friend.status}}">{{ friend.status }}</span>
@@ -17,7 +17,7 @@
         <button class="toggle-button" id="toggle-offline-button">Amis hors ligne : {{ user.offline_friends_count }}</button>
         <ul class="list-group" id="offlineFriends">
             {% for friend in user.friends %}
-                {% if friend.status == "offline" %}
+                {% if friend.status == "Inactif" %}
                     <li class="list-group-item" data-username="{{ friend.username }}">
                         <img src="{{ friend.avatar }}" alt="Avatar" class="friend-avatar">
                         {{ friend.username }} <span class="status {{friend.status}}">{{ friend.status }}</span>

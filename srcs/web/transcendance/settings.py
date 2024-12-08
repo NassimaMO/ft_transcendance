@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'channels',
     'rest_framework',
     'rest_framework.authtoken',
@@ -132,7 +133,8 @@ DATABASES = {
 # API
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication'
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     
     'DEFAULT_PERMISSION_CLASSES': [
@@ -206,6 +208,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Proxy
 
+SESSION_COOKIE_SAMESITE = 'Lax'
 if bool(int(os.getenv('DEBUG'))) == False :
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True

@@ -2,7 +2,9 @@ import os
 import websockets
 import urllib3
 import requests
+import logging
 
+logger = logging.getLogger('default')
 
 class APIConnector:
     """
@@ -71,16 +73,25 @@ class APIConnector:
         """
         Returns the default headers for API requests, specifying JSON as the content type.
         """
-        return {"Content-Type": "application/json"}
+        return {"Content-Type": "application/json",
+                'X-CLI-Request': 'true'}
     
-    def get_response(self, url: str, data: dict) -> requests.Response:
+    def api_request(self, url: str, data: dict = {}, method: str = "GET") -> requests.Response:
         """
         Sends a POST request to the specified URL with the provided data.
         
         Uses the JSON content type in headers and disables SSL verification warnings.
         """
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        return requests.post(url, json=data, headers=self.get_headers(), verify=False)
+        print(f"{method} {url} {list(data.keys())}")
+        response = requests.request(
+                method=method.upper(),
+                url=url,
+                json=data,
+                headers=self.get_headers(),
+                verify=False
+            )
+        return response
     
     async def connect_ws(self, uri: str):
         """
@@ -93,12 +104,13 @@ class APIConnector:
         WebSocketClientProtocol or None: Returns the WebSocket object if the connection succeeds, or None on failure.
         """
         try:
-            websocket = await websockets.connect(uri, extra_headers=self.get_headers())
+            print(f"WS CONNECT {uri}")
+            websocket = await websockets.connect(uri, additional_headers=self.get_headers())
             print("Connexion acceptée")
             return websocket
         except websockets.InvalidURI:
-            print("Erreur : URL WebSocket invalide")
+            print("Erreur websocket : URL WebSocket invalide")
         except websockets.InvalidHandshake:
-            print("Erreur : La connexion WebSocket a été rejetée")
+            print("Erreur websocket : La connexion WebSocket a été rejetée")
         except Exception as e:
-            print(f"Erreur : {e}")
+            print(f"Erreur websocket : {e}")
