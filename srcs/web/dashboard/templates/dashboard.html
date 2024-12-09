@@ -1,17 +1,61 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extraCSS %}
+	<link rel="stylesheet" type="text/css" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="dashboard-container">
 
     <!-- Menu de navigation tout en haut -->
     <div class="navbar">
         <ul class="nav-list">
-            <li><button class="nav-button active">Salon</button></li>
+            <li><button class="nav-button">Salon</button></li>
             <li><button class="nav-button">Tournoi</button></li>
-            <li><button class="nav-button">Carrière</button></li>
+            <li><button class="nav-button active">Carrière</button></li>
         </ul>
     </div>
     <div class="separator"></div>
+    <div class="dashboard">
+        <select class="board-mode" name="choices" id="choices">
+            <option>All</option>
+            <option>Unranked</option>
+            <option>Ranked</option>
+            <option>Tournament</option>
+        </select>
+        <div class="level-info">
+            <h2 class="rank">Gold</h2>
+            <div class="level">3.18</div>
+            <div class="rank-bar">[+++++++-----]</div>
+        </div>
+        <div class="statistics">
+            <div>
+                <h5>Games played</h5>
+                <div class="stats-circle" name="games played">10</div>
+            </div>
+            <div>
+                <h5>Games won</h5>
+                <div class="stats-circle" name="won">4</div>
+            </div>
+            <div>
+                <h5>Games lost</h5>
+                <div class="stats-circle" name="lost">6</div>
+            </div>
+        </div>
+        <div class="metrics">
+            <div class="bar" style="height: 70%;"></div>
+            <div class="bar" style="height: 50%;"></div>
+            <div class="bar" style="height: 30%;"></div>
+            <!--
+            - Average score
+            - Win streak
+            - Win Loss Ratio
+            -->
+        </div>
+    </div>
+    <div class="history">
+
+    </div>
 </div>
 {% endblock %}

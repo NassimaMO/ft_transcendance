@@ -7,30 +7,9 @@ body {
     font-family: 'Arial', sans-serif;
     background: var(--background-image) no-repeat center center fixed;
     background-size: cover;
-    color: #ffffff;
+    background-color: rgba(0, 0, 0, 0.8);
     overflow: hidden;
 }
-
-.lobby-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-.lobby-body {
-    display: flex;
-    flex: 1;
-    height: calc(100% - 62px);
-}
-
-.hidden {
-    display: none;
-}
-
-/* input {
-    background-color: rgb(51, 51, 51, 0);
-    outline: none;
-} */
 
 /* -------------------- */
 /*         NAVBAR       */
@@ -84,4 +63,98 @@ body {
     background-color: rgba(255, 255, 255, 0.3);
     margin: 0;
     z-index: 1;
+}
+
+/* --------------------- */
+/*       DASHBOARD       */
+/* --------------------- */
+
+.dashboard {
+    position: relative;
+    width: 90%;
+    height: 350px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-around;
+    z-index: 2;
+    background-color: #594c4c;
+}
+
+.level-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30%;
+    margin-top: 15px;
+}
+
+.statistics {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+    width: 30%;
+    margin-top: 15px;
+}
+
+.metrics {
+    display: flex;
+    align-items: end;
+    margin-bottom: 15px;
+    gap: 10px;
+    width: 30%;
+    margin-top: 50px;
+}
+
+.board-mode {
+    position: absolute;
+    width: 7%;;
+    height: 8%;
+    top: 10px;
+    right: 15px;
+}
+
+/* --------------------- */
+/*         RANK          */
+/* --------------------- */
+
+.rank {
+    margin: 0 auto;
+}
+
+.level {
+    margin: 0 auto;
+}
+
+.rank-bar {
+    margin: 0 auto;
+}
+
+/* --------------------- */
+/*         STATS         */
+/* --------------------- */
+
+.stats-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #e0e5e95d;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px;
+    border: 3px solid #776360;
+  }
+
+/* --------------------- */
+/*        METRICS        */
+/* --------------------- */
+  
+.bar {
+    width: 30%;
+    background-color: #3498db;
+    border-radius: 5px;
 }
