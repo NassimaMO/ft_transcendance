@@ -7,7 +7,7 @@ body {
     font-family: 'Arial', sans-serif;
     background: var(--background-image) no-repeat center center fixed;
     background-size: cover;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgb(0, 0, 30);
     overflow: hidden;
 }
 
@@ -72,20 +72,29 @@ body {
 .dashboard {
     position: relative;
     width: 90%;
-    height: 350px;
+    height: 20em;
     margin: 0 auto;
     display: flex;
     justify-content: space-around;
     z-index: 2;
-    background-color: #594c4c;
+    background-color: #111dc021;
+    border-radius: 2em;
+    border: 0.1px solid #ffffff;
+    border-top: 0px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
 }
 
 .level-info {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
+    background-color: rgb(0, 0, 30);
     width: 30%;
-    margin-top: 15px;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    border-radius: 3em;
+    border: 3px solid #ffffff86;
 }
 
 .statistics {
@@ -95,15 +104,20 @@ body {
     align-items: center;
     width: 30%;
     margin-top: 15px;
+    border-radius: 3em;
 }
 
 .metrics {
     display: flex;
     align-items: end;
-    margin-bottom: 15px;
-    gap: 10px;
+    justify-content: center;
+    background-color: rgb(0, 0, 30);
+    gap: 5em;
     width: 30%;
-    margin-top: 50px;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    border-radius: 3em;
+    border: 3px solid #ffffff86;
 }
 
 .board-mode {
@@ -111,7 +125,6 @@ body {
     width: 7%;;
     height: 8%;
     top: 10px;
-    right: 15px;
 }
 
 /* --------------------- */
@@ -120,6 +133,7 @@ body {
 
 .rank {
     margin: 0 auto;
+    font-family: 'Arial', sans-serif;
 }
 
 .level {
@@ -137,8 +151,8 @@ body {
 .stats-circle {
     width: 100px;
     height: 100px;
-    border-radius: 50%;
-    background-color: #e0e5e95d;
+    border-radius: 25%;
+    background-color: rgb(0, 0, 30);
     color: white;
     display: flex;
     justify-content: center;
@@ -146,7 +160,7 @@ body {
     font-size: 24px;
     font-weight: bold;
     margin: 10px;
-    border: 3px solid #776360;
+    border: 3px solid #ffffff86;
   }
 
 /* --------------------- */
@@ -154,7 +168,16 @@ body {
 /* --------------------- */
   
 .bar {
-    width: 30%;
-    background-color: #3498db;
+    width: 2em;
+    background-color: #ffffff;
     border-radius: 5px;
+    margin-bottom: 0.5em;
+}
+
+.separator-bar {
+    width: 3em;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0;
+    z-index: 1;
 }
