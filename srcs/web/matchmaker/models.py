@@ -3,6 +3,7 @@ import redis
 import django_filters
 import logging
 import time
+import threading
 from django.db import models
 from django.utils import timezone
 from account.models import User
@@ -76,16 +77,17 @@ class MatchChoiceFilter(django_filters.FilterSet):
 
 
 def get_default_match_choice():
-    defaults = {
-        'connectivity': MatchChoice._meta.get_field('connectivity').get_default(),
-        'mode': MatchChoice._meta.get_field('mode').get_default(),
-        'matchmaking': MatchChoice._meta.get_field('matchmaking').get_default(),
-    }
-    return MatchChoice.objects.get_or_create(**defaults)[0]
+	defaults = {
+		'connectivity': MatchChoice._meta.get_field('connectivity').get_default(),
+		'mode': MatchChoice._meta.get_field('mode').get_default(),
+		'matchmaking': MatchChoice._meta.get_field('matchmaking').get_default(),
+	}
+	return MatchChoice.objects.get_or_create(**defaults)[0]
 
 
 def get_default_match_choice_id():
 	return get_default_match_choice().id
+
 
 class Match(models.Model):
 	date = models.DateTimeField(default=timezone.now)
@@ -153,7 +155,7 @@ class History(models.Model):
 	
 	def is_winner(self):
 		return self.team.is_winner()
-	
+
 
 # ********************************************* REDIS ORM MODELS *********************************************
 
@@ -162,6 +164,10 @@ class WaitingLobby(rom.Model):
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
 	start = rom.DateTime(default=datetime.now())
 	matchmaking = rom.ManyToOne("Matchmaking", on_delete="cascade")
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._lock = threading.Lock()
 
 	@classmethod
 	def get_or_create(cls, lobby, matchmaking):
@@ -177,32 +183,49 @@ class WaitingLobby(rom.Model):
 	def __str__(self) :
 		return f"<WLobby {self.lobby.leader}(start:{self.start})>"
 	
-	def save(self):
-		for _ in range(10):
+	def save(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to save WaitingLobby with ID {self.id}")
 			try:
-				super().save()
-				if _:
-					logger.info(f"[WaitingLobby][DataRaceProtection] : SAVED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save WaitingLobby")
+				super().save(*args, **kwargs)
+				logger.debug(f"Saved WaitingLobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error saving WaitingLobby: {e}")
 
-	def update(self, **kwargs):
-		for _ in range(10):
+	def update(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to update WaitingLobby with ID {self.id}")
 			try:
-				super().update(**kwargs)
-				if _:
-					logger.info(f"[WaitingLobby][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update WaitingLobby with fields: {list(kwargs.keys())}")
+				super().update(*args, **kwargs)
+				logger.debug(f"Updated WaitingLobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error updating WaitingLobby: {e}")
 
+	def refresh(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to refresh WaitingLobby with ID {self.id}")
+			try:
+				super().refresh(*args, **kwargs)
+				logger.debug(f"Refreshed WaitingLobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error refreshing WaitingLobby: {e}")
+
+	def delete(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to delete WaitingLobby with ID {self.id}")
+			try:
+				super().update(*args, **kwargs)
+				logger.debug(f"Deleted WaitingLobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error deleting WaitingLobby: {e}")
 
 class Matchmaking(rom.Model) :
 	match_choice = rom.ForeignModel(MatchChoice)
 	queue = rom.OneToMany("WaitingLobby")
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._lock = threading.Lock()
 
 	@classmethod
 	def get_by_match_choice(cls, match_choice):
@@ -222,66 +245,114 @@ class Matchmaking(rom.Model) :
 	def __str__(self) :
 		return f"<MM {self.match_choice}: {self.queue}>"
 	
-	def save(self):
-		for _ in range(10):
+	def save(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to save Matchmaking with ID {self.id}")
 			try:
-				super().save()
-				if _:
-					logger.info(f"[Matchmaking][DataRaceProtection] : SAVED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save Matchmaking")
+				super().save(*args, **kwargs)
+				logger.debug(f"Saved Matchmaking with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error saving Matchmaking: {e}")
 
-	def update(self, **kwargs):
-		for _ in range(10):
+	def update(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to update Matchmaking with ID {self.id}")
 			try:
-				super().update(**kwargs)
-				if _:
-					logger.info(f"[Matchmaking][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update Matchmaking with fields: {list(kwargs.keys())}")
+				super().update(*args, **kwargs)
+				logger.debug(f"Updated Matchmaking with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error updating Matchmaking: {e}")
 
+	def refresh(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to refresh Matchmaking with ID {self.id}")
+			try:
+				super().refresh(*args, **kwargs)
+				logger.debug(f"Refreshed Matchmaking with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error refreshing Matchmaking: {e}")
 
+	def delete(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to delete Matchmaking with ID {self.id}")
+			try:
+				super().update(*args, **kwargs)
+				logger.debug(f"Deleted Matchmaking with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error deleting Matchmaking: {e}")
 
 class LobbyRequest(rom.Model):
 	recipient = rom.ManyToOne("LobbyPlayer", on_delete="cascade")
 	sender = rom.String()
 	type = rom.String()
 
-	def save(self):
-		for _ in range(10):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._lock = threading.Lock()
+
+	def save(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to save LobbyRequest with ID {self.id}")
 			try:
-				super().save()
-				if _:
-					logger.info(f"[LobbyRequest][DataRaceProtection] : SAVED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save LobbyRequest")
+				super().save(*args, **kwargs)
+				logger.debug(f"Saved LobbyRequest with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error saving LobbyRequest: {e}")
 
-	def update(self, **kwargs):
-		for _ in range(10):
+	def update(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to update LobbyRequest with ID {self.id}")
 			try:
-				super().update(**kwargs)
-				if _:
-					logger.info(f"[LobbyRequest][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update LobbyRequest with fields: {list(kwargs.keys())}")
+				super().update(*args, **kwargs)
+				logger.debug(f"Updated LobbyRequest with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error updating LobbyRequest: {e}")
 
+	def refresh(self, *args, **kwargs):
+		with self._lock:
+			logger.debug(f"Attempting to refresh LobbyRequest with ID {self.id}")
+			try:
+				super().refresh(*args, **kwargs)
+				logger.debug(f"Refreshed LobbyRequest with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error refreshing LobbyRequest: {e}")
 
+	# def delete(self, *args, **kwargs):
+	# 	with self._lock:
+	# 		logger.debug(f"Attempting to delete LobbyRequest with ID {self.id}")
+	# 		try:
+	# 			super().delete(*args, **kwargs)
+	# 			logger.debug(f"Deleted LobbyRequest with ID {self.id}")
+	# 		except Exception as e:
+	# 			logger.error(f"Error deleting LobbyRequest: {e}")
+
+class WebsocketStatus():
+	DISCONNECTED = 0
+	CONNECTING = 1
+	CONNECTED = 2
+	DISCONNECTING = 3
+
+class LobbyChange():
+    MATCH_CHOICE = "match-choice"
+    LEAVE = "leave"
+    JOIN = "join"
+    LOBBY_REQUEST = "lobby-request"
+    LOBBY = "lobby"
+    MATCHMAKING = "matchmaking"
+    PLAYER = "player"
 
 class LobbyPlayer(rom.Model) :
 	user = rom.ForeignModel(User)
 	pseudo = rom.String()
 	is_ready = rom.Boolean(default=True)
 	is_leader = rom.Boolean(default=True)
-	lobby = rom.OneToOne("Lobby", on_delete="cascade")
+	lobby = rom.OneToOne("Lobby", on_delete="set null")
 	requests = rom.OneToMany("LobbyRequest")
+	ws_status = rom.Integer(default=WebsocketStatus.DISCONNECTED)
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._lock = threading.Lock()
 
 	@classmethod
 	def get_by_user(cls, user):
@@ -294,6 +365,8 @@ class LobbyPlayer(rom.Model) :
 	def get_or_create(cls, user, pseudo=None, lobby=None):
 		lobby_player = cls.get_by_user(user)
 		if lobby_player :
+			if lobby and not lobby_player.lobby:
+				lobby_player.join_lobby(lobby)
 			return lobby_player
 		if not pseudo :
 			pseudo=user.get_pseudo()
@@ -312,59 +385,88 @@ class LobbyPlayer(rom.Model) :
 			if decoded_sender == sender and decoded_type == type :
 				return request
 		return None
-
-	def join_lobby(self, lobby=None) :
-		if lobby:
-			self.lobby = lobby
-			self.is_leader = False
-		else:
-			self.lobby = Lobby.get_or_create(self.user)
-			self.is_leader = True
-		self.is_ready = False
-		self.requests.clear()
+	
+	def check_pseudo(self, string):
+		try:
+			decoded_pseudo = self.pseudo.decode('utf-8')
+		except UnicodeDecodeError:
+			decoded_pseudo = self.pseudo
+		return decoded_pseudo == string
+		
+	
+	def change_leadership(self, change):
+		self.is_leader = change
+		self.is_ready = change
 		self.save()
 
+	def join_lobby(self, lobby=None) :
+		self.requests.clear()
+		if lobby:
+			self.lobby = lobby
+			self.change_leadership(False)
+		else:
+			self.lobby = Lobby()
+			self.change_leadership(True)
+		logger.info(f"[LobbyPlayer{self.id}] : JOINED LOBBY {self.lobby.id}")
+
 	def leave_lobby(self) :
-		if len(self.lobby.members) == 1 :
-			return self.lobby.delete()
-		if self.is_leader :
+		new_leader = None
+		logger.info(f"[LobbyPlayer{self.id}] : LEAVING LOBBY {self.lobby.id}")
+		if len(self.lobby.members) <= 1 :
+			logger.info(f"[LobbyPlayer{self.id}] : DELETING EMPTY LOBBY {self.lobby.id}")
+			self.lobby.delete()
+		elif self.is_leader :
 			for player in self.lobby.members :
-				if player != self :
-					player.is_leader = True
-					player.save()
+				if player.id != self.id :
+					player.change_leadership(True)
+					logger.info(f"[LobbyPlayer{self.id}] : Leadership of lobby {self.lobby.id} passed to {player.user.username}")
+					new_leader = player
 					break
-		self.delete()
+		self.lobby = None
+		self.save()
+		return new_leader
 
-	def change_lobby(self, lobby=None):
-		if self.is_leader :
-			for player in self.lobby.members :
-				if player != self :
-					player.is_leader = True
-					player.save()
-					break
+	def change_lobby(self, lobby):
+		new_leader = self.leave_lobby()
 		self.join_lobby(lobby)
+		return new_leader
 
-	def save(self):
-		for _ in range(10):
+	def save(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to save LobbyPlayer with ID {self.id}")
 			try:
-				super().save()
-				if _:
-					logger.info(f"[LobbyPlayer][DataRaceProtection] : SAVED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save LobbyPlayer")
+				super().save(*args, **kwargs)
+				# logger.debug(f"Saved LobbyPlayer with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error saving LobbyPlayer: {e}")
 
-	def update(self, **kwargs):
-		for _ in range(10):
+	def update(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to update LobbyPlayer with ID {self.id}")
 			try:
-				super().update(**kwargs)
-				if _:
-					logger.info(f"[LobbyPlayer][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update LobbyPlayer with fields: {list(kwargs.keys())}")
+				super().update(*args, **kwargs)
+				# logger.debug(f"Updated LobbyPlayer with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error updating LobbyPlayer: {e}")
+
+	def refresh(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to refresh LobbyPlayer with ID {self.id}")
+			try:
+				super().refresh(*args, **kwargs)
+				# logger.debug(f"Refreshed LobbyPlayer with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error refreshing LobbyPlayer: {e}")
+
+	def delete(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to delete LobbyPlayer with ID {self.id}")
+			try:
+				super().update(*args, **kwargs)
+				# logger.debug(f"Deleted LobbyPlayer with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error deleting LobbyPlayer: {e}")
+
 
 class Lobby(rom.Model) :
 	id = rom.PrimaryKey(index=True)
@@ -372,6 +474,10 @@ class Lobby(rom.Model) :
 	match_choice = rom.ForeignModel(MatchChoice, default=get_default_match_choice)
 	is_open = rom.Boolean(default=False)
 	is_in_queue = rom.Boolean(default=False)
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._lock = threading.Lock()
 
 	@property
 	def leader(self):
@@ -391,11 +497,8 @@ class Lobby(rom.Model) :
 		lobby_player = LobbyPlayer.get_or_create(user)
 		if lobby_player.lobby:
 			return lobby_player.lobby
-		new_lobby = cls()
-		new_lobby.save()
-		lobby_player.lobby = new_lobby
-		lobby_player.save()
-		return new_lobby
+		lobby_player.join_lobby()
+		return lobby_player.lobby
 	
 	def add_player(self, user) :
 		player = LobbyPlayer.get_or_create(user)
@@ -411,24 +514,38 @@ class Lobby(rom.Model) :
 			return lobby_player.is_leader
 		return False
 	
-	def save(self):
-		for _ in range(10):
+	def save(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to save Lobby with ID {self.id}")
 			try:
-				super().save()
-				if _:
-					logger.info(f"[Lobby][DataRaceProtection] : SAVED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to save Lobby")
+				super().save(*args, **kwargs)
+				# logger.debug(f"Saved Lobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error saving Lobby: {e}")
 
-	def update(self, **kwargs):
-		for _ in range(10):
+	def update(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to update Lobby with ID {self.id}")
 			try:
-				super().update(**kwargs)
-				if _:
-					logger.info(f"[Lobby][DataRaceProtection] : UPDATED AFTER {_} RETRIES")
-				return
-			except rom.exceptions.DataRaceError :
-				time.sleep(0.1)
-		raise rom.exceptions.DataRaceError(f"DataRace error while trying to update Lobby with fields: {list(kwargs.keys())}")
+				super().update(*args, **kwargs)
+				# logger.debug(f"Updated Lobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error updating Lobby: {e}")
+
+	def refresh(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to refresh Lobby with ID {self.id}")
+			try:
+				super().refresh(*args, **kwargs)
+				# logger.debug(f"Refreshed Lobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error refreshing Lobby: {e}")
+
+	def delete(self, *args, **kwargs):
+		with self._lock:
+			# logger.debug(f"Attempting to delete Lobby with ID {self.id}")
+			try:
+				super().update(*args, **kwargs)
+				# logger.debug(f"Deleted Lobby with ID {self.id}")
+			except Exception as e:
+				logger.error(f"Error deleting Lobby: {e}")

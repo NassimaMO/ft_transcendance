@@ -1,21 +1,17 @@
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.authentication import SessionAuthentication
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from api.utils import check_user, send_notifications
+from rest_framework import status # type: ignore
+from rest_framework.views import APIView # type: ignore
+from rest_framework.response import Response # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
+from rest_framework.authentication import SessionAuthentication # type: ignore
+from rest_framework_simplejwt.authentication import JWTAuthentication # type: ignore
+from api.utils import check_user, send_notifications, notify_friends_api
 from account.serializers import UserSerializer
+from account.models import UserChange
 from .serializers import RegisterSerializer
 from matchmaker.models import LobbyPlayer
 import logging
 
 logger = logging.getLogger("default")
-
-USER_CHANGE = "user"
-FRIEND_REQUEST_CHANGE = "friend-request"
-FRIEND_CHANGE = "friend"
-
 
 class UserRequestsView(APIView):
     """PATH users/<int/str:user_id_or_username>/requests"""
@@ -56,7 +52,7 @@ class UserRequestsView(APIView):
         user.save()
         player = LobbyPlayer.get_by_user(user)
         if player:
-            send_notifications("lobby_player", player.id, {'type': FRIEND_REQUEST_CHANGE})
+            send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST})
         message = {
             "status": "pending",
             "message": f"A friend request has been sent to user {user_checking.get('user_message')}"
@@ -109,8 +105,11 @@ class UserMeView(APIView):
         if serializer.is_valid():
             serializer.save()
             player = LobbyPlayer.get_by_user(request.user)
-            if player:
-                send_notifications("lobby_player", player.id, {'type': USER_CHANGE})
+            if player.lobby:
+                send_notifications("lobby", player.lobby.id, {'type': UserChange.INFO})
+            elif player:
+                send_notifications("lobby_player", player.id, {'type': UserChange.INFO})
+            notify_friends_api(request.user)
             return Response({"message": "User info updated successfully."}, status=status.HTTP_200_OK)
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -122,7 +121,8 @@ class UserMeView(APIView):
             serializer.save()
             player = LobbyPlayer.get_by_user(request.user)
             if player:
-                send_notifications("lobby_player", player.id, {'type': USER_CHANGE, 'username': player.user.username})
+                send_notifications("lobby_player", player.id, {'type': UserChange.INFO, 'username': player.user.username})
+            notify_friends_api(request.user)
             return Response({"message": "User info partially updated."}, status=status.HTTP_200_OK)
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -133,7 +133,8 @@ class UserMeView(APIView):
             request.user.delete()
             player = LobbyPlayer.get_by_user(request.user)
             if player:
-                send_notifications("lobby_player", player.id, {'type': USER_CHANGE})
+                send_notifications("lobby_player", player.id, {'type': UserChange.INFO})
+            notify_friends_api(request.user)
             return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error deleting user: {str(e)}")
@@ -182,7 +183,7 @@ class UserMeRequestsView(APIView):
         request.user.requests.clear()
         player = LobbyPlayer.get_by_user(request.user)
         if player:
-            send_notifications("lobby_player", player.id, {'type': FRIEND_REQUEST_CHANGE})
+            send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST})
         return Response({"message": "All friend requests removed."}, status=status.HTTP_200_OK)
 
 
@@ -209,10 +210,10 @@ class UserMeRequestView(APIView):
         request.user.friends.add(user)
         player = LobbyPlayer.get_by_user(request.user)
         if player:
-            send_notifications("lobby_player", player.id, {'type': FRIEND_REQUEST_CHANGE}, {'type': FRIEND_CHANGE})
+            send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST}, {'type': UserChange.FRIEND})
         friend_player = LobbyPlayer.get_by_user(user)
         if friend_player:
-            send_notifications("lobby_player", friend_player.id, {'type': FRIEND_CHANGE})
+            send_notifications("lobby_player", friend_player.id, {'type': UserChange.FRIEND})
         return Response({"message": "Friend request accepted."}, status=status.HTTP_200_OK)
 
     def delete(self, request, **kwargs):
@@ -232,7 +233,7 @@ class UserMeRequestView(APIView):
         request.user.requests.remove(user)
         player = LobbyPlayer.get_by_user(request.user)
         if player:
-            send_notifications("lobby_player", player.id, {'type': FRIEND_REQUEST_CHANGE})
+            send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST})
         return Response({"message": "Friend request denied."}, status=status.HTTP_200_OK)
 
 
@@ -285,7 +286,7 @@ class UserMeFriendView(APIView):
             request.user.save()
             player = LobbyPlayer.get_by_user(request.user)
             if player:
-                send_notifications("lobby_player", player.id, {'type': FRIEND_REQUEST_CHANGE})
+                send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST})
             message = {
                 "status": "pending",
                 "message": f"A friend request has been sent to user {user_checking.get('user_message')}"
@@ -297,10 +298,10 @@ class UserMeFriendView(APIView):
             request.user.save()
             player = LobbyPlayer.get_by_user(request.user)
             if player:
-                send_notifications("lobby_player", player.id, {'type': FRIEND_CHANGE})
+                send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND})
             friend_player = LobbyPlayer.get_by_user(user)
             if friend_player:
-                send_notifications("lobby_player", player.id, {'type': FRIEND_CHANGE})
+                send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND})
             message = {
                 "status": "accepted",
                 "message": f"Friend request from user {user_checking.get('user_message')} accepted. You are now friends."
@@ -325,7 +326,7 @@ class UserMeFriendView(APIView):
         request.user.save()
         player = LobbyPlayer.get_by_user(request.user)
         if player:
-            send_notifications("lobby_player", player.id, {'type': FRIEND_CHANGE})
+            send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND})
         message = {
             "status": "removed",
             "message": f"User {user_checking.get('user_message')} is no longer your friend. Good riddance."

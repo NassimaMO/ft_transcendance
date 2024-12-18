@@ -6,6 +6,32 @@ from django.conf import settings
 
 logger = logging.getLogger('default')
 
+
+class WebSocketLoggingMiddleware:
+    """
+    Middleware ASGI pour traquer tous les événements envoyés et reçus par un WebSocket.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        logger.info(f"[MIDDLEWARE] User: {scope.get('user', 'N/A')}")
+        logger.info(f"[MIDDLEWARE] Channel Name: {scope.get('channel_name', 'N/A')}")
+        logger.info(f"[MIDDLEWARE] Channel Layer: {type(scope.get('channel_layer'))}")
+
+        async def logging_receive():
+            message = await receive()
+            logger.debug(f"[MIDDLEWARE] Event received: {message}")
+            return message
+
+        async def logging_send(event):
+            logger.debug(f"[MIDDLEWARE] Event sent: {event}")
+            await send(event)
+
+        return await self.app(scope, logging_receive, logging_send)
+
+
 class JWTAuthMiddleware:
     """
     Middleware pour authentifier les utilisateurs externes via JWT.

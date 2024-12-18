@@ -46,7 +46,7 @@
         <div class="friends-container">
             <div class="friends-window">
                 <div id="lobby-list">
-                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members lobby_users=lobby_users friends=user.friends %}
+                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members lobby_users=lobby_users friends=user.friends Status=Status%}
                 </div>
                 <!-- Menu pour inviter / rejoindre ses amis (caché) -->
                 <div id="friend-actions-menu" class="friend-actions-menu">

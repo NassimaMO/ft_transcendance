@@ -5,17 +5,24 @@ from django.utils.timezone import now
 from django.utils.timezone import now
 
 
+class UserChange():
+	INFO = "user"
+	FRIEND_REQUEST = "friend-request"
+	FRIEND = "friend"
+
+
 class Status(models.TextChoices):
-	ON = "Actif", "Actif"
-	OFF = "Inactif", "Inactif"
-	IG = "En jeu", "En Jeu"
+	ON = "En Ligne", "En Ligne"
+	OFF = "Hors Ligne", "Hors Ligne"
+	IG = "Dans une partie", "Dans une partie"
 	INV = "Invisible", "Invisible"
 	BUSY = "Occupé", "Occupé"
+	LOBBY = "Dans un salon", "Dans un salon"
 
 class User(AbstractUser):
 	avatar = models.ImageField(upload_to='', default="static/account/media/default_avatar.png")
 	banner = models.ImageField(upload_to='', default="static/account/media/default_banner.jpg")
-	status = models.CharField(max_length=9, choices=Status.choices, default=Status.OFF)
+	status = models.CharField(max_length=15, choices=Status.choices, default=Status.OFF)
 	friends = models.ManyToManyField('self', blank=True)
 	requests = models.ManyToManyField('self',  symmetrical=False, blank=True)
 

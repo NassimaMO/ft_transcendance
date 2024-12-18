@@ -27,22 +27,37 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = bool(int(os.environ.get("DEBUG", default=0)))
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-    'loggers': {
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            'propagate': True
+        },
+        "channels": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            'propagate': True
+        },
+        "channels.layers": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            'propagate': True
+        },
         'default': {
             'handlers': ['console'],
             'level': 'DEBUG',
-            'propagate': True,
-        },
+            'propagate': True
+        }
     },
 }
+
 
 TEMPLATE_DEBUG = True
 

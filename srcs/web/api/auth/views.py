@@ -1,13 +1,14 @@
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.authentication import SessionAuthentication
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework import status # type: ignore
+from rest_framework.views import APIView # type: ignore
+from rest_framework.response import Response # type: ignore
+from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
+from rest_framework.authentication import SessionAuthentication # type: ignore
+from rest_framework_simplejwt.authentication import JWTAuthentication # type: ignore
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 from account.models import Session, Status
-from django.contrib.auth import logout
+from django.contrib.auth import logout # type: ignore
 from .serializers import SessionSerializer
+from matchmaker.models import LobbyPlayer
 import logging
 
 logger = logging.getLogger("default")
@@ -109,8 +110,11 @@ class UserSessionView(APIView):
             }}
             logger.error(f"Error deleting session: {str(e)}")
             return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        logout(request.user)
+        lobby_player = LobbyPlayer.get_by_user(request.user)
+        if lobby_player:
+            lobby_player.delete()
         request.user.status = Status.OFF
         request.user.save()
+        logout(request.user)
         session.delete()
         return Response({"message": "Session deleted successfully."}, status=status.HTTP_200_OK)

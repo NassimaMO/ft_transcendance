@@ -5,14 +5,15 @@ from matchmaker.forms import MatchChoiceForm
 from .models import Lobby, LobbyPlayer
 from .serializers import LobbySerializer, LobbyPlayerSerializer
 from account.serializers import UserSerializer
+from account.models import Status
 
 
 logger = logging.getLogger('default')
 
 @login_required
 def lobby_home_view(request):
-    lobby_id = Lobby.get_or_create(request.user).id
-    return redirect("lobby", lobby_id)
+    lobby = Lobby.get_or_create(request.user)
+    return redirect("lobby", lobby.id)
 
 @login_required
 def modes_view(request):
@@ -42,12 +43,13 @@ def lobby_list_view(request) :
     return render(request, 'matchmaker/lobby_list.html', 
                   {'lobby_players': lobby['members'], 
                     'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
-                    'user': user})
+                    'user': user, 
+                    'Status': Status})
 
 @login_required
 def friends_list_view(request) :
     user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/friends_list.html', {'user': user})
+    return render(request, 'matchmaker/friends_list.html', {'user': user, 'Status': Status})
 
 @login_required
 def invite_banner_view(request) :
@@ -75,17 +77,18 @@ def lobby_players_view(request) :
 
 @login_required
 def lobby_view(request, lobby_id) :
-    lobby = Lobby.get_by_user(request.user)
-    if not lobby :
+    logger.info(f"[VIEW] User {request.user.id} status : {request.user.status}")
+    player = LobbyPlayer.get_by_user(request.user)
+    if not player or not player.lobby:
         return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST, instance=lobby.match_choice)
+        mode_form = MatchChoiceForm(data=request.POST, instance=player.lobby.match_choice)
         mode_form.save()
     else :
-        mode_form = MatchChoiceForm(instance=lobby.match_choice)
-        lobby = LobbySerializer(lobby, context={'request':request, 'type':'template'}).data
+        mode_form = MatchChoiceForm(instance=player.lobby.match_choice)
+        lobby = LobbySerializer(player.lobby, context={'request':request, 'type':'template'}).data
         user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
     return render(request, 'matchmaker/lobby.html', 
                   {"lobby": lobby, 
                    'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
-                   'mode_form': mode_form, 'user': user})
+                   'mode_form': mode_form, 'user': user, 'Status': Status})
