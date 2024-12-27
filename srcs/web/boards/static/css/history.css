@@ -1,0 +1,98 @@
+/* ------------------ */
+/*      HISTORY       */
+/* ------------------ */
+
+.history-container {
+    width: 100%;
+    height: 90%;
+    margin: 0;
+}
+
+.board-mode {
+    display: flex;
+    width: 7%;
+    height: 3%;
+    margin: 0 auto;
+}
+
+.title {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+}
+
+.categories {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    text-align: center;
+    justify-content: center;
+    width: 90%;
+    margin-top: 2%;
+    margin-left: 5%;
+    font-size: 22px;
+}
+
+/* ------------------ */
+/*      MATCH       */
+/* ------------------ */
+
+.match-list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    width: 90%;
+    height: 80%;
+    margin-left: 5%;
+    border: 5px solid #ffffff86;
+}
+
+.match-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.match-list::-webkit-scrollbar-thumb {
+    background-color: rgba(153, 151, 151, 0.5);
+    border: 1px solid #f1f1f1;
+    border-radius: 5px;
+}
+
+.match-list::-webkit-scrollbar-track {
+    background-color: #f1f1f1; 
+}
+
+.match {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    width: 100%;
+    height: 5em;
+    border-bottom: 3px solid #ffffff86;
+}
+
+.result, .game-mode, .user-team, .score, .enemy-team, .paddle-combo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.result {
+    font-size: 35px;
+}
+
+.game-mode {
+    font-size: 22px;
+    color: rgb(128, 128, 128);
+}
+
+.user-team {
+    color: rgb(104, 104, 234);
+}
+
+.score {
+    font-size: 22px;
+}
+
+.enemy-team {
+    color: rgb(244, 90, 90);
+}
+
+.paddle-combo {
+}

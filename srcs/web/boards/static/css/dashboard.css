@@ -1,0 +1,133 @@
+/* --------------------- */
+/*       DASHBOARD       */
+/* --------------------- */
+
+.dashboard-container {
+    width: 100%;
+    height: 90%;
+    margin: 0;
+    position: relative;
+    width: 25%;
+    display: flex;
+    flex-direction: column;
+    background-color: #111dc021;
+    border: 0.1px solid #ffffff;
+    border-top: none;
+}
+
+.level-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    background-color: rgb(0, 0, 30);
+    width: 90%;
+    margin: 5%;
+    border: 3px solid #ffffff86;
+}
+
+.statistics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    text-align: center;
+    width: 90%;
+    margin: 5%;
+}
+
+.metrics {
+    display: flex;
+    align-items: end;
+    justify-content: center;
+    background-color: rgb(0, 0, 30);
+    gap: 2em;
+    width: 90%;
+    height: 100%;
+    margin: 5%;
+    border: 3px solid #ffffff86;
+}
+
+/* --------------------- */
+/*         RANK          */
+/* --------------------- */
+
+.rank {
+    margin: 0 auto;
+    font-family: 'Arial', sans-serif;
+}
+
+.level {
+    margin: 0 auto;
+}
+
+.rank-bar {
+    position: relative;
+    text-align: center;
+    background-color: rgb(0, 0, 30);
+    color: white;
+    border: 2px solid #ffffff86;
+    width: 80%;
+    margin: 10%;
+    margin-bottom: 5%;
+    height: 28px;
+}
+
+.number-level {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    z-index: 2;
+}
+
+.rank-level {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #ffffff21;
+    height: 100%;
+    width: 37.33%;
+}
+
+/* --------------------- */
+/*         STATS         */
+/* --------------------- */
+
+.stats-display {
+    width: 90%;
+    height: 90%;
+    margin: 5%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: rgb(0, 0, 30);
+    color: white;
+    border: 3px solid #ffffff86;
+}
+
+.stat-name {
+    font-size: 12px;
+}
+
+.stat-number {
+    font-weight: bold;
+    font-size: 24px;
+}
+
+/* --------------------- */
+/*        METRICS        */
+/* --------------------- */
+  
+.bar {
+    width: 2em;
+    background-color: #ffffff;
+    border-radius: 5px;
+    margin-bottom: 0.5em;
+}
+
+.separator-bar {
+    width: 3em;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0;
+    z-index: 1;
+}
