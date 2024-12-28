@@ -3,19 +3,16 @@
 /* --------------------- */
 
 .dashboard-container {
-    width: 100%;
-    height: 90%;
-    margin: 0;
-    position: relative;
-    width: 25%;
     display: flex;
     flex-direction: column;
+    width: 25%;
+    height: 85%;
     background-color: #111dc021;
     border: 0.1px solid #ffffff;
     border-top: none;
 }
 
-.level-info {
+.user-info {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
@@ -34,22 +31,21 @@
 }
 
 .metrics {
-    display: flex;
-    align-items: end;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     background-color: rgb(0, 0, 30);
-    gap: 2em;
     width: 90%;
     height: 100%;
     margin: 5%;
+    padding: 2%;
     border: 3px solid #ffffff86;
 }
 
-/* --------------------- */
-/*         RANK          */
-/* --------------------- */
+/* ------------------- */
+/*      USER-INFO      */
+/* ------------------- */
 
-.rank {
+.username {
     margin: 0 auto;
     font-family: 'Arial', sans-serif;
 }
@@ -66,11 +62,12 @@
     border: 2px solid #ffffff86;
     width: 80%;
     margin: 10%;
+    margin-top: 5%;
     margin-bottom: 5%;
     height: 28px;
 }
 
-.number-level {
+.rank {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -118,16 +115,20 @@
 /* --------------------- */
   
 .bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: end;
+    text-align: center;
+    height: 100%;
+}
+
+.bar-level {
     width: 2em;
     background-color: #ffffff;
     border-radius: 5px;
-    margin-bottom: 0.5em;
 }
 
-.separator-bar {
-    width: 3em;
-    height: 2px;
-    background-color: rgba(255, 255, 255, 0.3);
-    margin: 0;
-    z-index: 1;
+.bar-name {
+    height: 20%;
 }

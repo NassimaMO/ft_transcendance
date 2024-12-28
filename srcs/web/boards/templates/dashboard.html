@@ -6,11 +6,11 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <div class="level-info">
-        <h2 class="rank">Gold</h2>
-        <div class="level">3.18 lvl</div>
+    <div class="user-info">
+        <h2 class="username">Sheil</h2>
+        <div class="level">lvl 3.18</div>
         <div class="rank-bar">
-            <div class="number-level">112/300</div>
+            <div class="rank">Gold</div>
             <div class="rank-level"></div>
         </div>
     </div>
@@ -34,14 +34,18 @@
         </div>
     </div>
     <div class="metrics">
-        <div class="bar" style="height: 70%;"></div>
-        <div class="bar" style="height: 50%;"></div>
-        <div class="bar" style="height: 30%;"></div>
-        <!--
-        - Average score
-        - Win streak
-        - Win Loss Ratio
-        -->
+        <div class="bar">
+            <div class="bar-level" style="height: 70%;"></div>
+            <div class="bar-name">Average score</div>
+        </div>
+        <div class="bar">
+            <div class="bar-level" style="height: 50%;"></div>
+            <div class="bar-name">Win streak</div>
+        </div>
+        <div class="bar">
+            <div class="bar-level" style="height: 30%;"></div>
+            <div class="bar-name">Win Loss Ratio</div>
+        </div>
     </div>
 </div>
 {% endblock %}
