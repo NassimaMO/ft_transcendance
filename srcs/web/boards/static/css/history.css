@@ -22,7 +22,7 @@
 
 .categories {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     text-align: center;
     justify-content: center;
     width: 100%;
@@ -62,12 +62,12 @@
 
 .match {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     width: 100%;
     border-bottom: 3px solid #ffffff86;
 }
 
-.result, .game-mode, .user-team, .score, .enemy-team, .paddle-combo {
+.result, .game-mode, .score, .paddle-combo, .date-time {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -77,23 +77,10 @@
     font-size: 35px;
 }
 
-.game-mode {
+.game-mode, .score, .paddle-combo, .date-time {
     font-size: 22px;
+}
+
+.game-mode, .date-time {
     color: rgba(128, 128, 128, 0.465);
-}
-
-.user-team {
-    color: rgb(104, 104, 234);
-}
-
-.score {
-    font-size: 22px;
-}
-
-.enemy-team {
-    color: rgb(244, 90, 90);
-}
-
-.paddle-combo {
-    font-size: 22px;
 }
