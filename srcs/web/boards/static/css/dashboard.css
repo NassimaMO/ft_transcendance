@@ -50,10 +50,6 @@
     font-family: 'Arial', sans-serif;
 }
 
-.level {
-    margin: 0 auto;
-}
-
 .rank-bar {
     position: relative;
     text-align: center;
@@ -74,13 +70,14 @@
     transform: translate(-50%, -50%);
     font-size: 18px;
     z-index: 2;
+    color: rgb(198, 206, 38);
 }
 
 .rank-level {
     position: absolute;
     top: 0;
     left: 0;
-    background-color: #ffffff21;
+    background-color: #ffffff5e;
     height: 100%;
     width: 37.33%;
 }
