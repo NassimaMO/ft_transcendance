@@ -15,7 +15,6 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
         valid = super().is_valid(raise_exception=raise_exception)
         if valid:
             return True
-        logger.info(f"invalid serializer: {self.errors}")
         non_field_errors = self.errors.get("non_field_errors")
         if non_field_errors:
             for error in non_field_errors:
@@ -33,13 +32,10 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
 
     def save(self, **kwargs):
         fields = {field.name for field in self.Meta.model._meta.fields}
-        logger.info(f"VALIDATED DATA: {self.validated_data}")
         for field in fields:
             if field not in kwargs and field in self.validated_data:
                 kwargs[field] = self.validated_data[field]
-        logger.info(f"KWARGS: {kwargs}")
         match_choice = MatchChoice.objects.filter(**kwargs).first()
-        logger.info(f"MATCH CHOICE: {match_choice}")
         if match_choice:
             return match_choice
         return super().save(**kwargs)

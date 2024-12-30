@@ -2,7 +2,6 @@ import django_filters
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.timezone import now
-from django.utils.timezone import now
 
 
 class UserChange():
@@ -66,7 +65,16 @@ class User(AbstractUser):
 	
 	def get_pseudo(self) :
 		return self.username
-
+	
+	def get_all_games_played(self):
+		from matchmaker.models import Match
+		all_matches = []
+		for match in Match.objects.all():
+			for team in match.teams:
+				if self in team.players:
+					all_matches.append(match)
+		#Match.objects.filter(teams__players=self).distinct()
+		return all_matches #.order_by('-date')
 
 
 class UserFilter(django_filters.FilterSet):
