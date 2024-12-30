@@ -26,14 +26,14 @@
     <div class="lobby-body">
         <!-- Menu d'affichage des modes à gauche -->
         <div id="lobby-modes" class="lobby-modes">
-            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby.players.0 %}
+            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby.members.0 %}
         </div>
 
         <div class="matchmaking-container">
             <!-- Bannières au mileu -->
             <div class="lobby-players">
                 <div class="player-row" id="lobby-players">
-                    {% include "matchmaker/lobby_players.html" with lobby_players=lobby.players friends=user.friends %}
+                    {% include "matchmaker/lobby_players.html" with lobby_players=lobby.members friends=user.friends %}
                 </div>
             </div>
             <!-- Bouton matchmaking en bas -->
@@ -46,7 +46,7 @@
         <div class="friends-container">
             <div class="friends-window">
                 <div id="lobby-list">
-                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.players lobby_users=lobby_users friends=user.friends %}
+                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members lobby_users=lobby_users friends=user.friends Status=Status%}
                 </div>
                 <!-- Menu pour inviter / rejoindre ses amis (caché) -->
                 <div id="friend-actions-menu" class="friend-actions-menu">

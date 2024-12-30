@@ -10,16 +10,16 @@ class MatchChoiceForm(forms.ModelForm):
 
     class Meta:
         model = MatchChoice
-        fields = ['mode', 'connect', 'mm']
+        fields = ['mode', 'connectivity', 'matchmaking']
         labels = {
-            'connect': 'Connectivité',
+            'connectivity': 'Connectivité',
             'mode': 'Mode de jeu',
-            'mm': 'Matchmaking',
+            'matchmaking': 'Matchmaking',
         }
         widgets = {
             'mode': forms.Select(attrs={'class': 'form-select'}),
-            'connect': forms.Select(attrs={'class': 'form-select'}),
-            'mm': forms.Select(attrs={'class': 'form-select'}),
+            'connectivity': forms.Select(attrs={'class': 'form-select'}),
+            'matchmaking': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def is_valid(self):
@@ -31,11 +31,11 @@ class MatchChoiceForm(forms.ModelForm):
         return False
     
     def save(self, commit=True):
-        connect = self.cleaned_data.get('connect')
+        connectivity = self.cleaned_data.get('connectivity')
         mode = self.cleaned_data.get('mode')
-        mm = self.cleaned_data.get('mm')
+        matchmaking = self.cleaned_data.get('matchmaking')
         try:
-            instance = MatchChoice.objects.get(connect=connect, mode=mode, mm=mm)
+            instance = MatchChoice.objects.get(connectivity=connectivity, mode=mode, matchmaking=matchmaking)
             if commit :
                 instance.save()
         except MatchChoice.DoesNotExist:
