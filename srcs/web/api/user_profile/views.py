@@ -10,6 +10,7 @@ class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
+    @classmethod
     def get(self, request):
         user = request.user
         serializer = UserProfileSerializer(user, context={'request': request})
@@ -19,6 +20,7 @@ class UserStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
+    @classmethod
     def get(self, request):
         user = request.user
         all_games_played = user.get_all_games_played()
@@ -35,7 +37,8 @@ class UserStatisticsView(APIView):
             "win_loss_ratio": win_loss_ratio,
         }
         return Response(data)
-    
+
+    @classmethod
     def _get_total_games_won(self, all_games_played, user):
         games_won_count = 0
         for match in all_games_played:
@@ -44,11 +47,13 @@ class UserStatisticsView(APIView):
                 games_won_count += 1
         return games_won_count
     
+    @classmethod
     def _get_average_score(self, all_games_played, user):
         average_score = sum(Team.objects.filter(match=match, players=user).first().score for match in all_games_played)
         average_score = average_score / len(all_games_played) if len(all_games_played) > 0 else 0
         return average_score
     
+    @classmethod
     def _get_win_streak(self, all_games_played, user):
         win_streak = 0
         for match in all_games_played:
