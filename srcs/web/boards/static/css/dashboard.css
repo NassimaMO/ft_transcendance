@@ -12,13 +12,18 @@
     border-top: none;
 }
 
+.user-info, .statistics, .charts, .streak {
+    width: 90%;
+    margin: 5%;
+    margin-top: 0%;
+}
+
 .user-info {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
+    margin-top: 5%;
     background-color: rgb(0, 0, 30);
-    width: 90%;
-    margin: 5%;
     border: 3px solid #ffffff86;
 }
 
@@ -26,18 +31,19 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     text-align: center;
-    width: 90%;
-    margin: 5%;
 }
 
-.metrics {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    background-color: rgb(0, 0, 30);
-    width: 90%;
+.charts {
+    display: flex;
+    justify-content: end;
+    gap: 5%;
     height: 100%;
-    margin: 5%;
     padding: 2%;
+}
+
+.streak {
+    background-color: rgb(0, 0, 30);
+    text-align: center;
     border: 3px solid #ffffff86;
 }
 
@@ -107,25 +113,48 @@
     font-size: 24px;
 }
 
-/* --------------------- */
-/*        METRICS        */
-/* --------------------- */
-  
-.bar {
+/* ---------------- */
+/*      CHARTS      */
+/* ---------------- */
+
+.chart-one, .chart-two {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
-    justify-content: end;
-    text-align: center;
-    height: 100%;
+    background-color: rgb(0, 0, 30);
+    border: 3px solid #ffffff86;
+}
+
+.chart-one {
+    width: 70%;
+}
+
+.chart-two {
+    width: 25%;
 }
 
 .bar-level {
-    width: 2em;
+    width: 50%;
+    height: 100%;
+    margin-right: 5%;
     background-color: #ffffff;
     border-radius: 5px;
 }
 
-.bar-name {
-    height: 20%;
+.pie-chart {
+    width: 70%;
+    height: 70%;
+    border-radius: 50%;
+    background: conic-gradient(
+        rgba(1, 255, 1, 0.536) 0% calc(70%), 
+        rgba(255, 0, 0, 0.536) calc(70%) 100%
+    );
+    margin: 5%;
+}
+
+.slice-win {
+}
+
+.slice-lost {
 }

@@ -7,7 +7,7 @@
 {% block content %}
 <div class="dashboard-container">
     <div class="user-info">
-        <h2 class="username">Sheil</h2>
+        <h2 class="username">{{ user.username }}</h2>
         <div class="rank-bar">
             <div class="rank">Gold IV</div>
             <div class="rank-level"></div>
@@ -16,11 +16,11 @@
     <div class="statistics">
         <div class="stats-display">
             <h6 class="stat-name">Games played</h6>
-            <div class="stat-number">10</div>
+            <div class="stat-number">{{ total_games_played }}</div>
         </div>
         <div class="stats-display">
             <h6 class="stat-name">Games won</h6>
-            <div class="stat-number">4</div>
+            <div class="stat-number">{{ games_won }}</div>
 
         </div>
         <div class="stats-display">
@@ -32,18 +32,18 @@
             <div class="stat-number">10</div>
         </div>
     </div>
-    <div class="metrics">
-        <div class="bar">
+    <div class="streak">🔥 {{ win_streak }} Wins</div>
+    <div class="charts">
+        <div class="chart-one">
+            <div class="pie-chart">
+                <div class="slice-win"></div>
+                <div class="slice-lost"></div>
+            </div>
+            <div>Win Loss Ratio</div>
+        </div>
+        <div class="chart-two">
             <div class="bar-level" style="height: 70%;"></div>
-            <div class="bar-name">Average score</div>
-        </div>
-        <div class="bar">
-            <div class="bar-level" style="height: 50%;"></div>
-            <div class="bar-name">Win streak</div>
-        </div>
-        <div class="bar">
-            <div class="bar-level" style="height: 30%;"></div>
-            <div class="bar-name">Win Loss Ratio</div>
+            <div>Average score</div>
         </div>
     </div>
 </div>
