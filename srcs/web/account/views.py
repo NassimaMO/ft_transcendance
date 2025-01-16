@@ -4,6 +4,8 @@ from .forms import RegisterForm, LoginForm, ProfileForm
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from urllib.parse import urlencode
+from .models import Status
+from matchmaker.models import LobbyPlayer
 
 
 def login_view(request):
@@ -20,6 +22,8 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user, backend='account.backends.UserBackend')
+                user.status = Status.ON
+                user.save()
                 if next_url:
                     return redirect(next_url)
                 return redirect('profile')
@@ -63,6 +67,8 @@ def register_view(request):
             user.set_password(form.cleaned_data['password1'])
             user.save()
             login(request, user, backend='account.backends.UserBackend')
+            user.status = Status.ON
+            user.save()
             if next_url:
                 return redirect(next_url)
             return redirect('profile')
@@ -73,6 +79,11 @@ def register_view(request):
 
 def logout_view(request):
     if request.user.is_authenticated :
+        lobby_player = LobbyPlayer.get_by_user(request.user)
+        if lobby_player:
+            lobby_player.delete()
+        request.user.status = Status.OFF
+        request.user.save()
         logout(request)
         return redirect('login')
     return login_view(request)

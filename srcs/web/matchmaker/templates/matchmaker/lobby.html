@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extraCSS %}
+    <style>
+        :root {
+            --background-image: url('{% static "matchmaker/media/lobby_background.jpg" %}');
+        }
+    </style>
+	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="lobby-container">
+
+    <!-- Menu de navigation tout en haut -->
+    <div class="navbar">
+        <ul class="nav-list">
+            <li><button class="nav-button active">Salon</button></li>
+            <li><button class="nav-button">Tournoi</button></li>
+            <li><button class="nav-button">Carrière</button></li>
+        </ul>
+    </div>
+    <div class="separator"></div>
+
+    <div class="lobby-body">
+        <!-- Menu d'affichage des modes à gauche -->
+        <div id="lobby-modes" class="lobby-modes">
+            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby.members.0 %}
+        </div>
+
+        <div class="matchmaking-container">
+            <!-- Bannières au mileu -->
+            <div class="lobby-players">
+                <div class="player-row" id="lobby-players">
+                    {% include "matchmaker/lobby_players.html" with lobby_players=lobby.members friends=user.friends %}
+                </div>
+            </div>
+            <!-- Bouton matchmaking en bas -->
+            <div class="matchmaking-button-container">
+                <button class="btn start-matchmaking">JOUER</button>
+            </div>
+        </div>
+
+        <!-- Colonne de droite -->
+        <div class="friends-container">
+            <div class="friends-window">
+                <div id="lobby-list">
+                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members lobby_users=lobby_users friends=user.friends Status=Status%}
+                </div>
+                <!-- Menu pour inviter / rejoindre ses amis (caché) -->
+                <div id="friend-actions-menu" class="friend-actions-menu">
+                    <ul>
+                        <li id="invite-group">Inviter dans le groupe</li>
+                        <li id="join-group">Rejoindre le groupe</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- En bas de la colonne, après les amis hors ligne : Carousel des demandes d'amis -->
+            <div id="friend-requests">
+                {% include "matchmaker/friend_requests.html" with requests=user.requests %}
+            </div>
+            <!-- Tout en bas de la colonne, après le carousel : Menu pour ajouter un ami -->
+            <div class="add-friend-section">
+                <input type="text" id="addFriendInput" placeholder="Entrer un username..." class="add-friend-input">
+                <button id="addFriendButton" class="btn add-friend-button">+</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery et Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script type="module" src="{% static 'matchmaker/js/lobby.js' %}?v={{ timestamp }}"></script>
+<script>const lobbyId = "{{ lobby.id }}"</script>
+
+{% endblock %}

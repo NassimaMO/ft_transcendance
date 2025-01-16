@@ -1,8 +1,11 @@
 import requests
 import jwt
 import time
+import logging
 from typing import Optional
-from cli_api.api_connector import APIConnector
+from .api_connector import APIConnector
+
+logger = logging.getLogger('default')
 
 
 class APIAuth(APIConnector):
@@ -22,35 +25,6 @@ class APIAuth(APIConnector):
 
     username : str | None
         Username used during registration or login.
-
-    Methods:
-    --------
-    get_register_url() -> str :
-        Returns the API URL for user registration.
-    
-    get_login_url() -> str :
-        Returns the API URL for user login and JWT retrieval.
-    
-    get_refresh_url() -> str :
-        Returns the API URL for refreshing the access token.
-
-    _refresh_token() -> requests.Response :
-        Sends a request to refresh the access token using the current refresh token.
-
-    _check_token() -> None :
-        Checks if the access token is expired and refreshes it if necessary.
-
-    get_token() -> Optional[str] :
-        Returns the current access token, refreshing it if needed.
-
-    get_headers() -> dict :
-        Returns HTTP headers, including the Authorization header with the access token if available.
-
-    register(username: str, password: str) -> requests.Response :
-        Registers a new user with the provided username and password.
-
-    login(username: str, password: str) -> requests.Response :
-        Logs in a user and retrieves the JWT access and refresh tokens.
     """
     
     def __init__(self) -> None:
@@ -62,25 +36,24 @@ class APIAuth(APIConnector):
         super().__init__()
         self.access_token = None
         self.refresh_token = None
-        self.username = None
     
     def get_register_url(self) -> str:
         """
         Returns the API URL for user registration.
         """
-        return self.base_url + 'register/'
+        return self.base_url + 'users/me/'
 
     def get_login_url(self) -> str:
         """
         Returns the API URL for user login.
         """
-        return self.base_url + 'token/'
+        return self.base_url + 'tokens/'
     
     def get_refresh_url(self) -> str:
         """
         Returns the API URL for refreshing the access token.
         """
-        return self.base_url + 'token/refresh/'
+        return self.base_url + 'tokens/refresh/'
     
     def _refresh_token(self) -> requests.Response:
         """
@@ -90,7 +63,7 @@ class APIAuth(APIConnector):
         """
         url = self.get_login_url()
         data = {'refresh': self.refresh_token}
-        response = self.get_response(url, data)
+        response = self.api_request(url, data, method="POST")
         if response.status_code == 200:
             self.access_token = response.json().get('access')
         return response
@@ -119,16 +92,7 @@ class APIAuth(APIConnector):
             return {'Authorization': f'Bearer {self.get_token()}', **super().get_headers()}
         return super().get_headers()
     
-    def get_response_GET(self, url: str):
-        headers = self.get_headers()
-        response = requests.get(url, headers=headers)
-        if int(response.status_code / 100) == 2:
-            data = response.json()
-            return data
-        else:
-            print(f"Error: {response.status_code} - {response.json()}")
-    
-    def register(self, username: str, password: str) -> requests.Response:
+    def register(self, username: str, password: str, verbose: bool = False) -> requests.Response:
         """
         Registers a new user via the API.
         
@@ -136,15 +100,19 @@ class APIAuth(APIConnector):
         """
         url = self.get_register_url()
         data = {'username': username, 'password': password}
-        response = self.get_response(url, data)
+        response = self.api_request(url, data, method="POST")
         if response.status_code == 201:
-            self.username = response.json().get("username")
-            print("Registration successful")
+            if verbose:
+                print("Registration successful")
         elif response.status_code == 400 :
-            print("Registration did not complete because of invalid username or password given")
+            if verbose:
+                print("Registration did not complete because of invalid username or password given")
+        else:
+            if verbose:
+                print(f"Erreur: {response.status_code}")
         return response
     
-    def login(self, username: str, password: str) -> requests.Response:
+    def login(self, username: str, password: str, verbose: bool = False) -> requests.Response:
         """
         Logs in a user and retrieves JWT tokens.
         
@@ -152,9 +120,35 @@ class APIAuth(APIConnector):
         """
         url = self.get_login_url()
         data = {'username': username, 'password': password}
-        response = self.get_response(url, data)
+        response = self.api_request(url, data, method="POST")
         if response.status_code == 200:
             self.access_token = response.json().get('access')
             self.refresh_token = response.json().get('refresh')
-            print("Login successful")
+            if verbose:
+                print("Login successful")
+        elif response.status_code == 400 :
+            logger.error("Login failed because of invalid username or password given")
+            if verbose:
+                print("Login failed because of invalid username or password given")
+        else:
+            logger.error(f"Erreur: {response.status_code}")
+            if verbose:
+                print(f"Erreur: {response.status_code}")
         return response
+
+
+if __name__ == "__main__":
+    # Example usage of APIAuth:
+    
+    # Initialize the APIAuth class
+    auth = APIAuth()
+
+    # Register a new user
+    response = auth.register("new_user", "password", verbose=True)
+
+    # Log in an existing user
+    response = auth.login("new_user", "password", verbose=True)
+
+    # Optional : get the access token for authenticated requests
+    token = auth.get_token()
+    print("Token: ", token)

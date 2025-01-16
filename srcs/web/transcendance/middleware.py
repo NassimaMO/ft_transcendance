@@ -2,8 +2,10 @@ import logging
 from rest_framework_simplejwt.backends import TokenBackend
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 logger = logging.getLogger('default')
+
 
 class JWTAuthMiddleware:
     """
@@ -25,6 +27,8 @@ class JWTAuthMiddleware:
             except Exception as e :
                 logger.debug(f"Middleware Exception: {e}")
                 return
+        # else:
+        #     logger.info(f"[MIDDLEWARE] - No token provided. Can't authenticate request.")
         return await self.inner(scope, receive, send)
     
     @database_sync_to_async

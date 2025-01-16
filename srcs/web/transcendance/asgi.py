@@ -22,10 +22,11 @@ from pong.routing import ws_urlpatterns as pong_urls
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(
-            matchmaker_ulrs + pong_urls
+     "websocket": JWTAuthMiddleware(
+        AuthMiddlewareStack(
+            URLRouter(
+                matchmaker_ulrs + pong_urls
+            )
         )
     ),
 })
-

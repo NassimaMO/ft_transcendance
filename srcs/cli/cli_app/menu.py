@@ -1,8 +1,9 @@
 import pyfiglet, colorama, time, curses, os, time
-from game import main
 from profile import Profile
-from cli_app.api_requests import API_requests
 from colorama import Fore, Style
+from .game import main
+from .api_requests import API_requests
+
 global COLOR
 COLOR_TITLE = Fore.YELLOW
 COLOR_AUTHORS = Fore.GREEN
@@ -12,7 +13,6 @@ class Menu:
         self.api = API_requests()
         self.auth = 0
         self.color = Fore.CYAN
-        return 
     
     def screentitle(self):
         os.system("clear")
@@ -183,4 +183,3 @@ class Menu:
     def display_history(self):
         # display mode, dates, score, performance
         cmd = input("\033[u\033[J> Move page (PREV/NEXT/MENU): ").lower()
-        return

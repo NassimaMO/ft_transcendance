@@ -1,0 +1,34 @@
+                    {% if requests %}
+                    <div class="card-body lobby-requests-section">
+                        <div id="lobbyRequestsCarousel" class="carousel slide" data-bs-ride="false">
+                            <div class="carousel-inner">
+                                {% for request in requests %}
+                                <div class="carousel-item {% if forloop.counter == 1 %}active{% endif %}">
+                                    <div class="lobby-request-content text-center">
+                                        <span id="lobbyRequesterName" data-request-id="{{ request.id }}" data-request-type="{{ request.type }}">
+                                            {{ request.sender }}
+                                            {% if request.type == "join" %}
+                                              veut vous rejoindre
+                                            {% else %}
+                                              vous a invité
+                                            {% endif %}
+                                          </span>
+                                        <div class="request-buttons">
+                                            <button class="btn btn-success accept-request" id="acceptLobbyRequest">Accepter</button>
+                                            <button class="btn btn-danger reject-request" id="rejectLobbyRequest">Refuser</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#lobbyRequestsCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Précédent</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#lobbyRequestsCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Suivant</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}

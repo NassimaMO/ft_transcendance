@@ -1,4 +1,4 @@
-from cli_app.menu import Menu
+from .menu import Menu
 
 if __name__ == "__main__":
     menu = Menu()

@@ -1,6 +1,6 @@
 import getpass, time, requests
 from cli_api.api_pong import APIPong
-from cli_app.image_to_ascii import image_to_ascii
+from .image_to_ascii import image_to_ascii
 
 class User:
 
@@ -19,7 +19,6 @@ class API_requests(APIPong):
         self.user = User()
         self.profile = None
         self.websocket = None
-        return
     
     def get_creditentials(self):
         while True:
@@ -51,6 +50,8 @@ class API_requests(APIPong):
         if int(super().register(username, password).status_code / 100) == 2: #auth
             print("Player registered successfully.")
             return
+        else:
+            print("Registration failed.")
 
     def _log(self, username):
         self.user.username = username
@@ -70,7 +71,7 @@ class API_requests(APIPong):
         return 1
     
     def update_profile(self):
-        self.profile = self.get_response_GET(self.get_profile_url())
+        self.profile = self.api_request(self.get_profile_url()).json()
         image_response = requests.get(self.profile['avatar']['avatar_url'])
         if image_response.status_code == 200:
             with open('avatar.png', 'wb') as file:
@@ -81,8 +82,8 @@ class API_requests(APIPong):
         self.user.friends = [{'username': 'Nily', 'status': 'online'}, {'username': 'Theo', 'status': 'in game'}, {'username': 'Bot1', 'status': 'online'}] #, {'username': 'Bot2', 'status': 'offline'}] #requests.get(self.profile['friends'])
 
     def update_stats(self):
-        self.user.stats = self.get_response_GET(self.get_statistics_url())
-
+        self.user.stats = self.api_request(self.get_statistics_url()).json()
+        return self.user.stats
     
     def game_init(self):
         mode = None

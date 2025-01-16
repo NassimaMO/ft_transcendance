@@ -9,13 +9,13 @@ dev: PROFILE=development
 dev: ENV_FILE=dev.env
 dev: DOCKER_FILE=docker-compose.dev.yml
 dev: get_ip docker
-	@echo "You can now go to : \n - http://localhost:8000 in this device\n - http://$(LOCAL_IP):8000 in another device"
+	@echo "You can now go to : \n - http://localhost:8000/lobby in this device\n - http://$(LOCAL_IP):8000/lobby in another device"
 
 prod: PROFILE=production
 prod: ENV_FILE=prod.env
 prod: DOCKER_FILE=docker-compose.prod.yml
 prod: get_ip docker
-	@echo "You can now go to : \n - https://localhost in this device\n - https://$(LOCAL_IP) in another device"
+	@echo "You can now go to : \n - https://localhost/lobby in this device\n - https://$(LOCAL_IP)/lobby in another device"
 
 get_ip:
 	@chmod 777 get_ip.sh
@@ -28,13 +28,13 @@ cli: PROFILE=development
 cli: ENV_FILE=dev.env
 cli: DOCKER_FILE=docker-compose.dev.yml
 cli: get_ip docker
-	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) run cli python srcs/cli_app/main.py
+	docker compose --env-file $(ENV_FILE) -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) run cli ./run.sh
 
 clean:
 	@-docker compose -f docker-compose.yml -f $(DOCKER_FILE) --profile $(PROFILE) down
 
 fclean: clean
-#	@-docker system prune -af
+# @-docker system prune -af
 	@-docker volume rm postgres_volume_dev postgres_volume_prod static_volume media_volume
 
 re: fclean all

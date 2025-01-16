@@ -1,0 +1,33 @@
+            <div class="modes-container">
+                <div class="modes-window">
+                    <div class="modes-section">
+                        {% for field in mode_form %}
+                            <div class="mode-option">
+                                <span id="default_{{ field.id_for_label }}">{{ field.value }}</span>
+                            </div>
+                        {% endfor %}
+
+                        <!-- Bouton en bas pour changer de mode / se mettre prêt -->
+                        <div class="mode-action">
+                            <button id="mode-action-button" class="btn mode-button">{% if lobby_player.is_leader %}Changer le mode{% else %}Prêt{% endif %}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu sélection des modes (caché) -->
+            <div id="modeSelectionModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" id="close-modal-button">&times;</span>
+                    <h3>Mode de jeu</h3>
+                    <div class="modal-section">
+                    {% for field in mode_form %}
+                        <label for="{{ field.id_for_label }}"></label>
+                        {{ field }}
+                    {% endfor %}
+                    </div>
+                    <div class="modal-action">
+                        <button class="btn mode-button" id="apply-mode-button" type="submit">Appliquer</button>
+                    </div>
+                </div>
+            </div>

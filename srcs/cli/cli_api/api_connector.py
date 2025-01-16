@@ -2,41 +2,15 @@ import os
 import websockets
 import urllib3
 import requests
+import logging
 
+logger = logging.getLogger('default')
 
 class APIConnector:
     """
     APIConnector class facilitates connections to the Django application and API.
     
     This class is designed to manage HTTP and WebSocket connections, based on the environment context (development or production).
-    
-    Attributes:
-    -----------
-    ip : str
-        The IP address of the server. 'host.docker.internal' is used to connect to Docker host.
-    
-    is_secured : bool
-        Determines whether the connection is secured (HTTPS/WSS) or not (HTTP/WS), depending on the context.
-    
-    port : str
-        The port number for the API. Defaults to 8000 in development, empty string for production.
-    
-    base_url : str
-        The base URL for the API, dynamically generated based on the connection type and context (HTTP or HTTPS).
-    
-    Methods:
-    --------
-    get_base_url(protocol: str = 'http') -> str :
-        Returns the base URL for HTTP or WebSocket connections based on the protocol.
-    
-    get_headers() -> dict :
-        Returns the headers for API requests, defaulting to JSON content type.
-    
-    get_response(url: str, data: dict) -> requests.Response :
-        Sends a POST request to the provided URL with JSON data and headers.
-    
-    connect_ws(uri: str) -> websockets.WebSocketClientProtocol :
-        Establishes a WebSocket connection to the given URI, using headers for authentication.
     """
 
     def __init__(self) -> None:
@@ -71,18 +45,28 @@ class APIConnector:
         """
         Returns the default headers for API requests, specifying JSON as the content type.
         """
-        return {"Content-Type": "application/json"}
+        return {"Content-Type": "application/json",
+                'X-CLI-Request': 'true'}
     
-    def get_response(self, url: str, data: dict) -> requests.Response:
+    def api_request(self, url: str, data: dict = {}, method: str = "GET", verbose: bool = False) -> requests.Response:
         """
-        Sends a POST request to the specified URL with the provided data.
+        Sends a request to the specified URL with the provided data. Default method is GET but can be changed.
         
         Uses the JSON content type in headers and disables SSL verification warnings.
         """
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        return requests.post(url, json=data, headers=self.get_headers(), verify=False)
+        if verbose:
+            print(f"{method} {url} {list(data.keys())}")
+        response = requests.request(
+                method=method.upper(),
+                url=url,
+                json=data,
+                headers=self.get_headers(),
+                verify=False
+            )
+        return response
     
-    async def connect_ws(self, uri: str):
+    async def connect_ws(self, uri: str, verbose: bool = False):
         """
         Establishes a WebSocket connection to the specified URI.
         
@@ -93,12 +77,18 @@ class APIConnector:
         WebSocketClientProtocol or None: Returns the WebSocket object if the connection succeeds, or None on failure.
         """
         try:
-            websocket = await websockets.connect(uri, extra_headers=self.get_headers())
-            print("Connexion acceptée")
+            if verbose:
+                print(f"WS CONNECT {uri}")
+            websocket = await websockets.connect(uri, additional_headers=self.get_headers())
+            if verbose:
+                print("Connexion acceptée")
             return websocket
         except websockets.InvalidURI:
-            print("Erreur : URL WebSocket invalide")
+            if verbose:
+                print("Erreur websocket : URL WebSocket invalide")
         except websockets.InvalidHandshake:
-            print("Erreur : La connexion WebSocket a été rejetée")
+            if verbose:
+                print("Erreur websocket : La connexion WebSocket a été rejetée")
         except Exception as e:
-            print(f"Erreur : {e}")
+            if verbose:
+                print(f"Erreur websocket : {e}")
