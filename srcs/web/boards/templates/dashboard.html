@@ -25,14 +25,13 @@
         </div>
         <div class="stats-display">
             <h6 class="stat-name">Games lost</h6>
-            <div class="stat-number">6</div>
-        </div>
-        <div class="stats-display">
-            <h6 class="stat-name">Max paddle combo</h6>
-            <div class="stat-number">10</div>
+            <div class="stat-number">{{ games_lost }}</div>
         </div>
     </div>
     <div class="streak">🔥 {{ win_streak }} Wins</div>
+    <button class="display">Display more
+        <p class="ku">く</p></button>
+    {% comment "Needs a button to display this" %}
     <div class="charts">
         <div class="chart-one">
             <div class="pie-chart">
@@ -46,5 +45,6 @@
             <div>Average score</div>
         </div>
     </div>
+    {% endcomment %}
 </div>
 {% endblock %}
