@@ -6,6 +6,7 @@ from .models import Lobby, LobbyPlayer
 from .serializers import LobbySerializer, LobbyPlayerSerializer
 from account.serializers import UserSerializer
 from account.models import Status
+from django.utils import timezone
 
 
 logger = logging.getLogger('default')
@@ -91,4 +92,4 @@ def lobby_view(request, lobby_id) :
     return render(request, 'matchmaker/lobby.html', 
                   {"lobby": lobby, 
                    'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
-                   'mode_form': mode_form, 'user': user, 'Status': Status})
+                   'mode_form': mode_form, 'user': user, 'Status': Status, "timestamp": int(timezone.now().timestamp())})

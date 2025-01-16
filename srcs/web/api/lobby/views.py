@@ -6,14 +6,89 @@ from rest_framework.authentication import SessionAuthentication # type: ignore
 from rest_framework_simplejwt.authentication import JWTAuthentication # type: ignore
 from matchmaker.serializers import MatchChoiceSerializer
 from matchmaker.models import Lobby, LobbyPlayer, LobbyRequest, LobbyChange
-from matchmaker.serializers import LobbySerializer, LobbyPlayerSerializer, LobbyRequestSerializer
-from api.utils import check_user, send_notifications, send_ws_message, change_lobby_api, leave_lobby_api
+from matchmaker.serializers import LobbySerializer, LobbyPlayerSerializer
+from api.utils import add_message, check_user, send_notifications, send_ws_message, change_lobby_api, leave_lobby_api
 import logging
 
 logger = logging.getLogger("default")
 
-class UserLobbiesMainView(APIView):
-    """URL users/me/lobbies/main"""
+
+class LobbiesView(APIView):
+    """URL lobbies/"""
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def get(self, request):
+        """Get available Lobbies"""
+
+        message = {}
+        try:
+            lobbies = Lobby.query.all()
+            available_lobbies = []
+            for lobby in lobbies:
+                if lobby.is_allowed_for(request.user) :
+                    available_lobbies.append(LobbySerializer(instance=lobby, context={'request':request}).data)
+            if available_lobbies:
+                message["lobbies"] = available_lobbies
+                return Response(message, status=status.HTTP_200_OK)
+            add_message(message, "no_lobby_available")
+            return Response(message, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            logger.error(f"Error fetching lobby: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class LobbyView(APIView):
+    """URL lobbies/<int:lobby_id>/"""
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def get(self, request, lobby_id):
+        """Get a Lobby info"""
+
+        message = {}
+        try:
+            lobby = Lobby.get(lobby_id)
+            if not lobby:
+                add_message(message, "no_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            message["data"] = LobbySerializer(instance=lobby, context={'request':request}).data
+            return Response(message, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching lobby: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class LobbyMembersView(APIView):
+    """URL lobbies/<int:lobby_id>/members/"""
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def get(self, request, lobby_id):
+        """Get Lobby Members"""
+
+        message = {}
+        try:
+            lobby = Lobby.get(id=lobby_id)
+            if not lobby:
+                add_message(message, "no_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            data = LobbySerializer(instance=lobby, context={'request':request}).data
+            message["members"] = data.get('members', [])
+            return Response(message, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching lobby: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class MainLobbyView(APIView):
+    """URL lobbies/main/"""
 
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -21,21 +96,23 @@ class UserLobbiesMainView(APIView):
     def get(self, request):
         """Get your Lobby"""
 
+        message = {}
         try:
             lobby = Lobby.get_by_user(request.user)
             if lobby:
-                message = {
-                    "lobby": LobbySerializer(lobby, context={"request": request}).data
-                }
+                message["data"] = LobbySerializer(lobby, context={"request": request}).data
                 return Response(message, status=status.HTTP_200_OK)
-            return Response({"message": "You are not in a lobby."}, status=status.HTTP_204_NO_CONTENT)
+            add_message(message, "not_in_lobby")
+            return Response(message, status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             logger.error(f"Error fetching lobby: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         """Create your Lobby"""
 
+        message = {}
         try:
             lobby = Lobby.get_by_user(request.user)
             if not lobby:
@@ -43,23 +120,25 @@ class UserLobbiesMainView(APIView):
                 request_status = status.HTTP_201_CREATED
             else:
                 request_status = status.HTTP_200_OK
-            message = {
-                "lobby_id": lobby.id
-            }
+            message["data"] = LobbySerializer(lobby, context={"request": request}).data
             return Response(message, status=request_status)
         except Exception as e:
             logger.error(f"Error creating lobby: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def patch(self, request):
         """Change your Lobby (match choice, queue, open/public)"""
 
+        message = {}
         try:
             lobby = Lobby.get_by_user(request.user)
             if not lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
+                add_message(message, "not_in_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_400_BAD_REQUEST)
             if not lobby.is_leader(request.user):
-                return Response({"errors": {"no_leader": "You are not the lobby leader."}}, status=status.HTTP_403_FORBIDDEN)
+                add_message(message, "not_leader", level="ERROR")
+                return Response(message, status=status.HTTP_403_FORBIDDEN)
             is_in_queue = request.data.get("is_in_queue")
             match_choice = request.data.get("match-choice")
             if match_choice:
@@ -80,133 +159,55 @@ class UserLobbiesMainView(APIView):
             elif is_in_queue is not None:
                 if is_in_queue == True:
                     if lobby.is_in_queue:
-                        return Response({"errors": {"is_in_queue": "You are already in queue."}},
-                                        status=status.HTTP_400_BAD_REQUEST)
+                        add_message(message, "already_in_queue")
+                        return Response(message, status=status.HTTP_200_OK)
                     lobby.is_in_queue = True
                     lobby.save()
                     send_notifications("lobby", lobby.id, {'type': LobbyChange.MATCHMAKING})
                     send_ws_message("matchmaking_user", request.user.id, "start")
-                    return Response({"message": "Matchmaking started."}, status=status.HTTP_200_OK)
+                    add_message(message, "matchmaking_start")
+                    return Response(message, status=status.HTTP_200_OK)
                 elif is_in_queue == False:
                     if not lobby.is_in_queue:
-                        return Response({"errors": {"is_in_queue": "You are not in queue."}}, status=status.HTTP_400_BAD_REQUEST)
+                        add_message(message, "not_in_queue")
+                        return Response(message, status=status.HTTP_200_OK)
                     lobby.is_in_queue = False
                     lobby.save()
                     send_notifications("lobby", lobby.id, {'type': LobbyChange.MATCHMAKING})
                     send_ws_message("matchmaking_user", request.user.id, "disconnect")
-                    return Response({"message": "Matchmaking stopped."}, status=status.HTTP_200_OK)
+                    add_message(message, "matchmaking_stop")
+                    return Response(message, status=status.HTTP_200_OK)
                 else:
-                    return Response({"errors": {"is_in_queue": "Invalid value for 'is_in_queue'. Expected true or false."}}, 
-                                    status=status.HTTP_400_BAD_REQUEST)
+                    add_message(message, "invalid_is_in_queue", level="ERROR")
+                    return Response(message, status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"errors": {"invalid_request": "No valid data provided."}}, status=status.HTTP_400_BAD_REQUEST)
+                add_message(message, "no_data", level="ERROR")
+                return Response(message, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Error modifying lobby: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def delete(self, request):
         """Leave your Lobby"""
 
+        message = {}
         try:
             lobby_player = LobbyPlayer.get_by_user(request.user)
             if not lobby_player or not lobby_player.lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
+                add_message(message, "not_in_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_400_BAD_REQUEST)
             leave_lobby_api(lobby_player)
-            return Response({"message": "You left the lobby."}, status=status.HTTP_200_OK)
+            add_message(message, "leave_lobby")
+            return Response(message, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error leaving lobby: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class UserLobbiesMainRequestsView(APIView):
-    """URL users/me/lobbies/main/requests"""
-
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
-
-    def get(self, request):
-        """Get your Lobby's Requests"""
-    
-        try:
-            lobby_player = LobbyPlayer.get_by_user(request.user)
-            if not lobby_player or not lobby_player.lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
-            requests = LobbyPlayerSerializer(lobby_player, context={"request": request}).data.get("requests", [])
-            return Response({"requests": requests}, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error fetching lobby requests: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class UserLobbiesMainRequestView(APIView):
-    """URL users/me/lobbies/main/requests/<int/str:user_id_or_username>"""
-
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
-
-    def delete(self, request, **kwargs):
-        """Reject a Lobby Request"""
-
-        try:
-            user_checking = check_user(**kwargs)
-            user = user_checking.get("user")
-            if not user:
-                return user_checking.get("error_response")
-            lobby_player = LobbyPlayer.get_by_user(request.user)
-            if not lobby_player or not lobby_player.lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
-            request_type = request.data.get('type')
-            if not request_type:
-                return Response({"errors": {"type": "Missing request type. Expected values : 'join' or 'invite'."}}, 
-                                status=status.HTTP_400_BAD_REQUEST)
-            lobby_request = lobby_player.get_request(user.username, request_type)
-            if not lobby_request:
-                return Response({"errors": {"unknown_request": "This request was not found."}}, status=status.HTTP_404_NOT_FOUND)
-            lobby_request.delete()
-            send_notifications("lobby_player", lobby_player.id, {'type': LobbyChange.LOBBY_REQUEST})
-            return Response({"message": "Request rejected."}, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error rejecting lobby request: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def put(self, request, **kwargs):
-        """Accept a Lobby Request"""
-
-        try:
-            user_checking = check_user(**kwargs)
-            user = user_checking.get("user")
-            if not user:
-                return user_checking.get("error_response")
-            lobby_player = LobbyPlayer.get_by_user(request.user)
-            if not lobby_player or not lobby_player.lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
-            request_type = request.data.get('type')
-            if not request_type:
-                return Response({"errors": {"type": "Missing request type. Expected values : 'join' or 'invite'."}}, 
-                                status=status.HTTP_400_BAD_REQUEST)
-            lobby_request = lobby_player.get_request(user.username, request_type)
-            if not lobby_request:
-                return Response({"errors": {"unknown_request": "This request was not found."}}, status=status.HTTP_404_NOT_FOUND)
-            sender_player = LobbyPlayer.get_by_user(user)
-            if not sender_player:
-                return Response({"errors": {"invalid_request": "This request is no longer valid."}}, status=status.HTTP_400_BAD_REQUEST)
-            request_data = LobbyRequestSerializer(lobby_request).data
-            if request_data['type'] == "invite":
-                change_lobby_api(lobby_player, sender_player.lobby)
-            elif request_data['type'] == "join":
-                change_lobby_api(sender_player, lobby_player.lobby)
-            lobby_request.delete()
-            lobby_player.refresh()
-            logger.info(f"[API] Lobby_player.requests : {lobby_player.requests}")
-            send_notifications("lobby_player", lobby_player.id, {'type':LobbyChange.LOBBY_REQUEST})
-            return Response({"message": "Request accepted."}, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error accepting lobby request: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class UserLobbiesMainMembersView(APIView):
-    """URL users/me/lobbies/main/members"""
+class MainLobbyMembersView(APIView):
+    """URL lobbies/main/members/"""
 
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -214,73 +215,136 @@ class UserLobbiesMainMembersView(APIView):
     def get(self, request):
         """Get your Lobby's Members"""
 
+        message = {}
         try:
             lobby_player = LobbyPlayer.get_by_user(request.user)
             if not lobby_player or not lobby_player.lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
-            members = LobbyPlayerSerializer(lobby_player, context={"request": request}).data.get("members", [])
-            return Response({"members": members}, status=status.HTTP_200_OK)
+                add_message(message, "not_in_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_400_BAD_REQUEST)
+            message["members"] = LobbyPlayerSerializer(lobby_player, context={"request": request}).data.get("members", [])
+            return Response(message, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error fetching lobby members: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class UserLobbiesMainMemberView(APIView):
-    """URL users/me/lobbies/main/members/<int:member_id>"""
+class MainLobbyMemberView(APIView):
+    """URL lobbies/main/members/<int/str:user_id_or_username>/"""
 
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
-    def delete(self, request, member_id):
-        """Kick a Member of your Lobby"""
+    def get(self, request, **kwargs):
+        """Get a Member info"""
 
+        message = {}
         try:
-            lobby_player = LobbyPlayer.get_by_user(request.user)
-            member = LobbyPlayer.get_by(id=member_id)
+            user_checking = check_user(**kwargs)
+            user = user_checking.get("user")
+            if not user:
+                return user_checking.get("error_response")
+            lobby_player = LobbyPlayer.get_by_user(user)
             if not lobby_player or not lobby_player.lobby:
-                return Response({"errors": {"no_lobby": "You are not in a lobby."}}, status=status.HTTP_400_BAD_REQUEST)
-            if not member:
-                return Response({"errors": {"unknown_user": "This member does not exist."}}, status=status.HTTP_404_NOT_FOUND)
-            leave_lobby_api(member)
-            return Response({"message": f"Member '{member.username}' has been removed."}, status=status.HTTP_200_OK)
+                add_message(message, "no_player", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            return Response(LobbyPlayerSerializer(lobby_player, context={'request':request}).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching lobby: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete(self, request, **kwargs):
+        """Kick a Player from his lobby"""
+
+        message = {}
+        try:
+            user_checking = check_user(**kwargs)
+            user = user_checking.get("user")
+            if not user:
+                return user_checking.get("error_response")
+            lobby_player = LobbyPlayer.get_by_user(request.user)
+            player = LobbyPlayer.get_by_user(user)
+            if not lobby_player or not lobby_player.lobby:
+                add_message(message, "not_in_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_400_BAD_REQUEST)
+            if not player:
+                add_message(message, "no_player", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            if player not in lobby_player.lobby.members.all():
+                add_message(message, "not_same_lobby", level="ERROR", username=player.user.username)
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            if not lobby_player.is_leader:
+                add_message(message, "not_leader", level="ERROR", username=player.user.username)
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            leave_lobby_api(player)
+            add_message(message, "kick_member", username=player.user.username)
+            return Response(message, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error removing lobby member: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-class UserLobbiesView(APIView):
-    """URL users/me/lobbies"""
+class PlayerView(APIView):
+    """URL lobbies/main/members/<int/str:user_id_or_username>/"""
 
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
-    def get(self, request):
+    def get(self, request, **kwargs):
+        """Get a Player info"""
+
+        message = {}
+        try:
+            user_checking = check_user(**kwargs)
+            user = user_checking.get("user")
+            if not user:
+                return user_checking.get("error_response")
+            lobby_player = LobbyPlayer.get_by_user(user)
+            if not lobby_player or not lobby_player.lobby:
+                add_message(message, "no_player", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            return Response(LobbyPlayerSerializer(lobby_player, context={'request':request}).data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching lobby: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PlayerLobbyView(APIView):
+    """URL players/<int/str:user_id_or_username>/lobby/"""
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def get(self, request, **kwargs):
         """Get available Lobbies"""
 
+        message = {}
+        try:
+            user_checking = check_user(**kwargs)
+            user = user_checking.get("user")
+            if not user:
+                return user_checking.get("error_response")
+            lobby = Lobby.get_by_user(user)
+            if not lobby:
+                add_message(message, "no_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            if not lobby.is_allowed_for(request.user):
+                add_message(message, "forbidden_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_403_FORBIDDEN)
+            message['id'] = lobby.id
+            message['url'] = f"/api/lobbies/{lobby.id}/"
+            return Response(message, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching lobby: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
-class UserLobbyView(APIView):
-    """URL users/me/lobbies/<int:lobby_id>"""
-
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
-
-    def post(self, request, lobby_id):
-        """Join an open Lobby"""
-
-
-class UserLobbyRequestsView(APIView):
-    """URL users/me/lobbies/<int:lobby_id>/requests"""
-
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
-
-    def post(self, request, lobby_id):
-        """Send a Request to a Lobby"""
-
-
-class UserFriendLobbyRequests(APIView):
-    """URL users/me/friends/<friend_id_or_username>/lobby/requests"""
+class PlayerRequestsView(APIView):
+    """URL players/<int/str:user_id_or_username>/requests/"""
 
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -288,40 +352,39 @@ class UserFriendLobbyRequests(APIView):
     def post(self, request, **kwargs):
         """Send a Request to a User's Lobby"""
 
+        message = {}
         try:
-            message = {'errors':{}}
             user_checking = check_user(**kwargs)
             user = user_checking.get("user")
             if not user:
                 return user_checking.get("error_response")
-            lobby_player = LobbyPlayer.get_by_user(user) if user else None
+            lobby_player = LobbyPlayer.get_by_user(user)
+            if not lobby_player or not lobby_player.lobby:
+                add_message(message, "no_player", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
             request_type = request.data.get("type")
             if not request_type :
-                message["errors"]["type"] = "Missing request type. Expected value: 'invite' or 'join'."
+                add_message(message, "missing_request_type", level="ERROR")
                 return Response(message, status=status.HTTP_400_BAD_REQUEST)
             if request_type not in ['invite', 'join']:
-                message["errors"]["type"] = f"Invalid request type : '{request_type}'. Expected value: 'invite' or 'join'."
+                add_message(message, "invalid_request_type", level="ERROR", request_type=request_type)
                 return Response(message, status=status.HTTP_400_BAD_REQUEST)
-            if user not in request.user.friends.all():
-                message["errors"]["not_a_friend"] = f"Friend {user_checking.get('user_message')} not found. Is it your imaginary friend ?"
-                return Response(message, status=status.HTTP_404_NOT_FOUND)
-            if user not in request.user.friends.all() and (not lobby_player or not lobby_player.lobby.is_public):
-                message["errors"]["not_allowed"] = "You do not have right to access this lobby."
+            if not lobby_player.lobby.is_allowed_for(request.user):
+                add_message(message, "forbidden_lobby", level="ERROR")
                 return Response(message, status=status.HTTP_403_FORBIDDEN)
-            elif not lobby_player or not lobby_player.lobby:
-                message["errors"]["no_lobby"] = "This lobby does not exist."
-                return Response(message, status=status.HTTP_404_NOT_FOUND)
-            request = LobbyRequest(recipient=lobby_player, sender=request.user.username, type=request_type)
-            request.save()
+            lobby_request = LobbyRequest(recipient=lobby_player, sender=request.user.username, type=request_type)
+            lobby_request.save()
             send_notifications('lobby_player', lobby_player.id, {'type':LobbyChange.LOBBY_REQUEST})
+            add_message(message, "send_request", request_type=request_type, recipient=user.username)
             return Response(message, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error sending lobby request: {e}")
-            return Response({"errors": {"server_error": "An unexpected error occurred."}}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class UserLobbiesMainMembersMeView(APIView):
-    """URL users/me/lobbies/main/members/me"""
+
+class PlayerMeView(APIView):
+    """URL players/me/"""
 
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -329,30 +392,114 @@ class UserLobbiesMainMembersMeView(APIView):
     def put(self, request):
         """CHANGE ALL your player info"""
 
-        lobby_player = LobbyPlayer.get_by_user(request.user)
-        message = {'errors':{}}
-        if not lobby_player or not lobby_player.lobby:
-            message["errors"]["no_lobby"] = "You are not in a lobby."
-            return Response(message, status=status.HTTP_404_NOT_FOUND)
-        serializer = LobbyPlayerSerializer(lobby_player, data=request.data, context={"request": request})
-        if serializer.is_valid():
-            lobby_player = serializer.save()
-            send_notifications("lobby", lobby_player.lobby.id, {'type':LobbyChange.PLAYER})
-            return Response({"message": "Player info updated successfully."}, status=status.HTTP_200_OK)
-        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        message = {}
+        try:
+            lobby_player = LobbyPlayer.get_by_user(request.user)
+            if not lobby_player or not lobby_player.lobby:
+                add_message(message, "not_in_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            serializer = LobbyPlayerSerializer(lobby_player, data=request.data, context={"request": request})
+            if serializer.is_valid():
+                lobby_player = serializer.save()
+                send_notifications("lobby", lobby_player.lobby.id, {'type':LobbyChange.PLAYER})
+                add_message(message, "info_change")
+                return Response(message, status=status.HTTP_200_OK)
+            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error sending lobby request: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def patch(self, request):
         """CHANGE SOME of your player info"""
 
-        lobby_player = LobbyPlayer.get_by_user(request.user)
-        message = {'errors':{}}
-        if not lobby_player or not lobby_player.lobby:
-            message["errors"]["no_lobby"] = "You are not in a lobby."
-            return Response(message, status=status.HTTP_404_NOT_FOUND)
-        serializer = LobbyPlayerSerializer(lobby_player, data=request.data, context={"request": request}, partial=True)
-        if serializer.is_valid():
-            lobby_player = serializer.save()
-            logger.info(f"LobbyPlayer updated: {LobbyPlayerSerializer(lobby_player).data}")
-            send_notifications("lobby", lobby_player.lobby.id, {'type': LobbyChange.PLAYER})
-            return Response({"message": "Player info partially updated."}, status=status.HTTP_200_OK)
-        return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        message = {}
+        try:
+            lobby_player = LobbyPlayer.get_by_user(request.user)
+            if not lobby_player or not lobby_player.lobby:
+                add_message(message, "not_in_lobby", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            serializer = LobbyPlayerSerializer(lobby_player, data=request.data, context={"request": request}, partial=True)
+            if serializer.is_valid():
+                lobby_player = serializer.save()
+                send_notifications("lobby", lobby_player.lobby.id, {'type': LobbyChange.PLAYER})
+                add_message(message, "info_change")
+                return Response(message, status=status.HTTP_200_OK)
+            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error sending lobby request: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PlayerMeRequestsView(APIView):
+    """URL players/me/requests/"""
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def get(self, request):
+        """Get your Lobby Requests"""
+    
+        message = {}
+        try:
+            lobby_player = LobbyPlayer.get_or_create(request.user)
+            requests = LobbyPlayerSerializer(lobby_player, context={"request": request}).data.get("requests", [])
+            if requests:
+                return Response({"requests": requests}, status=status.HTTP_200_OK)
+            add_message(message, "no_requests")
+            return Response(message, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            logger.error(f"Error fetching lobby requests: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PlayerMeRequestView(APIView):
+    """URL players/me/requests/<int:request_id>/"""
+
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def delete(self, request, request_id):
+        """Reject a Lobby Request"""
+
+        message = {}
+        try:
+            lobby_player = LobbyPlayer.get_or_create(request.user)
+            lobby_request = LobbyRequest.get(request_id)
+            if not lobby_request or lobby_request.recipient != lobby_player:
+                add_message(message, "unknown_request", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            lobby_request.delete()
+            send_notifications("lobby_player", lobby_player.id, {'type': LobbyChange.LOBBY_REQUEST})
+            add_message(message, "reject_request", request_type=lobby_request.type, sender=lobby_request.sender.user.username)
+            return Response(message, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error rejecting lobby request: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request, request_id):
+        """Accept a Lobby Request"""
+
+        message = {}
+        try:
+            lobby_player = LobbyPlayer.get_or_create(request.user)
+            lobby_request = LobbyRequest.get(request_id)
+            if not lobby_request or lobby_request.recipient != lobby_player:
+                add_message(message, "unknown_request", level="ERROR")
+                return Response(message, status=status.HTTP_404_NOT_FOUND)
+            if lobby_request.type == "invite":
+                change_lobby_api(lobby_player, lobby_request.sender.lobby)
+            elif lobby_request.type == "join":
+                change_lobby_api(lobby_request.sender, lobby_player.lobby)
+            lobby_request.delete()
+            lobby_player.refresh()
+            send_notifications("lobby_player", lobby_player.id, {'type':LobbyChange.LOBBY_REQUEST})
+            add_message(message, "accept_request", request_type=lobby_request.type, sender=lobby_request.sender.user.username)
+            return Response(message, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error accepting lobby request: {e}")
+            add_message(message, "server_error", level="ERROR")
+            return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,7 +1,7 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect # type: ignore
 from matchmaker.forms import MatchChoiceForm
-from matchmaker.models import GameMode, Connecitvity, Match, MatchChoice, History
-from django.contrib.auth.decorators import login_required
+from matchmaker.models import Match, MatchChoice
+from django.contrib.auth.decorators import login_required # type: ignore
 import logging
 
 logger = logging.getLogger('default')

@@ -91,8 +91,8 @@ def get_default_match_choice_id():
 
 class Match(models.Model):
 	date = models.DateTimeField(default=timezone.now)
-	info = models.ForeignKey('MatchChoice', related_name="match_info", default=get_default_match_choice_id, on_delete=models.CASCADE)
-	teams = models.ManyToManyField('Team', related_name="match_team")
+	info = models.ForeignKey('MatchChoice', related_name="matches", default=get_default_match_choice_id, on_delete=models.CASCADE)
+	teams = models.ManyToManyField('Team', related_name="matches")
 
 	def __str__(self):
 		return f"Match {self.id} on {self.date}"
@@ -127,8 +127,7 @@ class MatchFilter(django_filters.FilterSet):
 
 
 class Team(models.Model):
-	players = models.ManyToManyField(User, through="History")
-	match = models.ForeignKey(Match, related_name="team_match", on_delete=models.CASCADE)
+	players = models.ManyToManyField(User, through="Entry")
 	score = models.IntegerField(default=0)
 
 	def __str__(self):
@@ -141,9 +140,9 @@ class Team(models.Model):
 		return self.score == max([team.score for team in self.match.teams])
 
 
-class History(models.Model):
-	user = models.ForeignKey(User, related_name="history_user", on_delete=models.CASCADE)
-	team = models.ForeignKey(Team, related_name="history_team", on_delete=models.CASCADE)
+class Entry(models.Model):
+	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE)
+	team = models.ForeignKey(Team, related_name="history", on_delete=models.CASCADE)
 	pseudo = models.CharField(max_length=20)
 	score = models.IntegerField(default=0)
 
@@ -165,10 +164,6 @@ class WaitingLobby(rom.Model):
 	start = rom.DateTime(default=datetime.now())
 	matchmaking = rom.ManyToOne("Matchmaking", on_delete="cascade")
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._lock = threading.Lock()
-
 	@classmethod
 	def get_or_create(cls, lobby, matchmaking):
 		waiting_lobbies = cls.query.all()
@@ -183,49 +178,10 @@ class WaitingLobby(rom.Model):
 	def __str__(self) :
 		return f"<WLobby {self.lobby.leader}(start:{self.start})>"
 	
-	def save(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to save WaitingLobby with ID {self.id}")
-			try:
-				super().save(*args, **kwargs)
-				logger.debug(f"Saved WaitingLobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error saving WaitingLobby: {e}")
-
-	def update(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to update WaitingLobby with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				logger.debug(f"Updated WaitingLobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error updating WaitingLobby: {e}")
-
-	def refresh(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to refresh WaitingLobby with ID {self.id}")
-			try:
-				super().refresh(*args, **kwargs)
-				logger.debug(f"Refreshed WaitingLobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error refreshing WaitingLobby: {e}")
-
-	def delete(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to delete WaitingLobby with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				logger.debug(f"Deleted WaitingLobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error deleting WaitingLobby: {e}")
 
 class Matchmaking(rom.Model) :
 	match_choice = rom.ForeignModel(MatchChoice)
 	queue = rom.OneToMany("WaitingLobby")
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._lock = threading.Lock()
 
 	@classmethod
 	def get_by_match_choice(cls, match_choice):
@@ -245,86 +201,30 @@ class Matchmaking(rom.Model) :
 	def __str__(self) :
 		return f"<MM {self.match_choice}: {self.queue}>"
 	
-	def save(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to save Matchmaking with ID {self.id}")
-			try:
-				super().save(*args, **kwargs)
-				logger.debug(f"Saved Matchmaking with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error saving Matchmaking: {e}")
-
-	def update(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to update Matchmaking with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				logger.debug(f"Updated Matchmaking with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error updating Matchmaking: {e}")
-
-	def refresh(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to refresh Matchmaking with ID {self.id}")
-			try:
-				super().refresh(*args, **kwargs)
-				logger.debug(f"Refreshed Matchmaking with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error refreshing Matchmaking: {e}")
-
-	def delete(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to delete Matchmaking with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				logger.debug(f"Deleted Matchmaking with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error deleting Matchmaking: {e}")
 
 class LobbyRequest(rom.Model):
 	recipient = rom.ManyToOne("LobbyPlayer", on_delete="cascade")
-	sender = rom.String()
-	type = rom.String()
+	_sender = rom.String()
+	_type = rom.String()
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._lock = threading.Lock()
+	@property
+	def type(self):
+		return self._type.decode('utf-8')
+	
+	@property
+	def sender(self):
+		user = User.get_by(username=self._sender.decode('utf-8'))
+		if user:
+			return LobbyPlayer.get_by_user(user)
+	
+	@type.setter
+	def type(self, value):
+		self._type = value.encode('utf-8')
 
-	def save(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to save LobbyRequest with ID {self.id}")
-			try:
-				super().save(*args, **kwargs)
-				logger.debug(f"Saved LobbyRequest with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error saving LobbyRequest: {e}")
+	@sender.setter
+	def sender(self, value):
+		self._sender = value.user.username.encode('utf-8')
 
-	def update(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to update LobbyRequest with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				logger.debug(f"Updated LobbyRequest with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error updating LobbyRequest: {e}")
-
-	def refresh(self, *args, **kwargs):
-		with self._lock:
-			logger.debug(f"Attempting to refresh LobbyRequest with ID {self.id}")
-			try:
-				super().refresh(*args, **kwargs)
-				logger.debug(f"Refreshed LobbyRequest with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error refreshing LobbyRequest: {e}")
-
-	# def delete(self, *args, **kwargs):
-	# 	with self._lock:
-	# 		logger.debug(f"Attempting to delete LobbyRequest with ID {self.id}")
-	# 		try:
-	# 			super().delete(*args, **kwargs)
-	# 			logger.debug(f"Deleted LobbyRequest with ID {self.id}")
-	# 		except Exception as e:
-	# 			logger.error(f"Error deleting LobbyRequest: {e}")
 
 class WebsocketStatus():
 	DISCONNECTED = 0
@@ -332,27 +232,33 @@ class WebsocketStatus():
 	CONNECTED = 2
 	DISCONNECTING = 3
 
+
 class LobbyChange():
-    MATCH_CHOICE = "match-choice"
-    LEAVE = "leave"
-    JOIN = "join"
-    LOBBY_REQUEST = "lobby-request"
-    LOBBY = "lobby"
-    MATCHMAKING = "matchmaking"
-    PLAYER = "player"
+	MATCH_CHOICE = "match-choice"
+	LEAVE = "leave"
+	JOIN = "join"
+	LOBBY_REQUEST = "lobby-request"
+	LOBBY = "lobby"
+	MATCHMAKING = "matchmaking"
+	PLAYER = "player"
+
 
 class LobbyPlayer(rom.Model) :
 	user = rom.ForeignModel(User)
-	pseudo = rom.String()
+	_pseudo = rom.String()
 	is_ready = rom.Boolean(default=True)
 	is_leader = rom.Boolean(default=True)
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
 	requests = rom.OneToMany("LobbyRequest")
 	ws_status = rom.Integer(default=WebsocketStatus.DISCONNECTED)
 
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._lock = threading.Lock()
+	@property
+	def pseudo(self):
+		return self._pseudo.decode('utf-8')
+	
+	@pseudo.setter
+	def pseudo(self, value):
+		self._pseudo = value.encode('utf-8')
 
 	@classmethod
 	def get_by_user(cls, user):
@@ -392,7 +298,6 @@ class LobbyPlayer(rom.Model) :
 		except UnicodeDecodeError:
 			decoded_pseudo = self.pseudo
 		return decoded_pseudo == string
-		
 	
 	def change_leadership(self, change):
 		self.is_leader = change
@@ -431,42 +336,6 @@ class LobbyPlayer(rom.Model) :
 		self.join_lobby(lobby)
 		return new_leader
 
-	def save(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to save LobbyPlayer with ID {self.id}")
-			try:
-				super().save(*args, **kwargs)
-				# logger.debug(f"Saved LobbyPlayer with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error saving LobbyPlayer: {e}")
-
-	def update(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to update LobbyPlayer with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				# logger.debug(f"Updated LobbyPlayer with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error updating LobbyPlayer: {e}")
-
-	def refresh(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to refresh LobbyPlayer with ID {self.id}")
-			try:
-				super().refresh(*args, **kwargs)
-				# logger.debug(f"Refreshed LobbyPlayer with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error refreshing LobbyPlayer: {e}")
-
-	def delete(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to delete LobbyPlayer with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				# logger.debug(f"Deleted LobbyPlayer with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error deleting LobbyPlayer: {e}")
-
 
 class Lobby(rom.Model) :
 	id = rom.PrimaryKey(index=True)
@@ -474,17 +343,6 @@ class Lobby(rom.Model) :
 	match_choice = rom.ForeignModel(MatchChoice, default=get_default_match_choice)
 	is_open = rom.Boolean(default=False)
 	is_in_queue = rom.Boolean(default=False)
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._lock = threading.Lock()
-
-	@property
-	def leader(self):
-		for member in self.members:
-			if member.is_leader :
-				return member
-		return None
 
 	@classmethod
 	def get_by_user(cls, user):
@@ -505,47 +363,25 @@ class Lobby(rom.Model) :
 		player.join_lobby(self)
 
 	def remove_player(self, user):
-		player = LobbyPlayer.get_or_create(user)
-		player.leave_lobby(self)
+		player = LobbyPlayer.get_by_user(user)
+		if player:
+			player.leave_lobby(self)
 
 	def is_leader(self, user) :
 		lobby_player = LobbyPlayer.get_by_user(user)
-		if lobby_player :
+		if lobby_player and lobby_player in self.members.all():
 			return lobby_player.is_leader
 		return False
 	
-	def save(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to save Lobby with ID {self.id}")
-			try:
-				super().save(*args, **kwargs)
-				# logger.debug(f"Saved Lobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error saving Lobby: {e}")
+	def get_leader(self):
+		for member in self.members.all():
+			if member.is_leader :
+				return member
 
-	def update(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to update Lobby with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				# logger.debug(f"Updated Lobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error updating Lobby: {e}")
-
-	def refresh(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to refresh Lobby with ID {self.id}")
-			try:
-				super().refresh(*args, **kwargs)
-				# logger.debug(f"Refreshed Lobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error refreshing Lobby: {e}")
-
-	def delete(self, *args, **kwargs):
-		with self._lock:
-			# logger.debug(f"Attempting to delete Lobby with ID {self.id}")
-			try:
-				super().update(*args, **kwargs)
-				# logger.debug(f"Deleted Lobby with ID {self.id}")
-			except Exception as e:
-				logger.error(f"Error deleting Lobby: {e}")
+	def is_allowed_for(self, user):
+		if self.is_open :
+			return True
+		for member in self.members.all():
+			if user.is_friend_with(member.user):
+				return True
+		return False

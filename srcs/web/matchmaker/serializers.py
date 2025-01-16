@@ -46,20 +46,6 @@ class LobbyRequestSerializer(serializers.Serializer):
     sender = serializers.CharField()
     type = serializers.CharField()
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        binary_pseudo = instance.sender
-        binary_type = instance.type
-        try:
-            decoded_pseudo = binary_pseudo.decode('utf-8')
-            decoded_type = binary_type.decode('utf-8')
-        except UnicodeDecodeError:
-            decoded_pseudo = binary_pseudo
-            decoded_type = binary_type
-        data['sender'] = decoded_pseudo
-        data['type'] = decoded_type
-        return data
-
 
 class LobbyPlayerSerializer(serializers.Serializer):
     user = UserSerializer()
@@ -70,12 +56,6 @@ class LobbyPlayerSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        binary_pseudo = instance.pseudo
-        try:
-            decoded_pseudo = binary_pseudo.decode('utf-8')
-        except UnicodeDecodeError:
-            decoded_pseudo = binary_pseudo
-        data['pseudo'] = decoded_pseudo
         data['user'] = UserSerializer(instance.user, context=self.context).data
         return data
     
@@ -84,11 +64,6 @@ class LobbyPlayerSerializer(serializers.Serializer):
     
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
-            if attr == "pseudo":
-                try:
-                    value = value.encode('utf-8')
-                except UnicodeDecodeError:
-                    pass
             setattr(instance, attr, value)
         instance.save()
         return instance

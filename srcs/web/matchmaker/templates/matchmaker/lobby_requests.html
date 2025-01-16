@@ -5,7 +5,14 @@
                                 {% for request in requests %}
                                 <div class="carousel-item {% if forloop.counter == 1 %}active{% endif %}">
                                     <div class="lobby-request-content text-center">
-                                        <span id="lobbyRequesterName">{{ request.sender }}</span><span data-request-type="{{ request.type }}"> {% if request.type == "join" %}veut vous rejoindre{% else %}vous a invité{% endif %}</span>
+                                        <span id="lobbyRequesterName" data-request-id="{{ request.id }}" data-request-type="{{ request.type }}">
+                                            {{ request.sender }}
+                                            {% if request.type == "join" %}
+                                              veut vous rejoindre
+                                            {% else %}
+                                              vous a invité
+                                            {% endif %}
+                                          </span>
                                         <div class="request-buttons">
                                             <button class="btn btn-success accept-request" id="acceptLobbyRequest">Accepter</button>
                                             <button class="btn btn-danger reject-request" id="rejectLobbyRequest">Refuser</button>

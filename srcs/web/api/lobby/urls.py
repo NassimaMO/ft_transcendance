@@ -3,16 +3,24 @@ from . import views
 
 
 urlpatterns = [
-    path('users/me/lobbies/', views.UserLobbiesView.as_view(), name='api-users-lobbies'),
-    path('users/me/lobbies/main/', views.UserLobbiesMainView.as_view(), name='api-user-lobbies-main'),
-    path('users/me/lobbies/main/requests/', views.UserLobbyRequestsView.as_view(), name='api-user-lobby-requests'),
-    path('users/me/lobbies/main/requests/<int:user_id>/', views.UserLobbiesMainRequestView.as_view(), name='api-user-lobby-request'),
-    path('users/me/lobbies/main/requests/<str:username>/', views.UserLobbiesMainRequestView.as_view(), name='api-user-lobby-request'),
-    path('users/me/lobbies/main/members/', views.UserLobbiesMainMembersView.as_view(), name='api-users-lobby-members'),
-    path('users/me/lobbies/main/members/<int:member_id>/', views.UserLobbiesMainMemberView.as_view(), name='api-users-lobby-member'),
-    path('users/me/lobbies/main/members/me/', views.UserLobbiesMainMembersMeView.as_view(), name='api-users-lobby-members-me'),
-    path('users/me/lobbies/<int:lobby_id>/', views.UserLobbyView.as_view(), name='api-user-lobby'),
-    path('users/me/lobbies/<int:lobby_id>/requests/', views.UserLobbyRequestsView.as_view(), name='api-user-lobbies-requests'),
-    path('users/me/friends/<int:user_id>/lobby/requests/', views.UserFriendLobbyRequests.as_view(), name='api-user-friend-id-lobby-requests'),
-    path('users/me/friends/<str:username>/lobby/requests/', views.UserFriendLobbyRequests.as_view(), name='api-user-friend-name-lobby-requests'),
+    path('lobbies/', views.LobbiesView.as_view(), name='api-lobbies'),
+    path('lobbies/<int:lobby_id>/', views.LobbyView.as_view(), name='api-lobby'),
+    path('lobbies/<int:lobby_id>/members/', views.LobbyMembersView.as_view(), name='api-lobby-members'),
+
+    path('lobbies/main/', views.MainLobbyView.as_view(), name='api-main-lobby'),
+    path('lobbies/main/members/', views.MainLobbyMembersView.as_view(), name='api-main-lobby-members'),
+    path('lobbies/main/members/<int:user_id>/', views.MainLobbyMemberView.as_view(), name='api-main-lobby-members'),
+    path('lobbies/main/members/<str:username>/', views.MainLobbyMemberView.as_view(), name='api-main-lobby-members'),
+
+    
+    path('players/<int:user_id>/', views.PlayerView.as_view(), name='api-player-id'),
+    path('players/<str:username>/', views.PlayerView.as_view(), name='api-player-name'),
+    path('players/<int:user_id>/lobby/', views.PlayerLobbyView.as_view(), name='api-player-id-lobby'),
+    path('players/<str:username>/lobby/', views.PlayerLobbyView.as_view(), name='api-player-name-lobby'),
+    path('players/<int:user_id>/requests/', views.PlayerRequestsView.as_view(), name='api-player-id-requests'),
+    path('players/<str:username>/requests/', views.PlayerRequestsView.as_view(), name='api-player-name-requests'),
+
+    path('players/me/', views.PlayerMeView.as_view(), name='api-player-me'),
+    path('players/me/requests/', views.PlayerMeRequestsView.as_view(), name='api-player-me-requests'),
+    path('players/me/requests/<int:request_id>/', views.PlayerMeRequestView.as_view(), name='api-player-me-request'),
 ]
