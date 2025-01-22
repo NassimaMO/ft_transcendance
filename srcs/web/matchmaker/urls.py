@@ -11,4 +11,5 @@ urlpatterns = [
     path('lobby/requests/friends/', views.friend_requests_view, name='friend-requests'),
     path('lobby/requests/lobby/', views.lobby_requests_view, name='lobby-requests'),
     path('lobby/invite_banner/', views.invite_banner_view, name='lobby-invite-banner'),
+    path('lobby/matchmaking/', views.matchmaking_view, name='lobby-matchmaking')
 ]

@@ -160,6 +160,7 @@ class Entry(models.Model):
 
 
 class WaitingLobby(rom.Model):
+	# id = rom.PrimaryKey(index=True)
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
 	start = rom.DateTime(default=datetime.now())
 	matchmaking = rom.ManyToOne("Matchmaking", on_delete="cascade")
@@ -168,7 +169,7 @@ class WaitingLobby(rom.Model):
 	def get_or_create(cls, lobby, matchmaking):
 		waiting_lobbies = cls.query.all()
 		for waiting_lobby in waiting_lobbies :
-			if waiting_lobby == lobby :
+			if waiting_lobby.id == lobby.id :
 				waiting_lobby.matchmaking = matchmaking
 				return waiting_lobby
 		waiting_lobby = cls(lobby=lobby, matchmaking=matchmaking)
@@ -180,6 +181,7 @@ class WaitingLobby(rom.Model):
 	
 
 class Matchmaking(rom.Model) :
+	# id = rom.PrimaryKey(index=True)
 	match_choice = rom.ForeignModel(MatchChoice)
 	queue = rom.OneToMany("WaitingLobby")
 
@@ -187,7 +189,7 @@ class Matchmaking(rom.Model) :
 	def get_by_match_choice(cls, match_choice):
 		matchmakings = cls.query.all()
 		for matchmaking in matchmakings:
-			if matchmaking.match_choice == match_choice :
+			if matchmaking.match_choice.id == match_choice.id :
 				return matchmaking
 			
 	@classmethod
@@ -203,27 +205,31 @@ class Matchmaking(rom.Model) :
 	
 
 class LobbyRequest(rom.Model):
+	id = rom.PrimaryKey(index=True)
 	recipient = rom.ManyToOne("LobbyPlayer", on_delete="cascade")
 	_sender = rom.String()
 	_type = rom.String()
 
 	@property
 	def type(self):
-		return self._type.decode('utf-8')
+		if self._type:
+			return self._type.decode('utf-8')
 	
 	@property
 	def sender(self):
-		user = User.get_by(username=self._sender.decode('utf-8'))
+		user = User.objects.get(username=self._sender.decode('utf-8'))
 		if user:
 			return LobbyPlayer.get_by_user(user)
 	
 	@type.setter
 	def type(self, value):
-		self._type = value.encode('utf-8')
+		if value:
+			self._type = value.encode('utf-8')
 
 	@sender.setter
 	def sender(self, value):
-		self._sender = value.user.username.encode('utf-8')
+		if self._sender:
+			self._sender = value.user.username.encode('utf-8')
 
 
 class WebsocketStatus():
@@ -244,6 +250,7 @@ class LobbyChange():
 
 
 class LobbyPlayer(rom.Model) :
+	# id = rom.PrimaryKey(index=True)
 	user = rom.ForeignModel(User)
 	_pseudo = rom.String()
 	is_ready = rom.Boolean(default=True)
@@ -254,50 +261,31 @@ class LobbyPlayer(rom.Model) :
 
 	@property
 	def pseudo(self):
-		return self._pseudo.decode('utf-8')
+		if self._pseudo:
+			return self._pseudo.decode('utf-8')
 	
 	@pseudo.setter
 	def pseudo(self, value):
-		self._pseudo = value.encode('utf-8')
+		if value:
+			self._pseudo = value.encode('utf-8')
 
 	@classmethod
 	def get_by_user(cls, user):
 		lobby_players = cls.query.all()
 		for lobby_player in lobby_players:
-			if lobby_player.user == user :
+			if lobby_player.user.id == user.id :
 				return lobby_player
 
 	@classmethod
-	def get_or_create(cls, user, pseudo=None, lobby=None):
+	def get_or_create(cls, user, lobby=None):
 		lobby_player = cls.get_by_user(user)
 		if lobby_player :
 			if lobby and not lobby_player.lobby:
 				lobby_player.join_lobby(lobby)
 			return lobby_player
-		if not pseudo :
-			pseudo=user.get_pseudo()
-		lobby_player = cls(user=user, pseudo=pseudo, lobby=lobby)
+		lobby_player = cls(user=user, lobby=lobby, _pseudo=user.get_pseudo())
 		lobby_player.save()
 		return lobby_player
-	
-	def get_request(self, sender, type) :
-		for request in self.requests:
-			try:
-				decoded_type = request.type.decode('utf-8')
-				decoded_sender = request.sender.decode('utf-8')
-			except UnicodeDecodeError:
-				decoded_type = request.type
-				decoded_sender = request.sender
-			if decoded_sender == sender and decoded_type == type :
-				return request
-		return None
-	
-	def check_pseudo(self, string):
-		try:
-			decoded_pseudo = self.pseudo.decode('utf-8')
-		except UnicodeDecodeError:
-			decoded_pseudo = self.pseudo
-		return decoded_pseudo == string
 	
 	def change_leadership(self, change):
 		self.is_leader = change
@@ -369,7 +357,7 @@ class Lobby(rom.Model) :
 
 	def is_leader(self, user) :
 		lobby_player = LobbyPlayer.get_by_user(user)
-		if lobby_player and lobby_player in self.members.all():
+		if lobby_player and lobby_player.lobby and lobby_player.lobby.id == self.id:
 			return lobby_player.is_leader
 		return False
 	
@@ -381,7 +369,7 @@ class Lobby(rom.Model) :
 	def is_allowed_for(self, user):
 		if self.is_open :
 			return True
-		for member in self.members.all():
+		for member in self.members:
 			if user.is_friend_with(member.user):
 				return True
 		return False

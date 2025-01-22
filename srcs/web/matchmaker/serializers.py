@@ -23,7 +23,7 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
                         raise serializers.ValidationError(self.errors)
                     return False
             attrs = {field: self.initial_data.get(field) for field in self.fields}
-            self.validated_data = self.validate(attrs)
+            self._validated_data = self.validate(attrs)
             self.errors.clear()
             return True
         if raise_exception:
@@ -41,22 +41,29 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
         return super().save(**kwargs)
 
 
-
 class LobbyRequestSerializer(serializers.Serializer):
-    sender = serializers.CharField()
-    type = serializers.CharField()
-
-
-class LobbyPlayerSerializer(serializers.Serializer):
-    user = UserSerializer()
-    pseudo = serializers.CharField()
-    is_ready = serializers.BooleanField()
-    is_leader = serializers.BooleanField()
-    requests = LobbyRequestSerializer(many=True)
+    id = serializers.IntegerField()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data['sender'] = LobbyPlayerSerializer(instance.sender).data
+        data['type'] = instance.type
+        return data
+
+
+class LobbyPlayerSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    user = UserSerializer()
+    is_ready = serializers.BooleanField()
+    is_leader = serializers.BooleanField()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
         data['user'] = UserSerializer(instance.user, context=self.context).data
+        data['pseudo'] = instance.pseudo
+        if request and request.user.id == instance.user.id :
+            data['requests'] = LobbyRequestSerializer(instance.requests, context=self.context, many=True).data
         return data
     
     def create(self, validated_data):

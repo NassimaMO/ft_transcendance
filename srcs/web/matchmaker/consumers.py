@@ -14,7 +14,7 @@ from matchmaker.models import WebsocketStatus, LobbyChange
 
 logger = logging.getLogger("default")
 
-RELOAD_TIMEOUT = 2
+RELOAD_TIMEOUT = 1
 
 # rom.util.use_rom_session()
 

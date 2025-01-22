@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-        if request and request.user == instance :
+        if request and request.user.id == instance.id :
             data['id'] = instance.id
             data['friends'] = UserSerializer(instance.friends.all(), many=True).data
             data['requests'] = UserSerializer(instance.requests.all(), many=True).data
