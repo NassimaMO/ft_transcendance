@@ -13,24 +13,25 @@
             <div>DATE</div>
         </div>
         <div class="match-list">
-                {% for match in history %}
-                {% if match.result == "Victory" %}
-                <tr class="match" style="background-color: rgba(20, 244, 136, 0.1)">
-                    <td class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</td>
-                {% elif match.result == "Defeat" %}
-                <tr class="match" style="background-color: rgba(244, 20, 20, 0.1)">
-                    <td class="result" style="color: rgba(255, 0, 0, 0.696)">Defeat</td>
-                {% endif %}
-                    <td class="game-mode">{{ match.mode }}</td>
-                    <td class="score">{{ match.team1_score }} - {{ match.team2_score }}</td>
-                    <td class="date-time">{{ match.date|date:"d-m-Y" }}</td>
-                </tr>
-                {% empty %}
-                <div>
-                    <div class="no-match">No matches available</div>
-                </div>
-                {% endfor %}
             {% comment "Needs a history example to test it out" %}
+                {% for match in user.history %}
+                    {% if match.result == "Victory" %}
+                        <tr class="match" style="background-color: rgba(20, 244, 136, 0.1)">
+                            <td class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</td>
+                    {% elif match.result == "Defeat" %}
+                        <tr class="match" style="background-color: rgba(244, 20, 20, 0.1)">
+                            <td class="result" style="color: rgba(255, 0, 0, 0.696)">Defeat</td>
+                    {% endif %}
+                        <td class="game-mode">{{ match.mode }}</td>
+                        <td class="score">{{ match.team1_score }} - {{ match.team2_score }}</td>
+                        <td class="date-time">{{ match.date|date:"d-m-Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <div>
+                        <div class="no-match">No matches available</div>
+                    </div>
+                {% endfor %}
+            {% endcomment %}
             <div class="match" style="background-color: rgba(20, 244, 136, 0.1)">
                 <div class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</div>
                 <div class="game-mode">Solo</div>
@@ -109,7 +110,6 @@
                 <div class="score">3 - 2</div>
                 <div class="date-time">28/08/2024</div>
             </div>
-            {% endcomment %}
         </div>
     </div>
 {% endblock %}

@@ -368,6 +368,7 @@ class UserMeStatsView(APIView):
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [JWTAuthentication]
 
+	@classmethod
 	def get(self, request):
 		"""GET your stats"""
 
