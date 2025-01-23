@@ -11,7 +11,10 @@ urlpatterns = [
     path('lobbies/main/members/', views.MainLobbyMembersView.as_view(), name='api-main-lobby-members'),
     path('lobbies/main/members/<int:user_id>/', views.MainLobbyMemberView.as_view(), name='api-main-lobby-members'),
     path('lobbies/main/members/<str:username>/', views.MainLobbyMemberView.as_view(), name='api-main-lobby-members'),
-
+    
+    path('players/me/', views.PlayerMeView.as_view(), name='api-player-me'),
+    path('players/me/requests/', views.PlayerMeRequestsView.as_view(), name='api-player-me-requests'),
+    path('players/me/requests/<int:request_id>/', views.PlayerMeRequestView.as_view(), name='api-player-me-request'),
     
     path('players/<int:user_id>/', views.PlayerView.as_view(), name='api-player-id'),
     path('players/<str:username>/', views.PlayerView.as_view(), name='api-player-name'),
@@ -20,7 +23,4 @@ urlpatterns = [
     path('players/<int:user_id>/requests/', views.PlayerRequestsView.as_view(), name='api-player-id-requests'),
     path('players/<str:username>/requests/', views.PlayerRequestsView.as_view(), name='api-player-name-requests'),
 
-    path('players/me/', views.PlayerMeView.as_view(), name='api-player-me'),
-    path('players/me/requests/', views.PlayerMeRequestsView.as_view(), name='api-player-me-requests'),
-    path('players/me/requests/<int:request_id>/', views.PlayerMeRequestView.as_view(), name='api-player-me-request'),
 ]

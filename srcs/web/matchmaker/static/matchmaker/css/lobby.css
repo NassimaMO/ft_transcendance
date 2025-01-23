@@ -138,10 +138,16 @@ body {
     color: white;
     padding: 10px;
     width: 100%;
+    transition: filter 0.1s;
 }
 
-.btn.mode-button:hover {
-    background-color: hwb(174 16% 40%);
+.btn.mode-button.btn-grayed-out {
+    background-color: #7f8c8d;
+    transition: filter 0.1s;
+}
+
+.btn:hover {
+    filter: brightness(75%);
 }
 
 /* ----------------------- */
@@ -203,18 +209,6 @@ h3 {
 
 .modal-action {
     margin-top: 20px;
-}
-
-.btn.mode-button {
-    background-color: #16a085;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    cursor: pointer;
-}
-
-.btn.mode-button:hover {
-    background-color: hwb(174 16% 40%);
 }
 
 /* ----------------------- */
@@ -401,7 +395,12 @@ h3 {
 }
 
 .btn.start-matchmaking:hover {
-    background-color: hwb(174 16% 40%);
+    filter: brightness(85%)
+}
+
+.btn.start-matchmaking.btn-grayed-out {
+    background-color: #7f8c8d;
+    cursor: not-allowed;
 }
 
 /* -------------------------- */

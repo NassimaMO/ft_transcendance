@@ -49,8 +49,13 @@ def lobby_list_view(request) :
 
 @login_required
 def friends_list_view(request) :
+    lobby_player = LobbyPlayer.get_or_create(request.user)
+    return render(request, 'matchmaker/friends_list.html', {'lobby_player': lobby_player})
+
+@login_required
+def matchmaking_view(request) :
     user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/friends_list.html', {'user': user, 'Status': Status})
+    return render(request, 'matchmaker/matchmaking.html', {'user': user, 'Status': Status})
 
 @login_required
 def invite_banner_view(request) :
@@ -78,7 +83,6 @@ def lobby_players_view(request) :
 
 @login_required
 def lobby_view(request, lobby_id) :
-    logger.info(f"[VIEW] User {request.user.id} status : {request.user.status}")
     player = LobbyPlayer.get_by_user(request.user)
     if not player or not player.lobby:
         return redirect("lobby-home")

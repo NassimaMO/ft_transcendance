@@ -7,12 +7,12 @@
             --background-image: url('{% static "matchmaker/media/lobby_background.jpg" %}');
         }
     </style>
-	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}">
+	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}?v={{ timestamp }}">
 {% endblock %}
 
 {% block content %}
 <div class="lobby-container">
-
+    {% with lobby.members.0 as lobby_player %}
     <!-- Menu de navigation tout en haut -->
     <div class="navbar">
         <ul class="nav-list">
@@ -26,7 +26,7 @@
     <div class="lobby-body">
         <!-- Menu d'affichage des modes à gauche -->
         <div id="lobby-modes" class="lobby-modes">
-            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby.members.0 %}
+            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby_player %}
         </div>
 
         <div class="matchmaking-container">
@@ -37,8 +37,8 @@
                 </div>
             </div>
             <!-- Bouton matchmaking en bas -->
-            <div class="matchmaking-button-container">
-                <button class="btn start-matchmaking">JOUER</button>
+            <div class="matchmaking-button-container" id="matchmaking-button">
+                {% include "matchmaker/matchmaking.html" with lobby_player=lobby_player %}
             </div>
         </div>
 
@@ -67,6 +67,7 @@
             </div>
         </div>
     </div>
+    {% endwith %}
 </div>
 
 <!-- jQuery et Bootstrap JS -->
@@ -74,6 +75,5 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script type="module" src="{% static 'matchmaker/js/lobby.js' %}?v={{ timestamp }}"></script>
-<script>const lobbyId = "{{ lobby.id }}"</script>
 
 {% endblock %}

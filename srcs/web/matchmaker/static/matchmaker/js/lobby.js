@@ -1,4 +1,3 @@
-let lobby = null
 let lobby_player = null
 let ws = null
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
@@ -52,7 +51,7 @@ async function APIRequest(url, data=null, http_method='GET')
 	return {ok: false, status: undefined};
 }
 
-async function updateLobbyVar()
+async function updatePlayerVar()
 {
 	try
 	{
@@ -84,10 +83,10 @@ async function initWebSocket()
 			try
 			{
 				const data = JSON.parse(event.data);
-				console.log("Received message : ", data);
+				// console.log("Received message : ", data);
 				if (data.type == "notif")
 				{
-					await updateLobbyVar();
+					await updatePlayerVar();
 					for (const change of data.changes)
 					{
 						switch (change.type)
@@ -122,6 +121,7 @@ async function initWebSocket()
 								updateSection('lobby-list');
 								updateSection('lobby-players');
 								updateSection('lobby-modes');
+								updateSection('matchmaking-button');
 								console.log("You have joined the lobby");
 								break;
 							case "friend-request":
@@ -188,10 +188,8 @@ function updateSection(section)
 {
 	let url = null;
 
-	if (section === 'lobby-modes')
-	{
+	if (section === 'lobby-modes') {
 		url = '/lobby/modes/';
-		console.log("Lobby: ", lobby)
 	}
 	else if (section === 'lobby-players') {
 		url = '/lobby/players/';
@@ -210,6 +208,9 @@ function updateSection(section)
 	}
 	else if (section === 'invite-banner') {
 		url = '/lobby/invite_banner/';
+	}
+	else if (section == "matchmaking-button") {
+		url = "/lobby/matchmaking/"
 	}
 	if (url)
 	{
@@ -241,14 +242,6 @@ function openModeSelection()
 function closeModeSelection()
 {
 	document.getElementById('modeSelectionModal').style.display = 'none';
-}
-
-function updateModeUI()
-{
-	const button = document.getElementById('mode-action-button');
-	if (button) {
-		button.textContent = lobby_player.is_leader ? 'Changer le mode' : 'Prêt';
-	}
 }
 
 async function applyModeSelection()
@@ -312,7 +305,7 @@ async function updatePlayerStatus(status)
 	const data = {
 		is_ready: status === 'ready'
 	};
-	await APIRequest(`/api/lobbies/main/members/me/`, data, "PATCH");
+	await APIRequest(`/api/players/me/`, data, "PATCH");
 }
 
 async function enableNameEdit(element)
@@ -336,7 +329,7 @@ async function enableNameEdit(element)
 			const data = {
 				pseudo: newName
 			};
-			await APIRequest(`/api/lobbies/main/members/me/`, data, "PATCH");
+			await APIRequest(`/api/players/me/`, data, "PATCH");
 		}
 	});
 
@@ -379,21 +372,12 @@ async function inviteToGroup(playerName)
 	const data = {
 		type: 'invite'
 	};
-	const responseLobby = await APIRequest(`/api/users/me/friends/${playerName}/lobby/`);
-	if (responseLobby.ok)
-	{
-		const url = responseLobby.url;
-		console.log("url: ", url);
-		const response = await APIRequest(url + 'requests/', data, "POST");
-		if (response.ok) {
-			console.log("Invite request sent to: ", playerName);
-		}
-		else {
-			console.log(`Error inviting ${playerName} : can't send request to ${playerName}`);
-		}
+	const response = await APIRequest(`/api/players/${playerName}/requests/`, data, "POST");
+	if (response.ok){
+		console.log("Invite request sent to: ", playerName);
 	}
 	else {
-		console.log(`Error inviting ${playerName} : can't find ${playerName}'s lobby`);
+		console.log(`Error inviting ${playerName}: can't send request.`);
 	}
 }
 
@@ -402,20 +386,12 @@ async function joinPlayerGroup(playerName)
 	const data = {
 		type: 'join'
 	};
-	const responseLobby = await APIRequest(`/api/users/me/friends/${playerName}/lobby/`);
-	if (responseLobby.ok)
-	{
-		url = responseLobby.url
-		const response = await APIRequest(url + 'requests/', data, "POST");
-		if (response.ok) {
-			console.log("Join request sent to: ", playerName);
-		}
-		else {
-			console.log(`Error joining ${playerName} : can't send request to ${playerName}`);
-		}
+	const response = await APIRequest(`/api/players/${playerName}/requests/`, data, "POST");
+	if (response.ok){
+		console.log("Invite request sent to ", playerName);
 	}
 	else {
-		console.log(`Error joining ${playerName} : can't find ${playerName}'s lobby`);
+		console.log(`Error joining ${playerName}: can't send request.`);
 	}
 }
 
@@ -497,19 +473,17 @@ async function rejectFriendRequest(friendName)
 
 async function acceptLobbyRequest(requestId)
 {
-	await APIRequest(`/api/lobbies/main/requests/${requestId}/`, data, "PUT");
+	await APIRequest(`/api/players/me/requests/${requestId}/`, {}, "PUT");
 }
 
 async function rejectLobbyRequest(requestId)
 {
-	await APIRequest(`/api/lobbies/main/requests/${requestId}/`, data, "DELETE");
+	await APIRequest(`/api/players/me/requests/${requestId}/`, {}, "DELETE");
 }
 
 document.addEventListener("DOMContentLoaded", async function () 
 {
-	await updateLobbyVar();
-	console.log("Lobby: ", lobby)
-	updateModeUI();
+	await updatePlayerVar();
 	await initWebSocket();
 	let selectedFriend = null;
 	document.addEventListener('click', async function(event)
@@ -562,16 +536,16 @@ document.addEventListener("DOMContentLoaded", async function ()
 		else if (event.target.id === 'acceptLobbyRequest')
 		{
 			// const requesterName = document.getElementById('lobbyRequesterName').textContent;
-			// const request = document.querySelector('span[data-request-type]');
 			// const requestType = request.getAttribute('data-request-type');
+			const request = document.querySelector('span[data-request-type]');
 			const requestId = request.getAttribute('data-request-id');
 			await acceptLobbyRequest(requestId);
 		}
 		else if (event.target.id === 'rejectLobbyRequest')
 		{
 			// const requesterName = document.getElementById('lobbyRequesterName').textContent;
-			// const request = document.querySelector('span[data-request-type]');
 			// const requestType = request.getAttribute('data-request-type');
+			const request = document.querySelector('span[data-request-type]');
 			const requestId = request.getAttribute('data-request-id');
 			await rejectLobbyRequest(requestId);
 		}
