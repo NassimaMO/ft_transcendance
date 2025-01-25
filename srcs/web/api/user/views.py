@@ -62,7 +62,7 @@ class UserMeView(APIView):
 		permission_classes, authentication_classes = self.security_checks.get(
 			request.method,
 			([IsAuthenticated], [JWTAuthentication, SessionAuthentication])
-		)
+		)			
 		self.permission_classes = permission_classes
 		self.authentication_classes = authentication_classes
 		return super().initialize_request(request, *args, **kwargs)
@@ -374,7 +374,7 @@ class UserStatsView(APIView):
 	"""PATH users/<int/str:user_id_or_username>/stats/"""
 
 	permission_classes = [IsAuthenticated]
-	authentication_classes = [JWTAuthentication]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
 	def get(self, request, **kwargs):
 		"""GET a user's stats"""
@@ -385,14 +385,28 @@ class UserStatsView(APIView):
 			user = user_checking.get("user")
 			if not user:
 				return user_checking.get("error_response")
+			history = user.ordered_history()
+			history_s = [
+				{
+				"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
+				"team1_score": match.teams.first().score,
+				"team2_score": match.teams.last().score, #CHANGE: enemy team score
+				"mode": match.info.mode,
+				"date": match.date,
+				}
+				for match in history
+			]
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
+			games_lost = games_played - games_won
 			win_streak = user.get_win_streak()
 			average_score = user.get_average_score()
 			win_loss_ratio = games_won / (games_played - games_won) if games_played != games_won else games_won
 			data = {
+				"history": history_s,
 				"total_games_played": games_played,
 				"games_won": games_won,
+				"games_lost": games_lost,
 				"win_streak": win_streak,
 				"average_score": average_score,
 				"win_loss_ratio": win_loss_ratio,
@@ -409,14 +423,14 @@ class UserMeStatsView(APIView):
 	"""PATH users/me/stats/"""
 
 	permission_classes = [IsAuthenticated]
-	authentication_classes = [JWTAuthentication]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
 	@classmethod
 	def get(self, request):
-		"""GET your stats"""
+			"""GET your stats"""
 
-		message = {}
-		try:
+			message = {}
+		# try:
 			user = request.user
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
@@ -432,7 +446,7 @@ class UserMeStatsView(APIView):
 			}
 			message['stats'] = data
 			return Response(message, status=status.HTTP_200_OK)
-		except Exception as e:
-			logger.error(f"Error fetching stats: {e}")
-			add_message(message, "server_error", level="ERROR")
-			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		# except Exception as e:
+		# 	logger.error(f"Error fetching stats: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

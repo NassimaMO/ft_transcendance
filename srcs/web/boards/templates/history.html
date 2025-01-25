@@ -14,7 +14,7 @@
         </div>
         <div class="match-list">
             {% comment "Needs a history example to test it out" %}
-                {% for match in user.history %}
+                {% for match in stats.history %}
                     {% if match.result == "Victory" %}
                         <tr class="match" style="background-color: rgba(20, 244, 136, 0.1)">
                             <td class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</td>

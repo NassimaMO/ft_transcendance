@@ -16,19 +16,19 @@
     <div class="statistics">
         <div class="stats-display">
             <h6 class="stat-name">Games played</h6>
-            <div class="stat-number">{{ total_games_played }}</div>
+            <div class="stat-number">{{ stats.total_games_played }}</div>
         </div>
         <div class="stats-display">
             <h6 class="stat-name">Games won</h6>
-            <div class="stat-number">{{ games_won }}</div>
+            <div class="stat-number">{{ stats.games_won }}</div>
 
         </div>
         <div class="stats-display">
             <h6 class="stat-name">Games lost</h6>
-            <div class="stat-number">{{ games_lost }}</div>
+            <div class="stat-number">{{ stats.games_lost }}</div>
         </div>
     </div>
-    <div class="streak">🔥 {{ win_streak }} Wins</div>
+    <div class="streak">🔥 {{ stats.win_streak }} Wins</div>
     <button class="display">Display more
         <p class="ku">く</p></button>
     {% comment "Needs a button to display this" %}
