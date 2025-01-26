@@ -129,6 +129,7 @@ class MatchFilter(django_filters.FilterSet):
 class Team(models.Model):
 	players = models.ManyToManyField(User, through="Entry")
 	score = models.IntegerField(default=0)
+	#matches = models.ManyToManyField(Match, related_name="teams") (relation inverse)
 
 	def __str__(self):
 		return f"Team {self.id}"
@@ -160,28 +161,52 @@ class Entry(models.Model):
 
 
 class WaitingLobby(rom.Model):
-	# id = rom.PrimaryKey(index=True)
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
 	start = rom.DateTime(default=datetime.now())
 	matchmaking = rom.ManyToOne("Matchmaking", on_delete="cascade")
 
 	@classmethod
-	def get_or_create(cls, lobby, matchmaking):
+	def get_or_create(cls, lobby, matchmaking=None):
 		waiting_lobbies = cls.query.all()
 		for waiting_lobby in waiting_lobbies :
-			if waiting_lobby.id == lobby.id :
-				waiting_lobby.matchmaking = matchmaking
+			if waiting_lobby.lobby and waiting_lobby.lobby.id == lobby.id :
+				if matchmaking and (not waiting_lobby.matchmaking or waiting_lobby.matchmaking.id != matchmaking.id) :
+					waiting_lobby.matchmaking = matchmaking
+					waiting_lobby.save()
 				return waiting_lobby
-		waiting_lobby = cls(lobby=lobby, matchmaking=matchmaking)
+		if matchmaking:
+			waiting_lobby = cls(lobby=lobby, matchmaking=matchmaking)
+		else:
+			waiting_lobby = cls(lobby=lobby)
 		waiting_lobby.save()
 		return waiting_lobby
 	
+	@classmethod
+	def get_by_lobby(cls, lobby):
+		waiting_lobbies = cls.query.all()
+		for waiting_lobby in waiting_lobbies :
+			if waiting_lobby.lobby and waiting_lobby.lobby.id == lobby.id :
+				return waiting_lobby
+	
 	def __str__(self) :
-		return f"<WLobby {self.lobby.leader}(start:{self.start})>"
+		return f"<WLobby {self.lobby.id}(start:{self.start})>"
+	
+	def get_queue_time(self):
+		time_difference = datetime.now() - self.start
+		return time_difference.total_seconds()
+	
+	def add_to_queue(self, matchmaking):
+		if not self.matchmaking or self.matchmaking.id != matchmaking.id:
+			self.matchmaking = matchmaking
+		self.start = datetime.now()
+		self.save()
+	
+	def remove_from_queue(self):
+		self.matchmaking = None
+		self.save()
 	
 
 class Matchmaking(rom.Model) :
-	# id = rom.PrimaryKey(index=True)
 	match_choice = rom.ForeignModel(MatchChoice)
 	queue = rom.OneToMany("WaitingLobby")
 
@@ -250,7 +275,6 @@ class LobbyChange():
 
 
 class LobbyPlayer(rom.Model) :
-	# id = rom.PrimaryKey(index=True)
 	user = rom.ForeignModel(User)
 	_pseudo = rom.String()
 	is_ready = rom.Boolean(default=True)
@@ -346,6 +370,10 @@ class Lobby(rom.Model) :
 		lobby_player.join_lobby()
 		return lobby_player.lobby
 	
+	@property
+	def all_ready(self):
+		return all(player.is_ready for player in self.members)
+	
 	def add_player(self, user) :
 		player = LobbyPlayer.get_or_create(user)
 		player.join_lobby(self)
@@ -373,3 +401,9 @@ class Lobby(rom.Model) :
 			if user.is_friend_with(member.user):
 				return True
 		return False
+	
+	def get_queue_time(self):
+		waiting_lobby = WaitingLobby.get_by_lobby(self)
+		if waiting_lobby:
+			return waiting_lobby.get_queue_time()
+		return 0

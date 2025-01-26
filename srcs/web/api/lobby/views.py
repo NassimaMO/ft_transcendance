@@ -7,7 +7,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication # type: ig
 from matchmaker.serializers import MatchChoiceSerializer
 from matchmaker.models import Lobby, LobbyPlayer, LobbyRequest, LobbyChange
 from matchmaker.serializers import LobbySerializer, LobbyPlayerSerializer, LobbyRequestSerializer
-from api.utils import add_message, check_user, send_notifications, send_ws_message, change_lobby_api, leave_lobby_api
+from api.utils import add_message, check_user, send_notifications, change_lobby_api, leave_lobby_api, change_matchmaking_api
 import logging
 
 logger = logging.getLogger("default")
@@ -133,15 +133,15 @@ class MainLobbyView(APIView):
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 	def patch(self, request):
-			"""Change your Lobby (match choice, queue, open/public)"""
+		"""Change your Lobby (match choice, queue, open/public)"""
 
-			message = {}
-		# try:
-			lobby = Lobby.get_by_user(request.user)
-			if not lobby:
+		message = {}
+		try:
+			lobby_player = LobbyPlayer.get_by_user(request.user)
+			if not lobby_player or not lobby_player.lobby:
 				add_message(message, "not_in_lobby", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
-			if not lobby.is_leader(request.user):
+			if not lobby_player.is_leader:
 				add_message(message, "not_leader", level="ERROR")
 				return Response(message, status=status.HTTP_403_FORBIDDEN)
 			is_in_queue = request.data.get("is_in_queue")
@@ -151,9 +151,9 @@ class MainLobbyView(APIView):
 				serializer = MatchChoiceSerializer(data=match_choice)
 				if serializer.is_valid():
 					match_choice_instance = serializer.save()
-					lobby.match_choice = match_choice_instance
-					lobby.save()
-					send_notifications("lobby", lobby.id, {'type': LobbyChange.MATCH_CHOICE})
+					lobby_player.lobby.match_choice = match_choice_instance
+					lobby_player.lobby.save()
+					send_notifications("lobby", lobby_player.lobby.id, {'type': LobbyChange.MATCH_CHOICE})
 					message['match_choice'] = {
 						'id': match_choice_instance.id,
 					}
@@ -163,23 +163,17 @@ class MainLobbyView(APIView):
 					return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 			elif is_in_queue is not None:
 				if is_in_queue == True:
-					if lobby.is_in_queue:
+					if lobby_player.lobby.is_in_queue:
 						add_message(message, "already_in_queue")
 						return Response(message, status=status.HTTP_200_OK)
-					lobby.is_in_queue = True
-					lobby.save()
-					send_notifications("lobby", lobby.id, {'type': LobbyChange.MATCHMAKING})
-					send_ws_message("matchmaking_user", request.user.id, "start")
+					change_matchmaking_api(lobby_player, "start")
 					add_message(message, "matchmaking_started")
 					return Response(message, status=status.HTTP_200_OK)
 				elif is_in_queue == False:
-					if not lobby.is_in_queue:
+					if not lobby_player.lobby.is_in_queue:
 						add_message(message, "not_in_queue")
 						return Response(message, status=status.HTTP_200_OK)
-					lobby.is_in_queue = False
-					lobby.save()
-					send_notifications("lobby", lobby.id, {'type': LobbyChange.MATCHMAKING})
-					send_ws_message("matchmaking_user", request.user.id, "disconnect")
+					change_matchmaking_api(lobby_player, "stop")
 					add_message(message, "matchmaking_stopped")
 					return Response(message, status=status.HTTP_200_OK)
 				else:
@@ -188,13 +182,13 @@ class MainLobbyView(APIView):
 			else:
 				add_message(message, "no_data", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
-		# except Exception as e:
-		# 	logger.error(f"Error updating lobby: {e}")
-		# 	add_message(message, "server_error", level="ERROR")
-		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-	def delete(self, request):
-		"""Leave your Lobby"""
+		except Exception as e:
+			logger.error(f"Error updating lobby: {e}")
+			add_message(message, "server_error", level="ERROR")
+			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		
+	def put(self, request):
+		"""Leave your Lobby (and return to another)"""
 
 		message = {}
 		try:
@@ -203,6 +197,23 @@ class MainLobbyView(APIView):
 				add_message(message, "not_in_lobby", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
 			leave_lobby_api(lobby_player)
+			add_message(message, "lobby_leave")
+			return Response(message, status=status.HTTP_200_OK)
+		except Exception as e:
+			logger.error(f"Error leaving lobby: {e}")
+			add_message(message, "server_error", level="ERROR")
+			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+	def delete(self, request):
+		"""Leave your Lobby (and don't return to another)"""
+
+		message = {}
+		try:
+			lobby_player = LobbyPlayer.get_by_user(request.user)
+			if not lobby_player or not lobby_player.lobby:
+				add_message(message, "not_in_lobby", level="ERROR")
+				return Response(message, status=status.HTTP_400_BAD_REQUEST)
+			leave_lobby_api(lobby_player, back_to_main_lobby=False)
 			add_message(message, "lobby_leave")
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
@@ -264,7 +275,7 @@ class MainLobbyMemberView(APIView):
 			logger.error(f"Error fetching member {user_checking.get('user_message')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		
+
 	def delete(self, request, **kwargs):
 		"""Kick a Player from his lobby"""
 
@@ -356,7 +367,7 @@ class PlayerLobbyView(APIView):
 			logger.error(f"Error fetching player {user_checking.get('user_message')} lobby: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		
+
 
 class PlayerRequestsView(APIView):
 	"""URL players/<int/str:user_id_or_username>/requests/"""
@@ -417,6 +428,9 @@ class PlayerMeView(APIView):
 			if serializer.is_valid():
 				lobby_player = serializer.save()
 				send_notifications("lobby", lobby_player.lobby.id, {'type':LobbyChange.PLAYER})
+				if request.data['is_ready'] is False and lobby_player.lobby.is_in_queue:
+					change_matchmaking_api(lobby_player, "stop")
+					add_message(message, "matchmaking_stopped")
 				add_message(message, "info_updated")
 				return Response(message, status=status.HTTP_200_OK)
 			return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -438,6 +452,9 @@ class PlayerMeView(APIView):
 			if serializer.is_valid():
 				lobby_player = serializer.save()
 				send_notifications("lobby", lobby_player.lobby.id, {'type': LobbyChange.PLAYER})
+				if 'is_ready' in request.data and request.data['is_ready'] is False and lobby_player.lobby.is_in_queue:
+					change_matchmaking_api(lobby_player, "stop")
+					add_message(message, "matchmaking_stopped")
 				add_message(message, "info_updated")
 				return Response(message, status=status.HTTP_200_OK)
 			return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -495,7 +512,7 @@ class PlayerMeRequestView(APIView):
 				add_message(message, "not_in_lobby", level="ERROR")
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
 			lobby_request = LobbyRequest.get(request_id)
-			if not lobby_request or lobby_request.recipient.id != lobby_player.id:
+			if not lobby_request or not lobby_request.recipient or lobby_request.recipient.id != lobby_player.id:
 				add_message(message, "unknown_request")
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
 			message["request"] = LobbyRequestSerializer(lobby_request, context={"request": request}).data

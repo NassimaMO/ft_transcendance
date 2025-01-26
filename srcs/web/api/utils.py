@@ -212,8 +212,16 @@ def change_lobby_api(player, lobby):
     send_notifications("lobby_player", player.id, {'type': LobbyChange.LOBBY})
 
 
+def change_matchmaking_api(lobby_player, change):
+    lobby_player.lobby.is_in_queue = True if change == "start" else False
+    lobby_player.lobby.save()
+    send_ws_message("matchmaking_player", lobby_player.id, change)
+
+
 def leave_lobby_api(player, back_to_main_lobby=True):
     send_notifications("lobby", player.lobby.id, {'type': LobbyChange.LEAVE, 'username': player.user.username})
+    if player.lobby.is_in_queue:
+        change_matchmaking_api(player, "stop")
     new_leader = player.leave_lobby()
     if new_leader:
         send_notifications("lobby_player", new_leader.id, {'type': LobbyChange.PLAYER})

@@ -1,5 +1,5 @@
 let lobby_player = null
-let ws = null
+let lobby = null
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
 const csrftoken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -51,12 +51,13 @@ async function APIRequest(url, data=null, http_method='GET')
 	return {ok: false, status: undefined};
 }
 
-async function updatePlayerVar()
+async function updateVars()
 {
 	try
 	{
 		const response = await APIRequest('/api/lobbies/main/');
 		if (response.ok) {
+			lobby = response.lobby
 			lobby_player = response.lobby.members[0];
 		}
 		else {
@@ -68,96 +69,23 @@ async function updatePlayerVar()
 	}
 }
 
-async function initWebSocket()
+async function initWS(name, url, eventHandler)
 {
 	try
 	{
-		ws = new WebSocket(`${protocol}//${window.location.hostname}:${port}/ws/lobby`);
-		ws.onopen = function()
-		{
-			console.log("WebSocket connection opened successfully.");
+		const ws = new WebSocket(url);
+		ws.onopen = function() {
+			console.log(`WebSocket connection ${name} opened successfully.`);
 		};
 		
 		ws.onmessage = async function(event)
 		{
-			try
-			{
-				const data = JSON.parse(event.data);
-				// console.log("Received message : ", data);
-				if (data.type == "notif")
-				{
-					await updatePlayerVar();
-					for (const change of data.changes)
-					{
-						switch (change.type)
-						{
-							case "join":
-								updateSection('lobby-list');
-								updateSection('lobby-players');
-								if (change.username == lobby_player.user.username) {
-									console.log("You joined the lobby");
-								}
-								else if (change.username){
-									console.log(change.username, "joined the lobby");
-								}
-								else {
-									console.log("A player joined the lobby");
-								}
-								break;
-							case "leave":
-								updateSection('lobby-list');
-								updateSection('lobby-players');
-								if (change.username == lobby_player.user.username) {
-									console.log("You left the lobby");
-								}
-								else if (change.username) {
-									console.log(change.username, "left the lobby");
-								}
-								else {
-									console.log("A player left the lobby");
-								}
-								break;
-							case "lobby":
-								updateSection('lobby-list');
-								updateSection('lobby-players');
-								updateSection('lobby-modes');
-								updateSection('matchmaking-button');
-								console.log("You have joined the lobby");
-								break;
-							case "friend-request":
-								updateSection("friend-requests");
-								break;
-							case "friend":
-								updateSection("friends-list");
-								updateSection("invite-banner");
-								break;
-							case "lobby-request":
-								updateSection("lobby-requests");
-								if (change.username) {
-									console.log("New lobby request received from ", change.username);
-								}
-								break;
-							case "match-choice":
-								updateSection("lobby-modes");
-								break;
-							case "player":
-								updateSection('lobby-players');
-								updateSection('lobby-list');
-								updateSection('lobby-modes');
-								break;
-							case "user":
-								updateSection('lobby-players');
-								updateSection('lobby-list');
-								updateSection("invite-banner");
-								break;
-							default:
-								console.log("Unhandled change:", change.type);
-						}
-					}
-				}
+			try {
+				await updateVars();
+				eventHandler(event)
 			}
 			catch (error) {
-				console.error("Error handling WebSocket message: ", event.data, error);
+				console.error(`Error handling WebSocket ${name} message: `, event.data, error);
 			}
 		};
 
@@ -169,18 +97,120 @@ async function initWebSocket()
 		{
 			if (event.wasClean)
 			{
-				console.log("WebSocket connection closed cleanly.");
-				console.log("Code:", event.code, "Reason:", event.reason);
+				console.log(`WebSocket connection ${name} closed cleanly.`);
+				console.error("Code:", event.code);
+				if (event.reason) {
+					console.error("Reason:", event.reason)
+				}
 			}
 			else
 			{
-				console.error("WebSocket connection closed unexpectedly.");
-				console.error("Code:", event.code, "Reason:", event.reason);
+				console.error(`WebSocket connection ${name} closed unexpectedly.`);
+				console.error("Code:", event.code);
+				if (event.reason) {
+					console.error("Reason:", event.reason)
+				}
+				
 			}
 		};
 	}
 	catch (error) {
-		console.error("Failed to initialize WebSocket: ", error);
+		console.error(`Failed to initialize WebSocket ${name} : ${error}`);
+	}
+}
+
+async function matchmakingWSHandler(event)
+{
+	const data = JSON.parse(event.data);
+	console.log("Received mm handler: ", data.type);
+	if (data.type === "queue_start") {
+		updateTimerStart();
+	}
+	else if (data.type === "queue_stop") {
+		updateTimerStop();
+	}
+	else if (data.type === "match_found")
+	{
+		updateTimerStop();
+		matchFound(data.match_url);
+	}
+}
+
+async function lobbyWSHandler(event)
+{
+	const data = JSON.parse(event.data);
+	if (data.type === "notif")
+	{
+		for (const change of data.changes)
+		{
+			switch (change.type)
+			{
+				case "join":
+					updateSection('lobby-list');
+					updateSection('lobby-players');
+					updateSection('matchmaking');
+					if (change.username == lobby_player.user.username) {
+						console.log("You joined the lobby");
+					}
+					else if (change.username){
+						console.log(change.username, "joined the lobby");
+					}
+					else {
+						console.log("A player joined the lobby");
+					}
+					break;
+				case "leave":
+					updateSection('lobby-list');
+					updateSection('lobby-players');
+					updateSection('matchmaking');
+					if (change.username == lobby_player.user.username) {
+						console.log("You left the lobby");
+					}
+					else if (change.username) {
+						console.log(change.username, "left the lobby");
+					}
+					else {
+						console.log("A player left the lobby");
+					}
+					break;
+				case "lobby":
+					updateSection('lobby-list');
+					updateSection('lobby-players');
+					updateSection('lobby-modes');
+					updateSection('matchmaking');
+					console.log("You have joined the lobby");
+					break;
+				case "friend-request":
+					updateSection("friend-requests");
+					break;
+				case "friend":
+					updateSection("friends-list");
+					updateSection("invite-banner");
+					break;
+				case "lobby-request":
+					updateSection("lobby-requests");
+					if (change.username) {
+						console.log("New lobby request received from ", change.username);
+					}
+					break;
+				case "match-choice":
+					updateSection("lobby-modes");
+					break;
+				case "player":
+					updateSection('lobby-players');
+					updateSection('lobby-list');
+					updateSection('lobby-modes');
+					updateSection('matchmaking');
+					break;
+				case "user":
+					updateSection('lobby-players');
+					updateSection('lobby-list');
+					updateSection("invite-banner");
+					break;
+				default:
+					console.log("Unhandled change:", change.type);
+			}
+		}
 	}
 }
 
@@ -209,7 +239,7 @@ function updateSection(section)
 	else if (section === 'invite-banner') {
 		url = '/lobby/invite_banner/';
 	}
-	else if (section == "matchmaking-button") {
+	else if (section == "matchmaking") {
 		url = "/lobby/matchmaking/"
 	}
 	if (url)
@@ -224,6 +254,120 @@ function updateSection(section)
 	else  {
 		console.error('Erreur de mise à jour de la section: url indisponible')
 	}
+}
+
+function redirectToGame(url) {
+    window.location.href = url;
+}
+
+function showMatchFound(url) {
+    const overlay = document.getElementById('match-found-overlay');
+    const countdownText = document.getElementById('countdown-text');
+    overlay.style.display = 'flex';
+
+    let countdown = 3;
+    countdownText.textContent = countdown;
+
+    const countdownInterval = setInterval(() => {
+        countdown -= 1;
+        countdownText.textContent = countdown;
+
+        if (countdown === 0)
+		{
+            clearInterval(countdownInterval);
+            redirectToGame(url);
+        }
+    }, 1000);
+}
+
+let timerInterval = null;
+
+function formatTime(seconds)
+{
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+// function updateUIMatchmakingAvailable()
+// {
+// 	const button = document.getElementById('matchmaking-btn');
+// 	if (!lobby.members.every(player => player.is_ready))
+// 	{
+// 		button.setAttribute("title", "Tous les joueurs ne sont pas prêts.");
+// 		button.classList.add('btn-grayed-out');
+// 		button.classList.add('btn-disabled');
+// 	}
+// 	else
+// 	{
+// 		button.removeAttribute('title');
+// 		button.classList.remove('btn-disabled');
+// 		button.classList.remove('btn-grayed-out');
+// 	}
+// }
+
+function updateTimerStart()
+{
+	const button = document.getElementById('matchmaking-btn');
+	timerInterval = setInterval(() => {
+		const seconds = Math.floor((Date.now() - lobby.queue_start * 1000) / 1000);
+		button.textContent = formatTime(seconds);
+	}, 1000);
+}
+
+function updateTimerStop()
+{
+	const button = document.getElementById('matchmaking-btn');
+	button.textContent = "JOUER";
+	if (timerInterval) {
+		clearInterval(timerInterval);
+	}
+}
+
+function updateUIMatchmaking()
+{
+	if (lobby.is_in_queue) {
+		updateTimerStart();
+	}
+	else {
+		updateTimerStop();
+	}
+}
+
+async function startMatchmaking()
+{
+	const data = {
+		is_in_queue: true
+	};
+	const response = await APIRequest("/api/lobbies/main/", data, "PATCH");
+	if (response.ok) {
+		console.log('Matchmaking started');
+	}
+	else {
+		console.error('Erreur de lancement du matchmaking');
+	}
+}
+
+async function stopMatchmaking()
+{
+	const data = {
+		is_in_queue: false
+	};
+	const response = await APIRequest("/api/lobbies/main/", data, "PATCH");
+	if (response.ok)
+	{
+		updateTimerStop();
+		console.log('Matchmaking stopped');
+	}
+	else
+	{
+		console.error('Erreur de lancement du matchmaking');
+	}
+}
+
+function matchFound(url) {
+	clearInterval(timerInterval);
+    showMatchFound(url);
 }
 
 function toggleSection(sectionId)
@@ -481,10 +625,17 @@ async function rejectLobbyRequest(requestId)
 	await APIRequest(`/api/players/me/requests/${requestId}/`, {}, "DELETE");
 }
 
+async function leaveLobby()
+{
+	await APIRequest('/api/lobbies/main/', {}, "PUT");
+}
+
 document.addEventListener("DOMContentLoaded", async function () 
 {
-	await updatePlayerVar();
-	await initWebSocket();
+	await updateVars();
+	updateUIMatchmaking();
+	await initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby`, lobbyWSHandler);
+	await initWS("matchmaking", `${protocol}//${window.location.hostname}:${port}/ws/matchmaking`, matchmakingWSHandler);
 	let selectedFriend = null;
 	document.addEventListener('click', async function(event)
 	{
@@ -492,7 +643,19 @@ document.addEventListener("DOMContentLoaded", async function ()
 		const inviteMenu = document.getElementById('inviteMenu');
 		const inviteButton = document.getElementById('inviteButton');
 
-		if (event.target.id === 'toggle-online-button') {
+		if (event.target.id === 'matchmaking-btn' && lobby_player.is_leader)
+		{
+			if (lobby.is_in_queue === false && lobby.members.every(player => player.is_ready)) {
+				startMatchmaking();
+			}
+			else {
+				stopMatchmaking();
+			}
+		}
+		else if (event.target.id === 'leaveLobbyButton') {
+			leaveLobby();
+		}
+		else if (event.target.id === 'toggle-online-button') {
 			toggleSection("onlineFriends");
 		}
 		else if (event.target.id === 'toggle-offline-button') {
@@ -572,6 +735,29 @@ document.addEventListener("DOMContentLoaded", async function ()
 		}
 		if (inviteMenu && inviteButton && !inviteMenu.contains(event.target) && event.target !== inviteButton) { // outside click
 			closeInviteMenu(inviteMenu);
+		}
+	});
+	const inputField = document.getElementById("addFriendInput");
+    // const addButton = document.getElementById("addFriendButton");
+	document.addEventListener('keydown', async function(event) {
+		if (event.key === "Enter")
+		{
+			event.preventDefault();
+			const value = inputField.value.trim();
+
+			if (event.key === "Enter")
+			{
+				if (value)
+				{
+					event.preventDefault();
+					addFriend(value);
+				}
+				else
+				{
+					// inputField.placeHolder = "Veuillez entrer un nom valide"
+				}
+            }
+
 		}
 	});
 });

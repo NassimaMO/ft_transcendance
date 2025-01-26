@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from account.serializers import UserSerializer
 import logging
-from .models import MatchChoice, Lobby, LobbyPlayer
+from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby
 
 logger = logging.getLogger('default')
 
@@ -74,11 +74,17 @@ class LobbyPlayerSerializer(serializers.Serializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+    
+    def validate(self, data):
+        if not data.get("is_ready", True) and data.get("is_leader", False):
+            raise serializers.ValidationError(
+                "Le leader ne peut pas ne pas être prêt."
+            )
+        return data
 
 
 class LobbySerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    members = LobbyPlayerSerializer(many=True)
     match_choice = MatchChoiceSerializer()
     is_open = serializers.BooleanField()
     is_in_queue = serializers.BooleanField()
@@ -93,6 +99,12 @@ class LobbySerializer(serializers.Serializer):
     def to_representation(self, instance) :
         data = super().to_representation(instance)
         data['members'] = self.get_players(instance)
+        if instance.is_in_queue:
+            waiting_lobby = WaitingLobby.get_by_lobby(instance)
+            if waiting_lobby:
+                data['queue_start'] = waiting_lobby.start.timestamp()
+        if self.context.get('type') == 'template':
+            data['all_ready'] = instance.all_ready
         return data
     
     def create(self, validated_data):

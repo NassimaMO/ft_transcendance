@@ -11,6 +11,7 @@ from account.models import Status
 # from api.user.views import UserMeView
 from api.utils import leave_lobby_api, notify_friends_api
 from matchmaker.models import WebsocketStatus, LobbyChange
+from datetime import datetime
 
 logger = logging.getLogger("default")
 
@@ -22,18 +23,18 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
     def logger(self, message, logger_level=logger.info):
         s = "[MatchmakingConsumer]"
-        if self.user:
-            s+= f"[User{self.user.id}]"
-        if self.lobby:
-            s += f"[Lobby{self.lobby.id}]"
+        if self.player:
+            s += f"[{self.get_group_name('player')}]"
+            if self.player.lobby:
+                s += f"[{self.get_group_name('lobby')}]"
         s += f" : {message}"
         logger_level(s)
 
     def get_group_name(self, group):
-        if group == 'user' and self.user:
-            return f"matchmaking_user_{self.user.id}"
-        if group == 'lobby' and self.lobby:
-            return f"matchmaking_lobby_{self.lobby.id}"
+        if group == 'player' and self.player:
+            return f"matchmaking_player_{self.player.id}"
+        if group == 'lobby' and self.player.lobby:
+            return f"matchmaking_lobby_{self.player.lobby.id}"
         
     async def add_to_group(self, group):
         group_name = await sync_to_async(self.get_group_name)(group)
@@ -52,69 +53,110 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             )
 
     async def connect(self):
-        # rom.util.use_null_session()
         self.waiting_lobby = None
-        self.lobby = None
         self.user = self.scope['user']
+        await sync_to_async(self.user.refresh_from_db)()
         if not self.user:
-            self.logger("Invalid user", logger.error)
-            return await self.close()
+            self.logger("Unauthorized action : Invalid user.", logger.error)
+            return await self.close(1008, reason="Invalid user")
         if not self.user.is_authenticated:
-            self.logger("User not authenticated", logger.error)
-            return await self.close()
-        self.add_to_group("user")
-        self.lobby = await sync_to_async(models.Lobby.get_by_user)(self.user)
-        if not self.lobby:
-            self.logger("Unauthorized action : you are not in a lobby", logger.error)
-            return self.close()
-        self.add_to_group("lobby")
+            self.logger("Unauthorized action : User not authenticated.", logger.error)
+            return await self.close(1008, reason="User not authenticated")
+        self.player = await sync_to_async(models.LobbyPlayer.get_by_user)(self.user)
+        if not self.player or not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby.", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
+        await self.add_to_group("player") 
+        await self.add_to_group("lobby")
+        self.player.ws_status = WebsocketStatus.CONNECTED
+        await sync_to_async(self.player.save)()
+        if self.user.status == Status.OFF:
+            await sync_to_async(self.change_status)(Status.ON)
         await self.accept()
+        self.logger("Connection accepted")
+
+    def check_all_ready(self):
+        return self.player.lobby.all_ready
 
     async def start(self, event):
-        self.lobby = await sync_to_async(models.Lobby.get_by_user)(self.user)
-        if not self.lobby:
-            self.logger("Unauthorized action : you are not in a lobby", logger.error)
-            return self.close()
-        is_leader = await sync_to_async(self.lobby.is_leader)(self.user)
-        if not is_leader :
-            self.logger("Unauthorized action : you are not the lobby leader", logger.error)
+        await sync_to_async(self.player.refresh)(force=True)
+        if not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby.", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
+        if not self.player.is_leader :
+            self.logger("Unauthorized action : You are not the lobby leader.", logger.error)
+            return self.close(1008, reason="You are not the lobby leader")
+        if not await sync_to_async(self.check_all_ready)():
+            self.logger("Unauthorized action : Members not ready.", logger.error)
+            return
+        self.match_choice = self.player.lobby.match_choice
+        await sync_to_async(self.add_to_queue)()
+        await self.notify_queue_start()
+        await self.create_match()
+
+    async def stop(self, event):
+        await sync_to_async(self.player.refresh)(force=True)
+        if not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
         else:
-            self.logger("Matchmaking started")
-            self.match_choice = self.lobby.match_choice
-            await sync_to_async(self.add_to_queue)()
-            await self.create_match()
+            await sync_to_async(self.remove_from_queue)()
+            await self.notify_queue_stop()
 
     def add_to_queue(self):
-        self.logger("Client added to queue")
-        if not self.lobby.is_in_queue :
-            with rom.util.EntityLock(self.lobby, 5, 90):
-                self.lobby.update(is_in_queue=True)
+        if not self.player.lobby.is_in_queue :
+            with rom.util.EntityLock(self.player.lobby, 5, 90):
+                self.player.lobby.update(is_in_queue=True)
         self.matchmaking = models.Matchmaking.get_or_create(self.match_choice)
-        self.matchmaking.save()
-        self.waiting_lobby = models.WaitingLobby.get_or_create(self.lobby, self.matchmaking)
-        self.waiting_lobby.save()
+        self.waiting_lobby = models.WaitingLobby.get_or_create(self.player.lobby)
+        self.waiting_lobby.add_to_queue(self.matchmaking)
+        self.logger("Lobby added to queue")
 
-    async def remove_from_queue(self):
-        self.logger("Client removed from queue")
+    def remove_from_queue(self):
         if self.waiting_lobby :
-            await sync_to_async(self.waiting_lobby.delete)()
+            self.waiting_lobby.delete()
         self.waiting_lobby = None
-        if self.lobby.is_in_queue:
-            with rom.util.EntityLock(self.lobby, 5, 90):
-               await sync_to_async(self.lobby.update)(is_in_queue=True)
+        if self.player.lobby.is_in_queue:
+            with rom.util.EntityLock(self.player.lobby, 5, 90):
+               self.player.lobby.update(is_in_queue=False)
+        self.logger("Lobby removed from queue")
 
     def time_algo(self):
         self.logger("Checking queue")
-        lobbies = None
-        if len(self.matchmaking.queue) >= 2:
-            lobbies = [waiting_lobby.lobby for waiting_lobby in self.matchmaking.queue[:2]]
-        return lobbies
+        lobbies = []
+        for waiting_lobby in self.matchmaking.queue:
+            if waiting_lobby.lobby:
+                lobbies.append(waiting_lobby)
+            else:
+                waiting_lobby.matchmaking = None
+                waiting_lobby.save()
+        if len(lobbies) >= 2:
+            return lobbies[:2]
+
+    def get_lobby_members(self):
+        return self.player.lobby.members
+
+    async def notify_queue_start(self):
+        await self.channel_layer.group_send(
+            f"matchmaking_lobby_{self.player.lobby.id}",
+            {
+                'type': 'queue_start',
+            }
+        )
+
+    async def notify_queue_stop(self):
+        await self.channel_layer.group_send(
+            f"matchmaking_lobby_{self.player.lobby.id}",
+            {
+                'type': 'queue_stop',
+            }
+        )
 
     async def create_match(self):
         lobbies = await sync_to_async(self.time_algo)()
         if lobbies :
             self.logger("Creating match")
-            await self.remove_from_queue()
+            await sync_to_async(self.remove_from_queue)()
             match = await sync_to_async(models.Match.objects.create)(info=self.match_choice)
             match_url = f'/play/game/{match.id}/'
             for lobby in lobbies :
@@ -136,12 +178,34 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             }))
         self.close()
 
+    async def queue_start(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'queue_start',
+        }))
+
+    async def queue_stop(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'queue_stop',
+        }))
+
     async def disconnect(self, close_code):
-        self.logger("Disconnected from websocket")
-        await self.remove_from_queue()
-        self.remove_from_group("user")
-        self.remove_from_group("lobby")
-        # rom.util.use_rom_session()
+        await self.remove_from_group("player")
+        await self.remove_from_group("lobby")
+        self.player.ws_status = WebsocketStatus.DISCONNECTED
+        await sync_to_async(self.player.save)()
+        if close_code == 1001 :
+            await asyncio.sleep(RELOAD_TIMEOUT)
+            await sync_to_async(self.player.refresh)(force=True)
+            if self.player.ws_status == WebsocketStatus.CONNECTED:
+                self.logger("Reload")
+            else:
+                self.logger("Disconnection")
+                await self.stop()
+                await sync_to_async(self.change_status)(Status.OFF)
+        else:
+            await sync_to_async(self.player.refresh)(force=True)
+            await self.stop()
+            await sync_to_async(self.change_status)(Status.OFF)
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
@@ -178,7 +242,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 group_name, 
                 self.channel_name
             )
-            # self.logger(f"Added to group: {group_name}")
 
     async def remove_from_group(self, group):
         group_name = await sync_to_async(self.get_group_name)(group)
@@ -187,54 +250,39 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 group_name, 
                 self.channel_name
             )
-            # self.logger(f"Removed from group: {group_name}")
 
     async def connect(self):
         rom.util.use_null_session()
         self.user = self.scope['user']
         await sync_to_async(self.user.refresh_from_db)()
+        if not self.user:
+            self.logger("Unauthorized action : Invalid user.", logger.error)
+            return await self.close(1008, reason="Invalid user")
         if not self.user.is_authenticated:
-            self.logger("Refusing Connection: User not authenticated", logger.error)
-            return await self.close(1003)
+            self.logger("Unauthorized action : User not authenticated", logger.error)
+            return await self.close(1008, reason="User not authenticated")
         self.player = await sync_to_async(models.LobbyPlayer.get_by_user)(self.user)
         if not self.player or not self.player.lobby:
-            self.logger("Unauthorized action : you are not in a lobby", logger.error)
-            return self.close(1008)
+            self.logger("Unauthorized action : You are not in a lobby", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
         await self.add_to_group("player") 
         await self.add_to_group("lobby")
         self.player.ws_status = WebsocketStatus.CONNECTED
         await sync_to_async(self.player.save)()
-        # self.logger()
         if self.user.status == Status.OFF:
-            await self.change_status(Status.ON)
-        # else:
-        #     logger.info(f"STATUS != OFF. DIFF : {self.user.status} - {Status.OFF}")
+            await sync_to_async(self.change_status)(Status.ON)
         await self.accept()
-        self.logger("Connection accepted")
 
     async def remove_from_lobby(self):
-        # factory = APIRequestFactory()
-        # request = factory.delete("users/me/lobbies/main/", {})
-        # request.user = self.user
-        # view = UserLobbiesMainView.as_view()
-        # await sync_to_async(view)(request)
         await sync_to_async(leave_lobby_api)(self.player, back_to_main_lobby=False)
         await sync_to_async(self.player.refresh)(force=True)
 
-    async def change_status(self, status):
-        # factory = APIRequestFactory()
-        # request = factory.patch("users/me/", {'status': status})
-        # request.user = self.user
-        # view = UserMeView.as_view()
-        # await sync_to_async(view)(request)
-        # self.logger("CHANGING STATUS")
+    def change_status(self, status):
         self.user.status = status
-        await sync_to_async(self.user.save)()
-        await sync_to_async(notify_friends_api)(self.user)
-        # self.logger("STATUS CHANGED")
+        self.user.save()
+        notify_friends_api(self.user)
 
     async def disconnect(self, close_code):
-        # rom.util.use_rom_session()
         await self.remove_from_group("player")
         await self.remove_from_group("lobby")
         self.player.ws_status = self.player.ws_status = WebsocketStatus.DISCONNECTED
@@ -248,12 +296,12 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 self.logger("Disconnection")
                 if self.player.lobby:
                     await self.remove_from_lobby()
-                await self.change_status(Status.OFF)
+                await sync_to_async(self.change_status)(Status.OFF)
         else:
             await sync_to_async(self.player.refresh)(force=True)
             if self.player.lobby:
                 await self.remove_from_lobby()
-            await self.change_status(Status.OFF)
+            await sync_to_async(self.change_status)(Status.OFF)
 
     async def api_notif(self, event) :
         self.logger(f"Received API Notif : 'changes': {list(event.get('changes', []))}")

@@ -26,7 +26,7 @@
     <div class="lobby-body">
         <!-- Menu d'affichage des modes à gauche -->
         <div id="lobby-modes" class="lobby-modes">
-            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby_player %}
+            {% include "matchmaker/modes.html" with lobby_player=lobby_player %}
         </div>
 
         <div class="matchmaking-container">
@@ -37,16 +37,20 @@
                 </div>
             </div>
             <!-- Bouton matchmaking en bas -->
-            <div class="matchmaking-button-container" id="matchmaking-button">
+            <div class="matchmaking-button-container" id="matchmaking">
                 {% include "matchmaker/matchmaking.html" with lobby_player=lobby_player %}
             </div>
         </div>
+        <div id="match-found-overlay" class="match-found-overlay">
+            <h1>Partie trouvée !</h1>
+            <p id="countdown-text">3</p>
+        </div>        
 
         <!-- Colonne de droite -->
         <div class="friends-container">
             <div class="friends-window">
                 <div id="lobby-list">
-                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members lobby_users=lobby_users friends=user.friends Status=Status%}
+                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members %}
                 </div>
                 <!-- Menu pour inviter / rejoindre ses amis (caché) -->
                 <div id="friend-actions-menu" class="friend-actions-menu">
@@ -58,7 +62,7 @@
             </div>
             <!-- En bas de la colonne, après les amis hors ligne : Carousel des demandes d'amis -->
             <div id="friend-requests">
-                {% include "matchmaker/friend_requests.html" with requests=user.requests %}
+                {% include "matchmaker/friend_requests.html" with requests=user.requests members_count=lobby.members|length %}
             </div>
             <!-- Tout en bas de la colonne, après le carousel : Menu pour ajouter un ami -->
             <div class="add-friend-section">
