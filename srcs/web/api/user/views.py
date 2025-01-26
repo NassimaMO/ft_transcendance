@@ -385,14 +385,28 @@ class UserStatsView(APIView):
 			user = user_checking.get("user")
 			if not user:
 				return user_checking.get("error_response")
+			history = user.ordered_history()
+			history_s = [
+				{
+				"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
+				"team1_score": match.teams.first().score,
+				"team2_score": match.teams.last().score, #CHANGE: enemy team score
+				"mode": match.info.mode,
+				"date": match.date,
+				}
+				for match in history
+			]
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
+			games_lost = games_played - games_won
 			win_streak = user.get_win_streak()
 			average_score = user.get_average_score()
 			win_loss_ratio = games_won / (games_played - games_won) if games_played != games_won else games_won
 			data = {
+				"history": history_s,
 				"total_games_played": games_played,
 				"games_won": games_won,
+				"games_lost": games_lost,
 				"win_streak": win_streak,
 				"average_score": average_score,
 				"win_loss_ratio": win_loss_ratio,
@@ -411,6 +425,7 @@ class UserMeStatsView(APIView):
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
+	@classmethod
 	def get(self, request):
 		"""GET your stats"""
 

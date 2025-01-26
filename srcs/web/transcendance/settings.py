@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'api',
     'account',
     'matchmaker',
+    'boards'
 ]
 
 MIDDLEWARE = [

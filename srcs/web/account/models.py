@@ -76,6 +76,25 @@ class User(AbstractUser):
 	def ordered_history(self):
 		return self.history.annotate(date=F('team__matches__date')).order_by('-date')
 
+	"""def get_history(self, all_games_played, user):
+        history = []
+        for match in all_games_played:
+            matches = {}
+            winning_team = Team.objects.filter(match=match).order_by('-score').first()
+            if winning_team and winning_team.players.filter(id=user.id).exists():
+                matches["result"] = "Victory"
+                matches["team1_score"] = winning_team.score
+                matches["team2_score"] = Team.objects.filter(match=match).exclude(id=winning_team.id).first()
+
+            else:
+                matches["result"] = "Defeat"
+                matches["team1_score"] = Team.objects.filter(match=match).exclude(id=winning_team.id).first()
+                matches["team2_score"] = winning_team.score
+            matches["mode"] = match.info.mode
+            matches["date"] = match.date
+            history.append(matches)
+        return history"""
+
 	def get_total_games_won(self):
 		return sum(int(entry.is_winner()) for entry in self.history.all())
 	
