@@ -179,11 +179,13 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         self.close()
 
     async def queue_start(self, event):
+        self.logger('queue_start')
         await self.send(text_data=json.dumps({
             'type': 'queue_start',
         }))
 
     async def queue_stop(self, event):
+        self.logger('queue_stop')
         await self.send(text_data=json.dumps({
             'type': 'queue_stop',
         }))
@@ -206,6 +208,16 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             await sync_to_async(self.player.refresh)(force=True)
             await self.stop()
             await sync_to_async(self.change_status)(Status.OFF)
+
+    async def api_notif(self, event) :
+        self.logger(f"Received API Notif : 'changes': {list(event.get('changes', []))}")
+        for change in event.get("changes") :
+            if change.get("type") == LobbyChange.LEAVE:
+                await sync_to_async(self.player.refresh)(force=True)
+                return await self.remove_from_group("lobby")
+            elif change.get("type") == LobbyChange.LOBBY:
+                await sync_to_async(self.player.refresh)(force=True)
+                return await self.add_to_group("lobby")
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):

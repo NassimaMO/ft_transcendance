@@ -38,7 +38,7 @@ if apps.is_installed('account'):
 if apps.is_installed('api'):
     urlpatterns += [path('api/', include('api.urls'))]
 if apps.is_installed('matchmaker'):
-    urlpatterns += [path('match/', include('matchmaker.urls'))]
+    urlpatterns += [path('', include('matchmaker.urls'))]
 if apps.is_installed('boards'):
     urlpatterns += [path('boards/', include('boards.urls'))]
 

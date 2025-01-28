@@ -205,11 +205,13 @@ def send_notifications(recipient_type, recipient_id, *changes):
 
 def change_lobby_api(player, lobby):
     send_notifications("lobby", player.lobby.id, {'type': LobbyChange.LEAVE, 'username': player.user.username})
+    send_notifications("matchmaking_lobby", player.lobby.id, {'type': LobbyChange.LEAVE})
     new_leader = player.change_lobby(lobby)
     if new_leader:
         send_notifications("lobby_player", new_leader.id, {'type': LobbyChange.PLAYER})
     send_notifications("lobby", lobby.id, {'type': LobbyChange.JOIN, 'username': player.user.username})
     send_notifications("lobby_player", player.id, {'type': LobbyChange.LOBBY})
+    send_notifications("matchmaking_player", player.id, {'type': LobbyChange.LOBBY})
 
 
 def change_matchmaking_api(lobby_player, change):
@@ -220,6 +222,7 @@ def change_matchmaking_api(lobby_player, change):
 
 def leave_lobby_api(player, back_to_main_lobby=True):
     send_notifications("lobby", player.lobby.id, {'type': LobbyChange.LEAVE, 'username': player.user.username})
+    send_notifications("matchmaking_lobby", player.lobby.id, {'type': LobbyChange.LEAVE})
     if player.lobby.is_in_queue:
         change_matchmaking_api(player, "stop")
     new_leader = player.leave_lobby()
@@ -228,6 +231,7 @@ def leave_lobby_api(player, back_to_main_lobby=True):
     if back_to_main_lobby:
         player.join_lobby()
         send_notifications("lobby_player", player.id, {'type': LobbyChange.LOBBY})
+        send_notifications("matchmaking_player", player.id, {'type': LobbyChange.LOBBY})
 
 
 def notify_friends_api(user):
