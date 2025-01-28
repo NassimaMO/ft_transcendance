@@ -1,0 +1,57 @@
+{% load static %}
+
+{% block extraCSS %}
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="user-info">
+        <h2 class="username">{{ user.username }}</h2>
+        <div class="rank-bar">
+            <div class="rank-name">Gold IV</div>
+            <div class="rank-level"></div>
+        </div>
+    </div>
+    <div class="statistics">
+        <div class="stat-display">
+            <h6 class="stat-name">Games played</h6>
+            <div class="stat-number">{{ stats.total_games_played }}</div>
+        </div>
+        <div class="stat-display">
+            <h6 class="stat-name">Games won</h6>
+            <div class="stat-number">{{ stats.games_won }}</div>
+            
+        </div>
+        <div class="stat-display">
+            <h6 class="stat-name">Games lost</h6>
+            <div class="stat-number">{{ stats.games_lost }}</div>
+        </div>
+    </div>
+    <div class="streak">🔥 {{ stats.win_streak }} Wins</div>
+    <div class="more-info">
+        <button class="display-button">
+            <div class="display-text">Display more</div>
+            <div class="ku-display-arrow">く</div>
+        </button>
+    </div>
+    <div class="overlay-info">
+        <div class="less-info">
+            <button class="display-button">
+                <div class="display-text">Display less</div>
+                <div class="ku-display-arrow">く</div>
+            </button>
+        </div>
+        <div class="charts">
+            <div class="chart-one">
+                <div class="win-loss-ratio">Win Loss Ratio</div>
+            </div>
+            <div class="chart-two">
+                <div class="average-score">Average score</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<script src="{% static 'boards/js/dashboard.js' %}"></script>

@@ -6,4 +6,4 @@ def boards_view(request):
         return render(request, "account/login.html")
     response = UserMeStatsView.get(request)
     context = response.data
-    return render(request, "boards.html", context)
+    return render(request, "boards/boards.html", context)
