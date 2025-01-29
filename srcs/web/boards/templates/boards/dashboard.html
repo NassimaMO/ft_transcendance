@@ -1,7 +1,7 @@
 {% load static %}
 
 {% block extraCSS %}
-    <link rel="stylesheet" type="text/css" href="{% static 'boards/css/dashboard.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'boards/css/dashboard.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -44,10 +44,15 @@
         </div>
         <div class="charts">
             <div class="chart-one">
-                <div class="win-loss-ratio">Win Loss Ratio</div>
+                <div class="win-loss-ratio-title">Win Loss Ratio</div>
+                <div class="win-loss-ratio-pie-chart"></div>
             </div>
             <div class="chart-two">
-                <div class="average-score">Average score</div>
+                <div class="avg-score-title">Average score</div>
+                <div class="avg-score">
+                    <canvas id="avg-score-graph"></canvas>
+                    <div class="avg-score-number">3.4</div>
+                </div>
             </div>
         </div>
     </div>

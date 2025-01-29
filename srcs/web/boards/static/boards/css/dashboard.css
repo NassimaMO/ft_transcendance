@@ -102,7 +102,6 @@
     transition: max-height 0.5s ease-out;
     transition: opacity 0.5s ease-out;
     width: 100%;
-    height: 10%;
     border: 3px solid #ffffff86;
     background-color: rgb(0, 0, 30);
 }
@@ -133,10 +132,9 @@
     border: none;
 }
 
-.display-text {
+.display-text, .ku-display-arrow {
     color: white;
     font-size: 15px;
-
 }
 
 .ku-display-arrow {
@@ -149,22 +147,51 @@
     width: 100%;
     height: 100%;
 }
-
 /* --------------------- */
 /*         CHARTS        */
 /* --------------------- */
 
 .charts {
-    display: flex;
-    flex-direction: column;
-    gap: 3%;
+    display: grid;
     width: 100%;
+    grid-template-rows: 70% 30%;
+    gap: 3%;
     height: 77%;
 }
 
 .chart-one, .chart-two {
     width: 100%;
-    height: 50%;
     background-color: rgb(0, 0, 30);
     border: 3px solid #ffffff86;
+    padding: 3%;
+}
+
+.win-loss-ratio-title {
+    font-size: 15px;
+}
+
+.win-loss-ratio-pie-chart {
+    height: 85%;
+    border-radius: 50%;
+    background: conic-gradient(
+        rgb(255, 255, 255) 0% calc(20%), 
+        rgba(164, 156, 156, 0.205) calc(20%) 100%
+    );
+}
+
+.avg-score-title {
+    font-size: 15px;
+}
+
+.avg-score {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 80% 20%;
+}
+
+.avg-score-number {
+    font-size: 30px;
+}
+
+#avg-score-graph {
 }
