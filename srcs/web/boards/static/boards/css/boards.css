@@ -81,6 +81,10 @@ body {
     color: white;
 }
 
+.board-mode:focus {
+    outline: none;
+}
+
 .boards-container {
     display: flex;
     justify-content: space-between;
