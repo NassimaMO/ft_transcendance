@@ -7,7 +7,7 @@
     flex-direction: column;
     justify-content: space-between;
     text-align: center;
-    width: 30vw;
+    width: 25vw;
     height: 80vh;
     gap: 5%;
 }
@@ -19,7 +19,7 @@
 .user-info {
     width: 100%;
     border: 3px solid #ffffff86;
-    background-color: rgb(0, 0, 30);
+    background-color: rgb(1, 1, 17);
     padding: 3%;
 }
 
@@ -31,7 +31,7 @@
 
 .rank-bar {
     position: relative;
-    background-color: rgb(0, 0, 30);
+    background-color: rgb(1, 1, 17);
     border: 2px solid #ffffff86;
 }
 
@@ -79,7 +79,7 @@
     height: 33%;
     padding: 5%;
     justify-content: center;
-    background-color: rgb(0, 0, 30);
+    background-color: rgb(1, 1, 17);
     color: white;
     border: 3px solid #ffffff86;
 }
@@ -102,7 +102,7 @@
     transition: opacity 0.5s ease-out;
     width: 100%;
     border: 3px solid #ffffff86;
-    background-color: rgb(0, 0, 30);
+    background-color: rgb(1, 1, 17);
 }
 
 .streak.hidden {
@@ -169,7 +169,7 @@
 
 .chart-one, .chart-two {
     width: 100%;
-    background-color: rgb(0, 0, 30);
+    background-color: rgb(1, 1, 17);
     border: 3px solid #ffffff86;
     padding: 3%;
     overflow: hidden;

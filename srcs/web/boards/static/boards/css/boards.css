@@ -71,6 +71,16 @@ body {
 /*         BOARD        */
 /* -------------------- */
 
+.board-mode {
+    display: flex;
+    margin: 0 auto;
+    text-align: center;
+    width: 25%;
+    height: 5%;
+    background-color: rgb(1, 1, 17);
+    color: white;
+}
+
 .boards-container {
     display: flex;
     justify-content: space-between;
@@ -78,11 +88,4 @@ body {
     height: 100%;
     gap: 3%;
     padding: 3%;
-}
-
-.board-mode {
-    display: flex;
-    width: 7%;
-    height: 3%;
-    margin: 0 auto;
 }
