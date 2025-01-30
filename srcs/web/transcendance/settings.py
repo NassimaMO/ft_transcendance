@@ -27,27 +27,45 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = bool(int(os.environ.get("DEBUG", default=0)))
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-    'loggers': {
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            'propagate': True
+        },
+        "channels": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            'propagate': True
+        },
+        "channels.layers": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            'propagate': True
+        },
         'default': {
             'handlers': ['console'],
             'level': 'DEBUG',
-            'propagate': True,
-        },
+            'propagate': True
+        }
     },
 }
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]', 'host.docker.internal']
-ALLOWED_HOSTS += os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]', 'host.docker.internal']
+    ALLOWED_HOSTS += os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
+
 
 # Application definition
 
@@ -59,6 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'channels',
     'rest_framework',
     'rest_framework.authtoken',
@@ -66,6 +85,7 @@ INSTALLED_APPS = [
     'api',
     'account',
     'matchmaker',
+    'boards'
 ]
 
 MIDDLEWARE = [
@@ -207,7 +227,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Proxy
 
-if bool(int(os.getenv('DEBUG'))) == False :
+SESSION_COOKIE_SAMESITE = 'Lax'
+if DEBUG is False :
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

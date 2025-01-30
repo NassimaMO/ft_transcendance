@@ -1,7 +1,14 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.utils.timezone import now
+import django_filters # type: ignore
+from django.db import models # type: ignore
+from django.db.models import F # type: ignore
+from django.contrib.auth.models import AbstractUser # type: ignore
+from django.utils.timezone import now # type: ignore
 
+
+class UserChange():
+	INFO = "user"
+	FRIEND_REQUEST = "friend-request"
+	FRIEND = "friend"
 
 
 class Status(models.TextChoices):
@@ -11,6 +18,7 @@ class Status(models.TextChoices):
 	INV = "Invisible", "Invisible"
 	BUSY = "Occupé", "Occupé"
 	LOBBY = "Dans un salon", "Dans un salon"
+
 
 class User(AbstractUser):
 	avatar = models.ImageField(upload_to='', default="static/account/media/default_avatar.png")
@@ -59,10 +67,63 @@ class User(AbstractUser):
 	
 	def get_pseudo(self) :
 		return self.username
+	
+	def is_friend_with(self, user):
+		return user in self.friends.all()
+	
+	# STATS
+	
+	def ordered_history(self):
+		return self.history.annotate(date=F('team__matches__date')).order_by('-date')
+
+	"""def get_history(self, all_games_played, user):
+        history = []
+        for match in all_games_played:
+            matches = {}
+            winning_team = Team.objects.filter(match=match).order_by('-score').first()
+            if winning_team and winning_team.players.filter(id=user.id).exists():
+                matches["result"] = "Victory"
+                matches["team1_score"] = winning_team.score
+                matches["team2_score"] = Team.objects.filter(match=match).exclude(id=winning_team.id).first()
+
+            else:
+                matches["result"] = "Defeat"
+                matches["team1_score"] = Team.objects.filter(match=match).exclude(id=winning_team.id).first()
+                matches["team2_score"] = winning_team.score
+            matches["mode"] = match.info.mode
+            matches["date"] = match.date
+            history.append(matches)
+        return history"""
+
+	def get_total_games_won(self):
+		return sum(int(entry.is_winner()) for entry in self.history.all())
+	
+	def get_average_score(self):
+		all_games_played = self.history.all()
+		average_score = sum(entry.score for entry in all_games_played)
+		average_score = average_score / len(all_games_played) if len(all_games_played) > 0 else 0
+		return average_score
+	
+	def get_win_streak(self):
+		win_streak = 0
+		for entry in self.ordered_history():
+			if entry.is_winner():
+				win_streak += 1
+			else:
+				break
+		return win_streak
+
+
+class UserFilter(django_filters.FilterSet):
+	status = django_filters.CharFilter(lookup_expr='iexact')
+
+	class Meta:
+		model = User
+		fields = ['status']
 
 
 class Session(models.Model):
-	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_sessions")
+	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
 	ip_address = models.GenericIPAddressField(null=True, blank=True)
 	user_agent = models.CharField(max_length=255, null=True, blank=True)
 	login_time = models.DateTimeField(default=now)

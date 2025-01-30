@@ -27,6 +27,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('rules/', views.rules, name='rules'),
     path('about/', views.about, name='about'),
+    path('api/', include('api.urls'))
 ]
 
 if apps.is_installed('pong'):
@@ -39,6 +40,8 @@ if apps.is_installed('api'):
     urlpatterns += [path('api/', include('api.urls'))]
 if apps.is_installed('matchmaker'):
     urlpatterns += [path('', include('matchmaker.urls'))]
+if apps.is_installed('boards'):
+    urlpatterns += [path('boards/', include('boards.urls'))]
 
 if settings.DEBUG:
     urlpatterns += [path('media/static/<path:file_path>', views.media, name='media')]

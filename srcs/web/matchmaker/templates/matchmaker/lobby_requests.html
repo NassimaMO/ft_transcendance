@@ -5,7 +5,14 @@
                                 {% for request in requests %}
                                 <div class="carousel-item {% if forloop.counter == 1 %}active{% endif %}">
                                     <div class="lobby-request-content text-center">
-                                        <span id="lobbyRequesterName">{{ request.sender }}</span><span data-request-type="{{ request.type }}"> {% if request.type == "join" %}veut vous rejoindre{% else %}vous a invité{% endif %}</span>
+                                        <span id="lobbyRequesterName" data-request-id="{{ request.id }}" data-request-type="{{ request.type }}">
+                                            {{ request.sender.user.username }}
+                                        </span>
+                                            {% if request.type == "join" %}
+                                                veut vous rejoindre
+                                            {% else %}
+                                                vous a invité
+                                            {% endif %}
                                         <div class="request-buttons">
                                             <button class="btn btn-success accept-request" id="acceptLobbyRequest">Accepter</button>
                                             <button class="btn btn-danger reject-request" id="rejectLobbyRequest">Refuser</button>
@@ -14,6 +21,7 @@
                                 </div>
                                 {% endfor %}
                             </div>
+                            {% if items|length > 1 %}
                             <button class="carousel-control-prev" type="button" data-bs-target="#lobbyRequestsCarousel" data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Précédent</span>
@@ -22,6 +30,7 @@
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Suivant</span>
                             </button>
+                            {% endif %}
                         </div>
                     </div>
                     {% endif %}

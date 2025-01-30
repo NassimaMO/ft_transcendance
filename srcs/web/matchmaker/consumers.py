@@ -1,53 +1,167 @@
-# import redis.asyncio as redis
 import logging
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import sync_to_async
+import rom # type: ignore
+import asyncio
+from channels.generic.websocket import AsyncWebsocketConsumer # type: ignore
+from rest_framework.test import APIRequestFactory # type: ignore
+from asgiref.sync import sync_to_async # type: ignore
 from . import models
-from account.models import User
+from account.models import Status
+# from api.lobby.views import UserLobbiesMainView
+# from api.user.views import UserMeView
+from api.utils import leave_lobby_api, notify_friends_api
+from matchmaker.models import WebsocketStatus, LobbyChange
+from datetime import datetime
 
 logger = logging.getLogger("default")
 
+RELOAD_TIMEOUT = 1
+
+# rom.util.use_rom_session()
+
 class MatchmakingConsumer(AsyncWebsocketConsumer):
 
+    def logger(self, message, logger_level=logger.info):
+        s = "[MatchmakingConsumer]"
+        if self.player:
+            s += f"[{self.get_group_name('player')}]"
+            if self.player.lobby:
+                s += f"[{self.get_group_name('lobby')}]"
+        s += f" : {message}"
+        logger_level(s)
+
+    def get_group_name(self, group):
+        if group == 'player' and self.player:
+            return f"matchmaking_player_{self.player.id}"
+        if group == 'lobby' and self.player.lobby:
+            return f"matchmaking_lobby_{self.player.lobby.id}"
+        
+    async def add_to_group(self, group):
+        group_name = await sync_to_async(self.get_group_name)(group)
+        if group_name:
+            await self.channel_layer.group_add(
+                group_name, 
+                self.channel_name
+            )
+
+    async def remove_from_group(self, group):
+        group_name = await sync_to_async(self.get_group_name)(group)
+        if group_name:
+            await self.channel_layer.group_discard(
+                group_name, 
+                self.channel_name
+            )
+
     async def connect(self):
+        self.waiting_lobby = None
         self.user = self.scope['user']
+        await sync_to_async(self.user.refresh_from_db)()
+        if not self.user:
+            self.logger("Unauthorized action : Invalid user.", logger.error)
+            return await self.close(1008, reason="Invalid user")
         if not self.user.is_authenticated:
-            logger.debug("User not authenticated")
-            await self.close()
-        self.group_name = f"matchmaking_user_{self.user.id}"
-        self.channel_layer.group_add(self.group_name, self.channel_name)
-        self.match_choice = await sync_to_async(models.MatchChoice.objects.get)(id=self.scope['url_route']['kwargs']['match_choice_id'])
-        await sync_to_async(self.add_to_queue)()
+            self.logger("Unauthorized action : User not authenticated.", logger.error)
+            return await self.close(1008, reason="User not authenticated")
+        self.player = await sync_to_async(models.LobbyPlayer.get_by_user)(self.user)
+        if not self.player or not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby.", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
+        await self.add_to_group("player") 
+        await self.add_to_group("lobby")
+        self.player.ws_status = WebsocketStatus.CONNECTED
+        await sync_to_async(self.player.save)()
+        if self.user.status == Status.OFF:
+            await sync_to_async(self.change_status)(Status.ON)
         await self.accept()
+        self.logger("Connection accepted")
+
+    def check_all_ready(self):
+        return self.player.lobby.all_ready
+
+    async def start(self, event):
+        await sync_to_async(self.player.refresh)(force=True)
+        if not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby.", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
+        if not self.player.is_leader :
+            self.logger("Unauthorized action : You are not the lobby leader.", logger.error)
+            return self.close(1008, reason="You are not the lobby leader")
+        if not await sync_to_async(self.check_all_ready)():
+            self.logger("Unauthorized action : Members not ready.", logger.error)
+            return
+        self.match_choice = self.player.lobby.match_choice
+        await sync_to_async(self.add_to_queue)()
+        await self.notify_queue_start()
         await self.create_match()
 
+    async def stop(self, event):
+        await sync_to_async(self.player.refresh)(force=True)
+        if not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
+        else:
+            await sync_to_async(self.remove_from_queue)()
+            await self.notify_queue_stop()
+
     def add_to_queue(self):
-        self.matchmaking = models.Matchmaking.get_or_create(mm=self.match_choice.mm)
-        self.matchmaking.save()
-        self.waiting_user = models.WaitingUser.get_or_create(self.user, self.matchmaking)
-        self.waiting_user.save()
+        if not self.player.lobby.is_in_queue :
+            with rom.util.EntityLock(self.player.lobby, 5, 90):
+                self.player.lobby.update(is_in_queue=True)
+        self.matchmaking = models.Matchmaking.get_or_create(self.match_choice)
+        self.waiting_lobby = models.WaitingLobby.get_or_create(self.player.lobby)
+        self.waiting_lobby.add_to_queue(self.matchmaking)
+        self.logger("Lobby added to queue")
 
     def remove_from_queue(self):
-        if self.waiting_user :
-            self.waiting_user.delete()
-        self.waiting_user = None
+        if self.waiting_lobby :
+            self.waiting_lobby.delete()
+        self.waiting_lobby = None
+        if self.player.lobby.is_in_queue:
+            with rom.util.EntityLock(self.player.lobby, 5, 90):
+               self.player.lobby.update(is_in_queue=False)
+        self.logger("Lobby removed from queue")
 
     def time_algo(self):
-        players = None
-        if len(self.matchmaking.queue) >= 2:
-            players = [waiting_user for waiting_user in self.matchmaking.queue[:2]]
-        return players
+        self.logger("Checking queue")
+        lobbies = []
+        for waiting_lobby in self.matchmaking.queue:
+            if waiting_lobby.lobby:
+                lobbies.append(waiting_lobby.lobby)
+            else:
+                waiting_lobby.matchmaking = None
+                waiting_lobby.save()
+        if len(lobbies) >= 2:
+            return lobbies[:2]
+
+    def get_lobby_members(self):
+        return self.player.lobby.members
+
+    async def notify_queue_start(self):
+        await self.channel_layer.group_send(
+            f"matchmaking_lobby_{self.player.lobby.id}",
+            {
+                'type': 'queue_start',
+            }
+        )
+
+    async def notify_queue_stop(self):
+        await self.channel_layer.group_send(
+            f"matchmaking_lobby_{self.player.lobby.id}",
+            {
+                'type': 'queue_stop',
+            }
+        )
 
     async def create_match(self):
-        players = await sync_to_async(self.time_algo)()
-        if (players) :
+        lobbies = await sync_to_async(self.time_algo)()
+        if lobbies :
+            self.logger("Creating match")
             await sync_to_async(self.remove_from_queue)()
             match = await sync_to_async(models.Match.objects.create)(info=self.match_choice)
             match_url = f'/play/game/{match.id}/'
-            for player in players :
+            for lobby in lobbies :
                 await self.channel_layer.group_send(
-                    f"matchmaking_user_{player.user.id}",
+                    f"matchmaking_lobby_{lobby.id}",
                     {
                         'type': 'match_found',
                         'match_url': match_url
@@ -55,8 +169,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                 )
 
     async def match_found(self, event):
-        if self.waiting_user :
-            await sync_to_async(self.remove_from_queue)()
+        self.logger("Match found")
         match_url = event.get('match_url', None)
         if match_url:
             await self.send(text_data=json.dumps({
@@ -65,236 +178,149 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             }))
         self.close()
 
+    async def queue_start(self, event):
+        self.logger('queue_start')
+        await self.send(text_data=json.dumps({
+            'type': 'queue_start',
+        }))
+
+    async def queue_stop(self, event):
+        self.logger('queue_stop')
+        await self.send(text_data=json.dumps({
+            'type': 'queue_stop',
+        }))
+
     async def disconnect(self, close_code):
-        await sync_to_async(self.remove_from_queue)()
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await self.remove_from_group("player")
+        await self.remove_from_group("lobby")
+        if close_code == 1001 :
+            await asyncio.sleep(RELOAD_TIMEOUT)
+            await sync_to_async(self.player.refresh)(force=True)
+            if self.player.ws_status == WebsocketStatus.CONNECTED:
+                self.logger("Reload")
+            else:
+                self.logger("Disconnection")
+                await self.stop({'type': 'stop'})
+        else:
+            await sync_to_async(self.player.refresh)(force=True)
+            await self.stop({'type': 'stop'})
+
+    async def api_notif(self, event) :
+        self.logger(f"Received API Notif : 'changes': {list(event.get('changes', []))}")
+        for change in event.get("changes") :
+            if change.get("type") == LobbyChange.LEAVE:
+                await sync_to_async(self.player.refresh)(force=True)
+                return await self.remove_from_group("lobby")
+            elif change.get("type") == LobbyChange.LOBBY:
+                await sync_to_async(self.player.refresh)(force=True)
+                return await self.add_to_group("lobby")
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
 
-    def get_group_name(self, groupe, user=None, lobby=None) :
-        if groupe == "lobby" :
-            if not lobby:
-                if user :
-                    lobby = models.Lobby.get_or_create(user)
-                else:
-                    lobby = self.lobby
-            return f"lobby_{lobby.id}"
-        elif groupe == "user" :
-            if not user :
-                user = self.user
-            return f"lobby_user_{user.id}"
+    def __init__(self) :
+        super().__init__()
+        self.user = None
+        self.player = None
+        self.lock = asyncio.Lock()
+
+    def logger(self, message, logger_level=logger.info):
+        s = "[LobbyConsumer]"
+        if self.player:
+            s += f"[{self.get_group_name('player')}]"
+            if self.player.lobby:
+                s += f"[{self.get_group_name('lobby')}]"
+        s += f" : {message}"
+        logger_level(s)
+
+    def get_group_name(self, group, id=None) :
+        if group == 'player' and self.player:
+            if id:
+                return f"lobby_player_{id}"
+            return f"lobby_player_{self.player.id}"
+        if group == 'lobby' and self.player and self.player.lobby:
+            if id:
+                return f"lobby_{id}"
+            return f"lobby_{self.player.lobby.id}"
+        
+    async def add_to_group(self, group, id=None):
+        group_name = await sync_to_async(self.get_group_name)(group, id)
+        if group_name:
+            await self.channel_layer.group_add(
+                group_name, 
+                self.channel_name
+            )
+
+    async def remove_from_group(self, group):
+        group_name = await sync_to_async(self.get_group_name)(group)
+        if group_name:
+            await self.channel_layer.group_discard(
+                group_name, 
+                self.channel_name
+            )
 
     async def connect(self):
+        rom.util.use_null_session()
         self.user = self.scope['user']
+        await sync_to_async(self.user.refresh_from_db)()
+        if not self.user:
+            self.logger("Unauthorized action : Invalid user.", logger.error)
+            return await self.close(1008, reason="Invalid user")
         if not self.user.is_authenticated:
-            logger.debug("User not authenticated")
-            await self.close()
-        await self.channel_layer.group_add(
-            await sync_to_async(self.get_group_name)("user"), 
-            self.channel_name
-        )
-        self.lobby = await sync_to_async(models.Lobby.get_or_create)(self.user)
-        await self.channel_layer.group_add(
-            await sync_to_async(self.get_group_name)("lobby"), 
-            self.channel_name
-        )
-        self.player = None
+            self.logger("Unauthorized action : User not authenticated", logger.error)
+            return await self.close(1008, reason="User not authenticated")
+        self.player = await sync_to_async(models.LobbyPlayer.get_by_user)(self.user)
+        if not self.player or not self.player.lobby:
+            self.logger("Unauthorized action : You are not in a lobby", logger.error)
+            return self.close(1008, reason="You are not in a lobby")
+        await self.add_to_group("player") 
+        await self.add_to_group("lobby")
+        self.player.ws_status = WebsocketStatus.CONNECTED
+        await sync_to_async(self.player.save)()
+        if self.user.status == Status.OFF:
+            await sync_to_async(self.change_status)(Status.ON)
         await self.accept()
 
+    async def remove_from_lobby(self):
+        await sync_to_async(leave_lobby_api)(self.player, back_to_main_lobby=False)
+        await sync_to_async(self.player.refresh)(force=True)
+
+    def change_status(self, status):
+        self.user.status = status
+        self.user.save()
+        notify_friends_api(self.user)
+
     async def disconnect(self, close_code):
-        # await self.leave_lobby()
-        # await sync_to_async(self.lobby.delete)()
-        await self.channel_layer.group_discard(
-            await sync_to_async(self.get_group_name)("user"),
-            self.channel_name
-        )
+        await self.remove_from_group("player")
+        await self.remove_from_group("lobby")
+        self.player.ws_status = self.player.ws_status = WebsocketStatus.DISCONNECTED
+        await sync_to_async(self.player.save)()
+        if close_code == 1001 :
+            await asyncio.sleep(RELOAD_TIMEOUT)
+            await sync_to_async(self.player.refresh)(force=True)
+            if self.player.ws_status == WebsocketStatus.CONNECTED:
+                self.logger("Reload")
+            else:
+                self.logger("Disconnection")
+                if self.player.lobby:
+                    await self.remove_from_lobby()
+                await sync_to_async(self.change_status)(Status.OFF)
+        else:
+            await sync_to_async(self.player.refresh)(force=True)
+            if self.player.lobby:
+                await self.remove_from_lobby()
+            await sync_to_async(self.change_status)(Status.OFF)
 
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        if data.get("request") :
-            await self.send_request(f"{data.get('request')}_request", data['recipient'])
-        if data.get("accept") == 'invite':
-            await self.accept_invite(data['username'])
-        elif data.get("accept") == 'join':
-            await self.send_request("accept_join_request", data['username'])
-        elif data.get("accept") == 'friend' :
-            await self.accept_friend(data["username"])
-        elif data.get("reject") == "friend" :
-            await self.reject_friend(data["username"])
-
-    async def send_request(self, request_type, recipient_name):
-        try :
-            recipient_user = await sync_to_async(User.objects.get)(username=recipient_name)
-            if recipient_user == self.user :
-                return await self.send(text_data=json.dumps({
-                    'type': f"{request_type}",
-                    'sender': self.user.username,
-                    'recipient': recipient_name,
-                    'status': 'error',
-                    'errors': ['self_request']
-                    }))
-            elif request_type == "friend" :
-                is_friend = await sync_to_async(self.user.friends.filter(username=recipient_user.username).exists)()
-                if is_friend:
-                    return await self.send(text_data=json.dumps({
-                        'type': f"{request_type}",
-                        'sender': self.user.username,
-                        'recipient': recipient_name,
-                        'status': 'error',
-                        'errors': ['already_friend']
-                        }))
-                else:
-                    is_request = await sync_to_async(self.user.requests.filter(username=recipient_user.username).exists)()
-                    if is_request :
-                        return
-            await self.channel_layer.group_send(
-                await sync_to_async(self.get_group_name)("user", user=recipient_user),
-                {
-                    'type': f"{request_type}",
-                    'sender': self.user.username,
-                    'recipient': recipient_name,
-                    'status': 'pending',
-                    'errors': []
-                })
-        except User.DoesNotExist :
-            await self.send(text_data=json.dumps({
-                'type': f"{request_type}",
-                'sender': self.user.username,
-                'recipient': recipient_name,
-                'status': 'error',
-                'errors': ['unknown_user']
-                }))
-            
-    async def accept_invite(self, username):
-        if not self.player :
-            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(self.user)
-        request = await sync_to_async(self.player.get_request)(username, "invite")
-        await sync_to_async(request.delete)()
+    async def api_notif(self, event) :
+        self.logger(f"Received API Notif : 'changes': {list(event.get('changes', []))}")
+        for change in event.get("changes") :
+            if change.get("type") == LobbyChange.LEAVE and change.get("username") == self.user.username:
+                await sync_to_async(self.player.refresh)(force=True)
+                return await self.remove_from_group("lobby")
+            elif change.get("type") == LobbyChange.LOBBY:
+                await sync_to_async(self.player.refresh)(force=True)
+                await self.add_to_group("lobby")
         await self.send(text_data=json.dumps({
             'type': 'notif',
-            'change': 'lobby-request'
-            }))
-        await self.leave_lobby()
-        await self.join_lobby(username)
-
-    async def send_lobby_notif(self, change, lobby=None):
-        await self.channel_layer.group_send(
-            await sync_to_async(self.get_group_name)("lobby", lobby=lobby),
-            {
-                'type': 'notif',
-                'change': change,
-                'username': self.user.username
-            }
-        )
-
-    async def join_lobby(self, username):
-        invite_user = await sync_to_async(User.objects.get)(username=username)
-        invite_lobby = await sync_to_async(models.Lobby.get_or_create)(user=invite_user)
-        await sync_to_async(invite_lobby.add_player)(self.user)
-        await self.send_lobby_notif("join", lobby=invite_lobby)
-        self.lobby = invite_lobby
-        await self.channel_layer.group_add(
-            await sync_to_async(self.get_group_name)("lobby"),
-            self.channel_name
-        )
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': 'new-lobby'
-            }))
-
-    async def leave_lobby(self):
-        if not self.player :
-            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(self.user)
-        if not self.player.is_leader :
-            await self.send_lobby_notif("leave")
-        await sync_to_async(self.player.leave_lobby)()
-        await self.channel_layer.group_discard(
-            await sync_to_async(self.get_group_name)("lobby"),
-            self.channel_name
-        )
-        self.lobby = None
-
-    async def accept_friend(self, name):
-        request_user = await sync_to_async(User.objects.get)(username=name)
-        await sync_to_async(self.user.requests.remove)(request_user)
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': 'friend-request'
-            }))
-        await sync_to_async(self.user.friends.add)(request_user)
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': 'friend'
-            }))
-        await self.channel_layer.group_send(
-            await sync_to_async(self.get_group_name)("user", user=request_user),
-            {
-                'type': 'check_friend_request',
-                'username': self.user.username
-            })
-        await self.channel_layer.group_send(
-            await sync_to_async(self.get_group_name)("user", user=request_user),
-            {
-                'type': 'notif',
-                'change': 'friend'
-            })
-
-    async def reject_friend(self, name):
-        request_user = await sync_to_async(User.objects.get)(username=name)
-        await sync_to_async(self.user.requests.remove)(request_user)
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': 'friend-request',
-        }))
-
-    async def invite_request(self, event):
-        sender_name = event['sender']
-        sender_user = await sync_to_async(User.objects.get)(username=sender_name)
-        if not self.player :
-            self.player = await sync_to_async(models.LobbyPlayer.get_or_create)(self.user)
-        request = await sync_to_async(models.LobbyRequest)(recipient=self.player, sender=sender_name, type="invite")
-        await sync_to_async(request.save)()
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': 'lobby-request',
-            'username': sender_user.username,
-            }))
-
-    async def join_request(self, event):
-        username = event['recipient']
-        await self.send(text_data=json.dumps({
-            'type': 'request',
-            'request': 'join',
-            'recipient': username,
-        }))
-
-    async def check_friend_request(self, event):
-        is_request = await sync_to_async(self.user.requests.filter(username=event["username"]).exists)()
-        if is_request :
-            new_friend = await sync_to_async(User.objects.get)(username=event["username"])
-            await sync_to_async(self.user.requests.remove)(new_friend)
-            await sync_to_async(self.user.save)()
-            await self.send(text_data=json.dumps({
-                'type': 'notif',
-                'change': 'friend-request',
-            }))
-
-    async def friend_request(self, event):
-        sender_name = event['sender']
-        sender_user = await sync_to_async(User.objects.get)(username=sender_name)
-        await sync_to_async(self.user.requests.add)(sender_user)
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': 'friend-request'
-            }))
-
-    async def accept_join_request(self, event):
-        username = event['username']
-        await self.join_lobby(username)
-
-    async def notif(self, event) :
-        await self.send(text_data=json.dumps({
-            'type': 'notif',
-            'change': event['change']
+            'changes': event.get('changes', [])
             }))

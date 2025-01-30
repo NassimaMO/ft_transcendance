@@ -2,3 +2,12 @@ requests
 websockets
 djangorestframework-simplejwt
 pyjwt
+
+#app
+pyfiglet
+colorama
+aiohttp
+
+#avatar
+Pillow
+numpy

@@ -9,7 +9,17 @@
 
                         <!-- Bouton en bas pour changer de mode / se mettre prêt -->
                         <div class="mode-action">
-                            <button id="mode-action-button" class="btn mode-button">{% if lobby_player.is_leader %}Changer{% else %}Prêt{% endif %}</button>
+                            <button id="mode-action-button" class="btn mode-button {% if not lobby_player.is_leader and lobby_player.is_ready %}btn-grayed-out{% endif %}">
+                                {% if lobby_player.is_leader %}
+                                    Changer le mode
+                                {% else %}
+                                    {% if lobby_player.is_ready %}
+                                        Annuler
+                                    {% else %}
+                                        Prêt
+                                    {% endif %}
+                                {% endif %}
+                            </button>
                         </div>
                     </div>
                 </div>

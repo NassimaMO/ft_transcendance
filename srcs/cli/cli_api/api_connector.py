@@ -1,0 +1,94 @@
+import os
+import websockets
+import urllib3
+import requests
+import logging
+
+logger = logging.getLogger('default')
+
+class APIConnector:
+    """
+    APIConnector class facilitates connections to the Django application and API.
+    
+    This class is designed to manage HTTP and WebSocket connections, based on the environment context (development or production).
+    """
+
+    def __init__(self) -> None:
+        """
+        Initializes the APIConnector class.
+        
+        Sets the server IP, connection security (HTTP/HTTPS), and port based on the context (development or production).
+        The context is determined by an environment variable.
+        """
+        context = os.environ.get("CONTEXT")
+        self.ip = 'host.docker.internal'
+        if context == "dev":
+            self.is_secured = False
+            self.port = ':8000'
+        else:
+            self.is_secured = True
+            self.port = ''
+        self.base_url = f"http{'s' if self.is_secured else ''}://{self.ip}{self.port}/api/"
+
+    def get_base_url(self, protocol: str = 'http') -> str:
+        """
+        Returns the base URL based on the protocol (HTTP or WebSocket).
+        
+        If the protocol is 'http', it returns the HTTP/HTTPS base URL.
+        If the protocol is 'ws', it returns the WebSocket base URL.
+        """
+        if protocol.lower() == "http":
+            return self.base_url
+        return f"ws{'s' if self.is_secured else ''}://{self.ip}{self.port}/ws/"
+
+    def get_headers(self) -> dict:
+        """
+        Returns the default headers for API requests, specifying JSON as the content type.
+        """
+        return {"Content-Type": "application/json",
+                'X-CLI-Request': 'true'}
+    
+    def api_request(self, url: str, data: dict = {}, method: str = "GET", verbose: bool = False) -> requests.Response:
+        """
+        Sends a request to the specified URL with the provided data. Default method is GET but can be changed.
+        
+        Uses the JSON content type in headers and disables SSL verification warnings.
+        """
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        if verbose:
+            print(f"{method} {url} {list(data.keys())}")
+        response = requests.request(
+                method=method.upper(),
+                url=url,
+                json=data,
+                headers=self.get_headers(),
+                verify=False
+            )
+        return response
+    
+    async def connect_ws(self, uri: str, verbose: bool = False):
+        """
+        Establishes a WebSocket connection to the specified URI.
+        
+        Includes headers for authentication if needed. Handles various exceptions such as invalid URL or connection rejection.
+        
+        Returns:
+        --------
+        WebSocketClientProtocol or None: Returns the WebSocket object if the connection succeeds, or None on failure.
+        """
+        try:
+            if verbose:
+                print(f"WS CONNECT {uri}")
+            websocket = await websockets.connect(uri, additional_headers=self.get_headers())
+            if verbose:
+                print("Connexion acceptée")
+            return websocket
+        except websockets.InvalidURI:
+            if verbose:
+                print("Erreur websocket : URL WebSocket invalide")
+        except websockets.InvalidHandshake:
+            if verbose:
+                print("Erreur websocket : La connexion WebSocket a été rejetée")
+        except Exception as e:
+            if verbose:
+                print(f"Erreur websocket : {e}")
