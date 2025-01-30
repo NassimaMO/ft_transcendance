@@ -1,0 +1,27 @@
+                {% if requests %}
+                    <div class="card-body friend-requests-section">
+                        <div id="friendRequestsCarousel" class="carousel slide" data-bs-ride="false">
+                            <div class="carousel-inner">
+                                {% for request in requests %}
+                                    <div class="carousel-item {% if forloop.counter == 1 %}active{% endif %}">
+                                        <div class="friend-request-content text-center">
+                                            <span id="requesterName">{{ request.username }}</span>
+                                            <div class="request-buttons">
+                                                <button class="btn btn-success accept-request" id="acceptFriendRequest">Accepter</button>
+                                                <button class="btn btn-danger reject-request" id="rejectFriendRequest">Refuser</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#friendRequestsCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Précédent</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#friendRequestsCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Suivant</span>
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}

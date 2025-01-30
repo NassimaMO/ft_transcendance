@@ -1,0 +1,76 @@
+//import { OrbitControls } from 'orbitcontrols';
+import * as Obj from './buildGeometry.js'
+import * as Init from './init.js'
+import * as Move from './move.js'
+import * as Animation from './animation.js'
+import * as Config from './config.js'
+
+const keyCode = {};
+//const controls = new OrbitControls(threeJS.camera, threeJS.renderer.domElement)
+export const threeJS = Init.init(Obj.puck, Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleRight, Obj.paddleDoubleLeft)
+document.addEventListener("keydown", keyPress);
+document.addEventListener("keyup", keyRelease);
+
+function game()
+{
+	requestAnimationFrame( game );
+	Move.puckMovement(Obj.puck)
+	Move.collision(Obj.puck, Obj.paddleRight, Obj.paddleLeft, Obj.paddleDoubleRight, Obj.paddleDoubleLeft)
+	Move.movePaddle(Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleLeft, Obj.paddleDoubleRight);
+	if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
+	{
+		threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 150)
+		threeJS.camera.position.z = Config.cameraZ;
+		threeJS.camera.aspect = (window.innerWidth / window.innerHeight)
+		threeJS.camera.updateProjectionMatrix();
+		Init.setWindowHeight(window.innerHeight);
+		Init.setWindowWidth(window.innerWidth);
+	}
+	threeJS.renderer.render( threeJS.scene, threeJS.camera );
+}
+
+function keyPress(event)
+{
+    keyCode[event.which] = true;
+    updatePaddleMovement();
+}
+
+function keyRelease(event)
+{
+    keyCode[event.which] = false;
+    updatePaddleMovement();
+}
+
+function updatePaddleMovement()
+{
+    if (keyCode[38])
+        Obj.paddleRight.move = 1;
+    else if (keyCode[40])
+        Obj.paddleRight.move = -1;
+    else
+        Obj.paddleRight.move = 0;
+    if (keyCode[87])
+        Obj.paddleLeft.move = 1;
+    else if (keyCode[83])
+        Obj.paddleLeft.move = -1;
+    else
+        Obj.paddleLeft.move = 0;
+    if (keyCode[79])
+        Obj.paddleDoubleRight.move = 1;
+    else if (keyCode[75])
+        Obj.paddleDoubleRight.move = -1;
+    else
+        Obj.paddleDoubleRight.move = 0;
+    if (keyCode[69])
+        Obj.paddleDoubleLeft.move = 1;
+    else if (keyCode[68])
+        Obj.paddleDoubleLeft.move = -1;
+    else
+        Obj.paddleDoubleLeft.move = 0;
+}
+
+threeJS.camera.rotation.x =  Math.PI / 2
+threeJS.camera.position.y = -1 * Config.cameraZ
+
+//Animation.start()
+game()

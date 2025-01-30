@@ -1,4 +1,5 @@
 #!/bin/sh
+
 cd srcs
 if [ "$DEBUG" -eq 1 ]; then
     python3 manage.py makemigrations

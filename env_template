@@ -1,6 +1,4 @@
-DEBUG= #1 in dev, 0 in prod
-DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1] #do-not-change
-SQL_ENGINE=django.db.backends.postgresql #do-not-change
+DEBUG= # usually 1 in dev and 0 in prod. You can set 0 in dev but DO NOT set 1 in prod
 SECRET_KEY=
 DJANGO_SUPERUSER_USERNAME=
 DJANGO_SUPERUSER_EMAIL=
@@ -8,6 +6,5 @@ DJANGO_SUPERUSER_PASSWORD=
 POSTGRES_DB=
 POSTGRES_USER=
 POSTGRES_PASSWORD=
-POSTGRES_PORT=5432 #do-not-change
-POSTGRES_HOST=postgres_db #do-no-change
-#you can specify your local IP here : LOCAL_IP=**.**.**.**, or let the makefile append it
+# here get_ip will automatically add "DJANGO_ALLOWED_HOSTS" with your local IP,
+# but you can specify manually several IPs separated by spaces
