@@ -7,7 +7,7 @@
     flex-direction: column;
     justify-content: space-between;
     text-align: center;
-    width: 20vw;
+    width: 30vw;
     height: 80vh;
     gap: 5%;
 }
@@ -58,8 +58,9 @@
 }
 
 .statistics {
-    max-height: 500px;
-    transition: max-height 0.5s ease-out;
+    max-height: 100%;
+    transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+    position: relative;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -68,7 +69,9 @@
 }
 
 .statistics.hidden {
-  max-height: 0;
+    max-height: 0;
+    visibility: hidden;
+    position: absolute;
 }
 
 .stat-display {
@@ -94,7 +97,7 @@
 /* --------------------- */
 
 .streak {
-    max-height: 500px;
+    max-height: 100%;
     transition: max-height 0.5s ease-out;
     transition: opacity 0.5s ease-out;
     width: 100%;
@@ -138,21 +141,30 @@
 }
 
 .overlay-info {
-    display: none;
-    overflow: hidden;
+    opacity: 0;
+    max-height: 0;
+    visibility: hidden;
     width: 100%;
     height: 100%;
 }
+
+.overlay-info.show {
+    opacity: 1;
+    max-height: 100%;
+    visibility: visible;
+    transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+}
+
 /* --------------------- */
 /*         CHARTS        */
 /* --------------------- */
 
 .charts {
     display: grid;
-    width: 100%;
     grid-template-rows: 70% 30%;
-    gap: 3%;
+    width: 100%;
     height: 77%;
+    gap: 3%;
 }
 
 .chart-one, .chart-two {
@@ -160,6 +172,7 @@
     background-color: rgb(0, 0, 30);
     border: 3px solid #ffffff86;
     padding: 3%;
+    overflow: hidden;
 }
 
 .chart-one {
@@ -176,9 +189,15 @@
     height: 85%;
     border-radius: 50%;
     background: conic-gradient(
-        rgb(255, 255, 255) 0% calc(20%), 
-        rgba(164, 156, 156, 0.205) calc(20%) 100%
-    );
+        rgb(255, 255, 255) 0% calc(70%), 
+        rgba(164, 156, 156, 0.205) calc(70%) 100%
+        );
+}
+
+.chart-two {
+    display: flex;
+    flex-direction: column;
+    gap: 3%;
 }
 
 .avg-score-title {
@@ -188,6 +207,7 @@
 .avg-score {
     display: grid;
     width: 100%;
+    height: 100%;
     grid-template-columns: 80% 20%;
 }
 
@@ -196,4 +216,8 @@
 }
 
 #avg-score-graph {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
 }
