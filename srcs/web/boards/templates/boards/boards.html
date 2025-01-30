@@ -1,0 +1,22 @@
+{% extends "matchmaker/base.html" %}
+{% load static %}
+
+{% block extraCSS %}
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/css/boards.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/css/dashboard.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/css/history.css' %}">
+    {{ block.super }}
+{% endblock %}
+
+{% block lobbyBody %}
+<select class="board-mode" name="choices" id="choices">
+    <option>All</option>
+    <option>Unranked</option>
+    <option>Ranked</option>
+    <option>Tournament</option>
+</select>
+<div class="boards-container">
+    {% include 'boards/dashboard.html' %}
+    {% include 'boards/history.html' %}
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+                <div class="friends-section">
+                    <!-- En haut : joueurs du lobby -->
+                    <ul class="list-group visible" id="lobbyPlayers">
+                    {% for lobby_player in lobby_players %}
+                        <li class="list-group-item" data-username="{{ lobby_player.user.username }}">
+                            <img src="{{ lobby_player.user.avatar }}" alt="Avatar" class="friend-avatar">
+                            {{ lobby_player.pseudo }} <span class="status {% if lobby_player.is_ready %}ready{% else %}not-ready{% endif %}">
+                                {% if lobby_player.is_ready %}Prêt{% else %}Pas Prêt{% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                    <div id="lobby-requests">
+                        {% include "matchmaker/lobby_requests.html" with requests=lobby_players.0.requests %}
+                    </div>
+                </div>
+                <div id = "friends-list">
+                    <!-- Au milieu : liste d'amis en ligne -->
+                    <div class="friends-section">
+                        <button class="toggle-button" id="toggle-online-button">Amis en ligne : {{ user.online_friends_count }}</button>
+                        <ul class="list-group" id="onlineFriends">
+                        {% for friend in user.friends %}
+                            {% if friend.status != Status.OFF and friend not in lobby_users %}
+                            <li class="list-group-item" data-username="{{ friend.username }}">
+                                <img src="{{ friend.avatar }}" alt="Avatar" class="friend-avatar">
+                                {{ friend.username }} <span class="status {{ friend.status }}">{{ friend.status }}</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    <!-- En bas : Amis hors ligne -->
+                    <div class="friends-section">
+                        <button class="toggle-button" id="toggle-offline-button">Amis hors ligne : {{ user.offline_friends_count }}</button>
+                        <ul class="list-group" id="offlineFriends">
+                        {% for friend in user.friends %}
+                            {% if friend.status == Status.OFF and friend not in lobby_users %}
+                            <li class="list-group-item" data-username="{{ friend.username }}">
+                                <img src="{{ friend.avatar }}" alt="Avatar" class="friend-avatar">
+                                {{ friend.username }} <span class="status {{ friend.status }}">{{ friend.status }}</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>

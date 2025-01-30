@@ -1,0 +1,13 @@
+                    <!-- Bannière d'invitation -->
+                    <div class="player-item invite-button">
+                        <button class="invite-button" id="inviteButton">+</button>
+                    </div>
+                    <!-- Menu de recherche et d'invitation (caché) -->
+                    <div id="inviteMenu" class="invite-menu">
+                        <input type="text" id="friendSearch" placeholder="Rechercher un ami...">
+                        <ul id="friendList">
+                            {% for friend in friends %}
+                                <li class="friend-item">{{ friend.username }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
