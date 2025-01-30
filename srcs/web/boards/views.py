@@ -6,4 +6,4 @@ from django.contrib.auth.decorators import login_required
 def boards_view(request):
     response = UserMeStatsView.get(request)
     context = response.data
-    return render(request, "boards.html", context)
+    return render(request, "boards/boards.html", context)

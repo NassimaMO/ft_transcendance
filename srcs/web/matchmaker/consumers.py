@@ -126,7 +126,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         lobbies = []
         for waiting_lobby in self.matchmaking.queue:
             if waiting_lobby.lobby:
-                lobbies.append(waiting_lobby)
+                lobbies.append(waiting_lobby.lobby)
             else:
                 waiting_lobby.matchmaking = None
                 waiting_lobby.save()

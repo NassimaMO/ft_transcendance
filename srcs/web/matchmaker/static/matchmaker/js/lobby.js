@@ -643,6 +643,15 @@ document.addEventListener("DOMContentLoaded", async function ()
 		const inviteMenu = document.getElementById('inviteMenu');
 		const inviteButton = document.getElementById('inviteButton');
 
+		if (event.target.id == "button-lobby" || event.target.id == "button-carreer")
+		{
+			const buttons = document.querySelectorAll('.nav-button');
+
+			buttons.forEach(btn => {
+				btn.classList.remove('active');
+			});
+			event.target.classList.add('active');
+		}
 		if (event.target.id === 'matchmaking-btn' && lobby_player.is_leader)
 		{
 			if (lobby.is_in_queue === false && lobby.members.every(player => player.is_ready)) {

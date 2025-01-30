@@ -1,29 +1,13 @@
-{% extends "base.html" %}
+{% extends "matchmaker/base.html" %}
 {% load static %}
 
 {% block extraCSS %}
-    <style>
-        :root {
-            --background-image: url('{% static "matchmaker/media/lobby_background.jpg" %}');
-        }
-    </style>
-	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}?v={{ timestamp }}">
+    <link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}?v={{ timestamp }}">
+    {{ block.super }}
 {% endblock %}
 
-{% block content %}
-<div class="lobby-container">
+{% block lobbyBody %}
     {% with lobby.members.0 as lobby_player %}
-    <!-- Menu de navigation tout en haut -->
-    <div class="navbar">
-        <ul class="nav-list">
-            <li><button id="button-lobby" class="nav-button active">Salon</button></li>
-            <li><button class="nav-button">Tournoi</button></li>
-            <li><button id="button-carreer" class="nav-button">Carrière</button></li>
-        </ul>
-    </div>
-    <div class="separator"></div>
-
-    <div class="lobby-body">
         <!-- Menu d'affichage des modes à gauche -->
         <div id="lobby-modes" class="lobby-modes">
             {% include "matchmaker/modes.html" with lobby_player=lobby_player %}
@@ -70,14 +54,13 @@
                 <button id="addFriendButton" class="btn add-friend-button">+</button>
             </div>
         </div>
-    </div>
     {% endwith %}
-</div>
+{% endblock %}
 
+{% block extraJS %}
 <!-- jQuery et Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script type="module" src="{% static 'matchmaker/js/lobby.js' %}?v={{ timestamp }}"></script>
-
 {% endblock %}
