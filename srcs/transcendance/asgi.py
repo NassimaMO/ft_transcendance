@@ -26,3 +26,12 @@ application = ProtocolTypeRouter({
     ),
 })
 
+application = ProtocolTypeRouter({
+    'http': get_asgi_application(),
+    'websocket': AuthMiddlewareStack(
+        URLRouter([
+            path('ws/asgi/', consumers.MyConsumer.as_asgi()),
+        ])
+    ),
+})
+

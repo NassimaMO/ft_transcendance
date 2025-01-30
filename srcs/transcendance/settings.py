@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,6 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get("SECRET_KEY")
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -52,7 +54,12 @@ TEMPLATE_DEBUG = True
 
 # 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.
 # For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
+# 'DJANGO_ALLOWED_HOSTS' should be a single string of hosts with a space between each.
+# For example: 'DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]'
 
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", default="localhost").split(" ")
+if (os.environ.get("LOCAL_IP")) :
+    ALLOWED_HOSTS.append(os.environ.get("LOCAL_IP"))
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", default="localhost").split(" ")
 if (os.environ.get("LOCAL_IP")) :
     ALLOWED_HOSTS.append(os.environ.get("LOCAL_IP"))
@@ -124,6 +131,7 @@ ASGI_APPLICATION = 'transcendance.asgi.application'
 
 DATABASES = {
     'default': {
+        'ENGINE': os.getenv('SQL_ENGINE'),
         'ENGINE': os.getenv('SQL_ENGINE'),
         'NAME': os.getenv('POSTGRES_DB'),
         'USER': os.getenv('POSTGRES_USER'),
@@ -217,6 +225,7 @@ STATIC_ROOT = '/app/staticfiles'
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'transcendance/static'),
+    os.path.join(BASE_DIR, 'pong/static'),
 ]
 
 MEDIA_URL = 'media/'

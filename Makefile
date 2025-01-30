@@ -21,10 +21,17 @@ docker:
 clean:
 	@-docker stop $$(docker ps -a -q)
 	@-docker rm $$(docker ps -a -q)
+	@-docker stop $$(docker ps -a -q)
+	@-docker rm $$(docker ps -a -q)
 
 fclean: clean
 	@-docker volume rm $$(docker volume ls -q)
+	@-docker volume rm $$(docker volume ls -q)
 	@docker system prune -af
+
+re: fclean all
+
+.PHONY: all clean fclean re
 
 re: fclean all
 

@@ -5,11 +5,15 @@ from django.http import HttpResponse
 
 def index(request) :
     return render(request, "index.html")
+    return render(request, "index.html")
 
 def rules(request) :
     return render(request, "rules.html")
+    return render(request, "rules.html")
 
 def about(request) :
+    data = dict({"authors": [Author("Nily"), Author("Nassima"), Author("Theo")]})
+    return render(request, "about.html", data)
     data = dict({"authors": [Author("Nily"), Author("Nassima"), Author("Theo")]})
     return render(request, "about.html", data)
 
