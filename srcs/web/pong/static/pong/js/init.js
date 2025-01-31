@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import * as Object from './buildGeometry.js'
+import * as Config from './config.js'
 
 
 export let windowWidth = window.innerWidth
@@ -40,11 +41,16 @@ function buildMap(threeJs)
 	)
 }
 
-function buildObject(threeJs, puck, paddleLeft, paddleRight)
+function buildObject(threeJs, puck, paddle)
 {
-	threeJs.scene.add(paddleLeft.object, paddleLeft.rectLight,
-				paddleRight.object, paddleRight.rectLight,
+	threeJs.scene.add(paddle.Left.object, paddle.Left.rectLight,
+				paddle.Right.object, paddle.Right.rectLight,
 				puck.object, puck.pointLight);
+	if (Config.mode == 2)
+	{
+		threeJs.scene.add(paddle.DoubleRight.object, paddle.DoubleRight.rectLight,
+		paddle.DoubleLeft.object, paddle.DoubleLeft.rectLight);
+	}
 }
 
 function buildLight(threeJs)
@@ -52,11 +58,11 @@ function buildLight(threeJs)
 
 }
 
-export function init(puck, paddleLeft, paddleRight)
+export function init(puck, paddle)
 {
 	const threeJs = initThreeJs()
 	buildMap(threeJs)
 	buildLight(threeJs)
-	buildObject(threeJs, puck, paddleLeft, paddleRight)
+	buildObject(threeJs, puck, paddle)
 	return threeJs
 }

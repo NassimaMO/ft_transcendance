@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import * as Config from './config.js'
 
-//export const puck = puck()
 var textureLoader = new THREE.TextureLoader();
 var lightMap = textureLoader.load('../../static/pong/media/images.png');
 var wireMap = textureLoader.load('')
@@ -9,10 +8,16 @@ var backMap = textureLoader.load('../../static/pong/media/Background.png')
 //var tableMap = textureLoader.load('')
 
 export const puck = cylinder()
-export const paddleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor)
-export const paddleRight = paddle(Config.paddleRightPosition, Config.paddleRightSize, Config.paddleRightColor)
-//export const paddleDoubleLeft = paddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor)
-//export const paddleDoubleRight = paddle(Config.paddleDoubleRightPosition, Config.paddleDoubleRightSize, Config.paddleDoubleRightColor)
+export const paddle = 
+{
+	Left: buildPaddle(Config.paddleLeftPosition, Config.paddleLeftSize, Config.paddleLeftColor),
+	Right: buildPaddle(Config.paddleRightPosition, Config.paddleRightSize, Config.paddleRightColor),
+}
+if (Config.mode == 2)
+{
+	paddle.DoubleLeft = buildPaddle(Config.paddleDoubleLeftPosition, Config.paddleDoubleLeftSize, Config.paddleDoubleLeftColor)
+	paddle.DoubleRight = buildPaddle(Config.paddleDoubleRightPosition, Config.paddleDoubleRightSize, Config.paddleDoubleRightColor)
+}
 
 function cylinder()
 {
@@ -24,12 +29,13 @@ function cylinder()
         pointLight: new THREE.PointLight( Config.puckColor, 50, 0, 1),
     }
     cylinder.object.rotation.x = Math.PI / 2
-    cylinder.pointLight.position.z = 1.5
+    cylinder.object.position.set(Config.puckPosition[0], Config.puckPosition[1], Config.puckPosition[2])
+    cylinder.pointLight.position.set(Config.puckPosition[0], Config.puckPosition[1], Config.puckPosition[2] + 1.5)
     cylinder.pointLight.castShadow = true
     return cylinder;
 }
 
-function paddle(position, Size, Color)
+function buildPaddle(position, Size, Color)
 {
     const geometryPaddle = new THREE.BoxGeometry( Size[0], Size[1], Size[2] );
     const materialPaddle = new THREE.MeshStandardMaterial( { color: Color, lightMap: lightMap, lightMapIntensity: 3} );

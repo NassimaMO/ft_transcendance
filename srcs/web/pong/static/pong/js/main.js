@@ -1,32 +1,36 @@
-//import { OrbitControls } from 'orbitcontrols';
+console.log("0")
 import * as Obj from './buildGeometry.js'
 import * as Init from './init.js'
 import * as Move from './move.js'
 import * as Animation from './animation.js'
 import * as Config from './config.js'
+import { end } from './animation.js'
 
 const keyCode = {};
-//const controls = new OrbitControls(threeJS.camera, threeJS.renderer.domElement)
-export const threeJS = Init.init(Obj.puck, Obj.paddleLeft, Obj.paddleRight, Obj.paddleDoubleRight)
+export const threeJS = Init.init(Obj.puck, Obj.paddle)
 document.addEventListener("keydown", keyPress);
 document.addEventListener("keyup", keyRelease);
 
 function game()
 {
-	requestAnimationFrame( game );
-	Move.puckMovement(Obj.puck)
-	Move.collision(Obj.puck, Obj.paddleRight, Obj.paddleLeft)
-	Move.movePaddle(Obj.paddleLeft, Obj.paddleRight);
-	if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
+    requestAnimationFrame( game );
+	console.log(end)
+	if (end == 1)
 	{
-		threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 150)
-		threeJS.camera.position.z = Config.cameraZ;
-		threeJS.camera.aspect = (window.innerWidth / window.innerHeight)
-		threeJS.camera.updateProjectionMatrix();
-		Init.setWindowHeight(window.innerHeight);
-		Init.setWindowWidth(window.innerWidth);
+		Move.puckMovement(Obj.puck)
+		Move.collision(Obj.puck, Obj.paddle)
+    	Move.movePaddle(Obj.paddle);
+		if (Init.windowHeight != window.innerHeight || Init.windowWidth != window.innerWidth)
+		{
+			threeJS.renderer.setSize( window.innerWidth - 10, window.innerHeight - 150)
+			threeJS.camera.position.z = Config.cameraZ;
+        	threeJS.camera.aspect = (window.innerWidth / window.innerHeight)
+        	threeJS.camera.updateProjectionMatrix();
+        	Init.setWindowHeight(window.innerHeight);
+        	Init.setWindowWidth(window.innerWidth);
+		}
 	}
-	threeJS.renderer.render( threeJS.scene, threeJS.camera );
+    threeJS.renderer.render( threeJS.scene, threeJS.camera );
 }
 
 function keyPress(event)
@@ -44,17 +48,32 @@ function keyRelease(event)
 function updatePaddleMovement()
 {
     if (keyCode[38])
-        Obj.paddleRight.move = 1;
+        Obj.paddle.Right.move = 1;
     else if (keyCode[40])
-        Obj.paddleRight.move = -1;
+        Obj.paddle.Right.move = -1;
     else
-        Obj.paddleRight.move = 0;
+        Obj.paddle.Right.move = 0;
     if (keyCode[87])
-        Obj.paddleLeft.move = 1;
+        Obj.paddle.Left.move = 1;
     else if (keyCode[83])
-        Obj.paddleLeft.move = -1;
+        Obj.paddle.Left.move = -1;
     else
-        Obj.paddleLeft.move = 0;
+        Obj.paddle.Left.move = 0;
+    if (Config.mode == 2)
+    {
+        if (keyCode[79])
+            Obj.paddle.DoubleRight.move = 1;
+        else if (keyCode[75])
+            Obj.paddle.DoubleRight.move = -1;
+        else
+            Obj.paddle.DoubleRight.move = 0;
+        if (keyCode[69])
+            Obj.paddle.DoubleLeft.move = 1;
+        else if (keyCode[68])
+            Obj.paddle.DoubleLeft.move = -1;
+        else
+            Obj.paddle.DoubleLeft.move = 0;
+    }
 }
 
 threeJS.camera.rotation.x =  Math.PI / 2
