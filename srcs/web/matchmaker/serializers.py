@@ -1,10 +1,29 @@
 from rest_framework import serializers
 from account.serializers import UserSerializer
 import logging
-from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby
+from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby, UserRank, Game
 
 logger = logging.getLogger('default')
 
+
+class UserRankSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRank
+        fields = ['division', 'mark', 'rank']
+
+    def get_rank(self, obj):
+        return obj.rank.name
+
+
+class UserRanksSerializer(serializers.Serializer):
+    ranks = UserRankSerializer(many=True)
+
+    def to_representation(self, queryset):
+        ranks_dict = {game.name: {'rank': 'unranked'} for game in Game.objects.all()}
+        for rank in queryset.all():
+            ranks_dict[rank.game.name] = UserRankSerializer(rank).data
+        return ranks_dict
+    
 
 class MatchChoiceSerializer(serializers.ModelSerializer):
     class Meta:

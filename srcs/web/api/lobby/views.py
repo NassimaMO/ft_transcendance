@@ -4,10 +4,11 @@ from rest_framework.response import Response # type: ignore
 from rest_framework.permissions import IsAuthenticated # type: ignore
 from rest_framework.authentication import SessionAuthentication # type: ignore
 from rest_framework_simplejwt.authentication import JWTAuthentication # type: ignore
+from account.models import User
 from matchmaker.serializers import MatchChoiceSerializer
 from matchmaker.models import Lobby, LobbyPlayer, LobbyRequest, LobbyChange
 from matchmaker.serializers import LobbySerializer, LobbyPlayerSerializer, LobbyRequestSerializer
-from api.utils import add_message, check_user, send_notifications, change_lobby_api, leave_lobby_api, change_matchmaking_api
+from api.utils import add_message, check_args, send_notifications, change_lobby_api, leave_lobby_api, change_matchmaking_api
 import logging
 
 logger = logging.getLogger("default")
@@ -260,10 +261,10 @@ class MainLobbyMemberView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			lobby_player = LobbyPlayer.get_by_user(user)
 			if not lobby_player or not lobby_player.lobby:
 				add_message(message, "no_player", level="ERROR")
@@ -272,7 +273,7 @@ class MainLobbyMemberView(APIView):
 			message['member'] = player_data
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error fetching member {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error fetching member {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -281,10 +282,10 @@ class MainLobbyMemberView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			lobby_player = LobbyPlayer.get_by_user(request.user)
 			player = LobbyPlayer.get_by_user(user)
 			if not lobby_player or not lobby_player.lobby:
@@ -303,7 +304,7 @@ class MainLobbyMemberView(APIView):
 			add_message(message, "member_kicked", username=player.user.username)
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error kicking lobby member {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error kicking lobby member {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -319,10 +320,10 @@ class PlayerView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			lobby_player = LobbyPlayer.get_by_user(user)
 			if not lobby_player or not lobby_player.lobby:
 				add_message(message, "no_player", level="ERROR")
@@ -331,7 +332,7 @@ class PlayerView(APIView):
 			message['player'] = player_data
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error fetching player {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error fetching player {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -347,10 +348,10 @@ class PlayerLobbyView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			lobby = Lobby.get_by_user(user)
 			if not lobby:
 				add_message(message, "no_lobby", level="ERROR")
@@ -364,7 +365,7 @@ class PlayerLobbyView(APIView):
 			}
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error fetching player {user_checking.get('user_message')} lobby: {e}")
+			logger.error(f"Error fetching player {checking.get('str')} lobby: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -380,10 +381,10 @@ class PlayerRequestsView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			lobby_player = LobbyPlayer.get_by_user(user)
 			if not lobby_player or not lobby_player.lobby:
 				add_message(message, "no_player", level="ERROR")

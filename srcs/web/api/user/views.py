@@ -4,11 +4,12 @@ from rest_framework.response import Response # type: ignore
 from rest_framework.permissions import IsAuthenticated, AllowAny # type: ignore
 from rest_framework.authentication import SessionAuthentication # type: ignore
 from rest_framework_simplejwt.authentication import JWTAuthentication # type: ignore
-from api.utils import check_user, send_notifications, notify_friends_api
+from api.utils import check_args, send_notifications, notify_friends_api
 from account.serializers import UserSerializer
-from account.models import UserChange
+from account.models import User, UserChange
 from .serializers import RegisterSerializer
-from matchmaker.models import LobbyPlayer
+from matchmaker.models import LobbyPlayer, Game, Rank
+from matchmaker.serializers import UserRanksSerializer, UserRankSerializer
 import logging
 from api.utils import add_message
 
@@ -25,10 +26,10 @@ class UserRequestsView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			if user.id == request.user.id:
 				add_message(message, "self_friend_attempt", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
@@ -43,10 +44,10 @@ class UserRequestsView(APIView):
 			player = LobbyPlayer.get_by_user(user)
 			if player:
 				send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST})
-			add_message(message, "friend_request_sent", user_message=user_checking.get('user_message'))
+			add_message(message, "friend_request_sent", str=checking.get('str'))
 			return Response(message, status=status.HTTP_201_CREATED)
 		except Exception as e:
-			logger.error(f"Error sending friend request to user {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error sending friend request to user {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -233,12 +234,12 @@ class UserMeRequestView(APIView):
 
 		message= {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			if user not in request.user.requests.all():
-				add_message(message, "unknown_friend_request", level="ERROR", user_message=user_checking.get("user_message"))
+				add_message(message, "unknown_friend_request", level="ERROR", str=checking.get("str"))
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
 			request.user.requests.remove(user)
 			request.user.friends.add(user)
@@ -251,7 +252,7 @@ class UserMeRequestView(APIView):
 			add_message(message, "friend_request_accepted")
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error accepting friend request of user {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error accepting friend request of user {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -260,10 +261,10 @@ class UserMeRequestView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			if user not in request.user.requests.all():
 				add_message(message, "unknown_friend_request")
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
@@ -274,7 +275,7 @@ class UserMeRequestView(APIView):
 			add_message("friend_request_denied")
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error denying friend request of user {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error denying friend request of user {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -290,18 +291,18 @@ class UserMeFriendView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			if not user.is_friend_with(request.user):
-				add_message(message, "unknown_friend", level="ERROR", user_message=user_checking.get('user_message'))
+				add_message(message, "unknown_friend", level="ERROR", str=checking.get('str'))
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
 			data = UserSerializer(user, context={'request': request}).data
 			message['friend'] = data
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error fetching friend {user_checking.get('user_message')} info: {e}")
+			logger.error(f"Error fetching friend {checking.get('str')} info: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -310,10 +311,10 @@ class UserMeFriendView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			if user.id == request.user.id:
 				add_message(message, "self_friend_attempt", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
@@ -326,7 +327,7 @@ class UserMeFriendView(APIView):
 				player = LobbyPlayer.get_by_user(request.user)
 				if player:
 					send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND_REQUEST})
-				add_message(message, "friend_request_sent", user_message=user_checking.get("user_message"))
+				add_message(message, "friend_request_sent", str=checking.get("str"))
 				return Response(message, status=status.HTTP_201_CREATED)
 			else:
 				request.user.requests.remove(user)
@@ -338,10 +339,10 @@ class UserMeFriendView(APIView):
 				friend_player = LobbyPlayer.get_by_user(user)
 				if friend_player:
 					send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND})
-				add_message(message, "friend_request_accepted", user_message=user_checking.get('user_message'))
+				add_message(message, "friend_request_accepted", str=checking.get('str'))
 				return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error sending friend request to user {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error sending friend request to user {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -350,24 +351,114 @@ class UserMeFriendView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			if user not in request.user.friends.all():
-				add_message(message, "unknown_friend", user_message=user_checking.get('user_message'))
+				add_message(message, "unknown_friend", str=checking.get('str'))
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
 			request.user.friends.remove(user)
 			request.user.save()
 			player = LobbyPlayer.get_by_user(request.user)
 			if player:
 				send_notifications("lobby_player", player.id, {'type': UserChange.FRIEND})
-			add_message(message, "friend_removed", user_message=user_checking.get('user_message'))
+			add_message(message, "friend_removed", str=checking.get('str'))
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error removing friend {user_checking.get('user_message')}: {e}")
+			logger.error(f"Error removing friend {checking.get('str')}: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		
+
+class UserMeRanksView(APIView):
+	"""PATH users/me/ranks/"""
+
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+	def get(self, request):
+			message = {}
+		# try:
+			data = UserRanksSerializer(request.user.ranks, context={'request': request}).data
+			message['ranks'] = data
+			return Response(message, status=status.HTTP_200_OK)
+		# except Exception as e:
+		# 	logger.error(f"Error fetching ranks info: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserRanksView(APIView):
+	"""PATH users/<int/str:user_id_or_username>/ranks/"""
+
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+	def get(self, request, **kwargs):
+			message = {}
+		# try:
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
+			if user is None:
+				return checking.get("error_response")
+			data = UserRanksSerializer(user.ranks, context={'request': request}).data
+			message['ranks'] = data
+			return Response(message, status=status.HTTP_200_OK)
+		# except Exception as e:
+		# 	logger.error(f"Error fetching ranks info: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserMeRankView(APIView):
+	"""PATH users/me/ranks/<int/str:game_id_or_name>/"""
+
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+	def get(self, request, **kwargs):
+			message = {}
+		# try:
+			checking = check_args(Game, **kwargs)
+			game = checking.get("obj")
+			if game is None:
+				return checking.get("error_response")
+			rank = Rank.objects.get(user=request.user, game=game)
+			data = UserRankSerializer(rank, context={'request': request}).data
+			message['rank'] = data
+			return Response(data, status=status.HTTP_200_OK)
+		# except Exception as e:
+		# 	logger.error(f"Error fetching rank info: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		
+
+class UserRankView(APIView):
+	"""PATH users/<int/str:user_id_or_username>/ranks/<int/str:game_id_or_name>/"""
+
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+	def get(self, request, **kwargs):
+			message = {}
+		# try:
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
+			if user is None:
+				return checking.get("error_response")
+			checking = check_args(Game, **kwargs)
+			game = checking.get("obj")
+			if game is None:
+				return checking.get("error_response")
+			rank = Rank.objects.get(user=user, game=game)
+			data = UserRankSerializer(rank, context={'request': request}).data
+			message['rank'] = data
+			return Response(data, status=status.HTTP_200_OK)
+		# except Exception as e:
+		# 	logger.error(f"Error fetching rank info: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UserStatsView(APIView):
@@ -381,18 +472,18 @@ class UserStatsView(APIView):
 
 		message = {}
 		try:
-			user_checking = check_user(**kwargs)
-			user = user_checking.get("user")
+			checking = check_args(User, **kwargs)
+			user = checking.get("obj")
 			if not user:
-				return user_checking.get("error_response")
+				return checking.get("error_response")
 			history = user.ordered_history()
 			history_s = [
 				{
-				"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
-				"team1_score": match.teams.first().score,
-				"team2_score": match.teams.last().score, #CHANGE: enemy team score
-				"mode": match.info.mode,
-				"date": match.date,
+					"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
+					"team1_score": match.teams.first().score,
+					"team2_score": match.teams.last().score, #CHANGE: enemy team score
+					"mode": match.info.mode,
+					"date": match.date,
 				}
 				for match in history
 			]
@@ -414,7 +505,7 @@ class UserStatsView(APIView):
 			message['stats'] = data
 			return Response(message, status=status.HTTP_200_OK)
 		except Exception as e:
-			logger.error(f"Error fetching user {user_checking.get('user_message')} stats: {e}")
+			logger.error(f"Error fetching user {checking.get('str')} stats: {e}")
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

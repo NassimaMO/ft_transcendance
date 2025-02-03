@@ -15,6 +15,78 @@ logger = logging.getLogger('default')
 
 # ********************************************* POSTGRES ORM MODELS *********************************************
 
+class Game(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Rank(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="ranks")
+    name = models.CharField(max_length=20)
+    order = models.IntegerField()
+    marks_required = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("game", "name")
+        ordering = ["game", "order"]
+
+    def __str__(self):
+        return f"{self.game.name} - {self.name}"
+
+    def next_rank(self):
+        next_rank = Rank.objects.filter(game=self.game, order__gt=self.order).order_by("order").first()
+        return next_rank if next_rank else self
+
+    def previous_rank(self):
+        prev_rank = Rank.objects.filter(game=self.game, order__lt=self.order).order_by("-order").first()
+        return prev_rank if prev_rank else self
+
+
+class UserRank(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ranks")
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="user_ranks")
+    rank = models.ForeignKey(Rank, on_delete=models.CASCADE, related_name="user_ranks")
+    division = models.IntegerField(default=4)
+    marks = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("user", "game")
+
+    def __str__(self):
+        return f"{self.game.name}: {self.rank.name} {self.division}"
+
+    def promote(self):
+        if self.marks >= self.rank.marks_required:
+            if self.division == 1:
+                next_rank = self.rank.next_rank()
+                if next_rank != self.rank: 
+                    self.division = 4
+                    self.marks = 0
+                    self.rank = next_rank
+            else:
+                self.division -= 1
+                self.marks = 0
+        else:
+            self.marks += 1
+        self.save()
+
+    def demote(self):
+        if self.marks == 0:
+            if self.division == 4:
+                prev_rank = self.rank.previous_rank()
+                if prev_rank != self.rank:
+                    self.division = 1
+                    self.marks = prev_rank.marks_required
+                    self.rank = prev_rank
+            else:
+                self.division += 1
+                self.marks = self.rank.marks_required
+        else:
+            self.marks -= 1
+        self.save()
+
 
 class GameMode(models.TextChoices) :
 	SOLO = "Solo", "Un joueur (VS IA)"
@@ -129,7 +201,6 @@ class MatchFilter(django_filters.FilterSet):
 class Team(models.Model):
 	players = models.ManyToManyField(User, through="Entry")
 	score = models.IntegerField(default=0)
-	#matches = models.ManyToManyField(Match, related_name="teams") (relation inverse)
 
 	def __str__(self):
 		return f"Team {self.id}"
