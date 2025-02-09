@@ -6,14 +6,13 @@ from django.db import models
 
 # ********************************************* POSTGRES ORM MODELS *********************************************
 
-
-class GameRank(models.TextChoices):
-    BRONZE = "bronze", "Bronze"
-    SILVER = "silver", "Silver"
-    GOLD = "gold", "Gold"
-    PLAT = "platinium", "Platinium"
-    DIAM = "diamond", "Diamond"
-    MASTER = "master", "Master"
+class PongRank(models.TextChoices):
+    BRONZE = "Bronze", "Bronze"
+    SILVER = "Silver", "Silver"
+    GOLD = "Gold", "Gold"
+    PLAT = "Platinium", "Platinium"
+    DIAM = "Diamond", "Diamond"
+    MASTER = "Master", "Master"
 
     @classmethod
     def sorted_ranks(cls):
@@ -27,75 +26,15 @@ class GameRank(models.TextChoices):
         ]
     
     @classmethod
-    def next_rank(cls, current_rank):
-        ranks = cls.sorted_ranks()
-        try:
-            current_index = ranks.index(current_rank)
-            if current_index < len(ranks) - 1:
-                return ranks[current_index + 1]
-            else:
-                return current_rank
-        except ValueError:
-            return None
-        
-
-    @classmethod
-    def previous_rank(cls, current_rank):
-        ranks = cls.sorted_ranks()
-        try:
-            current_index = ranks.index(current_rank)
-            if current_index > 0 :
-                return ranks[current_index - 1]
-            else:
-                return current_rank
-        except ValueError:
-            return None
-    
-    @classmethod
     def marks_per_rank(cls):
         return {
             cls.BRONZE: 2,
             cls.SILVER: 3,
-            cls.GOLD: 4,
-            cls.PLAT: 5,
-            cls.DIAM: 10,
-            cls.MASTER: 20,
+            cls.GOLD: 5,
+            cls.PLAT: 6,
+            cls.DIAM: 8,
+            cls.MASTER: 10,
         }
-    
-
-class UserRank(models.Model) :
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    rank = models.CharField(max_length=11, choices=GameRank.choices, default=GameRank.BRONZE)
-    division = models.IntegerField(default=4)
-    mark = models.IntegerField(default=0)
-
-    def promote(self) :
-        if (self.mark == GameRank.marks_per_rank()[self.rank]) :
-            if (self.division == 1) :
-                if (self.rank != GameRank.sorted_ranks()[-1]) :
-                    self.division = 4
-                    self.mark = 0
-                self.rank = GameRank.next_rank(self.rank)
-            else :
-                self.division -= 1
-                self.mark = 0
-        else :
-            self.mark += 1
-        self.save()
-
-    def demote(self) :
-        if (self.mark == 0) :
-            if (self.division == 4) :
-                if (self.rank != GameRank.sorted_ranks()[0]) :
-                    self.division = 1
-                    self.mark = GameRank.marks_per_rank()[self.rank]
-                self.rank = GameRank.previous_rank(self.rank)
-            else:
-                self.division += 1
-                self.mark = GameRank.marks_per_rank()[self.rank]
-        else :
-            self.mark -= 1
-        self.save()
 
 
 # ********************************************* REDIS ORM MODELS *********************************************

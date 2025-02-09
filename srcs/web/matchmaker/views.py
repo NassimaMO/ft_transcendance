@@ -1,8 +1,8 @@
-import logging
+import logging, json
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from matchmaker.forms import MatchChoiceForm
-from .models import Lobby, LobbyPlayer
+from .models import Lobby, LobbyPlayer, LobbyStatus, GameMode, Connectivity, MatchmakingMode
 from .serializers import LobbySerializer, LobbyPlayerSerializer
 from account.serializers import UserSerializer
 from account.models import Status
@@ -32,30 +32,35 @@ def modes_view(request):
     else :
         mode_form = MatchChoiceForm(instance=lobby.match_choice)
     lobby_player = LobbyPlayer.get_or_create(request.user)
-    return render(request, 'matchmaker/modes.html', {'mode_form': mode_form, 'lobby_player': lobby_player})
+    data = LobbyPlayerSerializer(lobby_player, context={'request':request, 'type':'template'}).data
+    return render(request, 'matchmaker/modes.html', {'mode_form': mode_form, 'lobby_player': data})
 
 @login_required
 def lobby_list_view(request) :
     lobby = Lobby.get_by_user(request.user)
     if not lobby :
         return redirect("lobby-home")
-    lobby = LobbySerializer(lobby, context={'request':request, 'type':'template'}).data
-    user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
+    lobby_data = LobbySerializer(lobby, context={'request':request, 'type':'template'}).data
+    lobby_users = [lobby_player['user'] for lobby_player in lobby_data['members']]
     return render(request, 'matchmaker/lobby_list.html', 
-                  {'lobby_players': lobby['members'], 
-                    'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
-                    'user': user, 
+                  {'lobby_players': lobby_data['members'], 
+                    'lobby_users': lobby_users, 
+                    'user': lobby_users[0], 
                     'Status': Status})
 
 @login_required
 def friends_list_view(request) :
-    lobby_player = LobbyPlayer.get_or_create(request.user)
-    return render(request, 'matchmaker/friends_list.html', {'lobby_player': lobby_player})
+    user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
+    return render(request, 'matchmaker/friends_list.html', {'user': user, 'Status': Status})
 
 @login_required
 def matchmaking_view(request) :
-    user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/matchmaking.html', {'user': user, 'Status': Status})
+    lobby_player = LobbyPlayer.get_or_create(request.user)
+    if not lobby_player or not lobby_player.lobby:
+        return redirect("lobby-home")
+    lobby_player_data = LobbyPlayerSerializer(lobby_player, context={'request':request, 'type':'template'}).data
+    lobby_data = LobbySerializer(lobby_player.lobby, context={'request':request, 'type':'template'}).data
+    return render(request, 'matchmaker/matchmaking.html', {'lobby_player': lobby_player_data, 'lobby': lobby_data, "LobbyStatus": LobbyStatus})
 
 @login_required
 def invite_banner_view(request) :
@@ -65,6 +70,8 @@ def invite_banner_view(request) :
 @login_required
 def lobby_requests_view(request) :
     lobby_player = LobbyPlayer.get_or_create(request.user)
+    if not lobby_player or not lobby_player.lobby:
+        return redirect("lobby-home")
     data = LobbyPlayerSerializer(lobby_player, context={'request':request, 'type':'template'}).data
     return render(request, 'matchmaker/lobby_requests.html', {'requests': data['requests']})
 
@@ -78,8 +85,8 @@ def lobby_players_view(request) :
     lobby = Lobby.get_by_user(request.user)
     if not lobby :
         return redirect("lobby-home")
-    lobby = LobbySerializer(lobby, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/lobby_players.html', {'lobby_players': lobby['members']})
+    lobby_data = LobbySerializer(lobby, context={'request':request, 'type':'template'}).data
+    return render(request, 'matchmaker/lobby_players.html', {'lobby_players': lobby_data['members']})
 
 @login_required
 def lobby_view(request, lobby_id) :
@@ -93,7 +100,15 @@ def lobby_view(request, lobby_id) :
         mode_form = MatchChoiceForm(instance=player.lobby.match_choice)
         lobby = LobbySerializer(player.lobby, context={'request':request, 'type':'template'}).data
         user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/lobby.html', 
-                  {"lobby": lobby, 
-                   'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
-                   'mode_form': mode_form, 'user': user, 'Status': Status, "timestamp": int(timezone.now().timestamp())})
+    context = {
+        'user': user,
+        "lobby": lobby, 
+        'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
+        'mode_form': mode_form,
+        'Status': Status,
+        "MatchmakingMode": json.dumps(MatchmakingMode.to_dict(), ensure_ascii=False),
+        "GameMode": json.dumps(GameMode.to_dict(), ensure_ascii=False),
+        "Connectivity": json.dumps(Connectivity.to_dict(), ensure_ascii=False),
+        "timestamp": int(timezone.now().timestamp())
+    }
+    return render(request, 'matchmaker/lobby.html', context)

@@ -1,32 +1,16 @@
-{% extends "base.html" %}
+{% extends "matchmaker/base.html" %}
 {% load static %}
 
 {% block extraCSS %}
-    <style>
-        :root {
-            --background-image: url('{% static "matchmaker/media/lobby_background.jpg" %}');
-        }
-    </style>
-	<link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}?v={{ timestamp }}">
+    <link rel="stylesheet" type="text/css" href="{% static 'matchmaker/css/lobby.css' %}?v={{ timestamp }}">
+    {{ block.super }}
 {% endblock %}
 
-{% block content %}
-<div class="lobby-container">
+{% block lobbyBody %}
     {% with lobby.members.0 as lobby_player %}
-    <!-- Menu de navigation tout en haut -->
-    <div class="navbar">
-        <ul class="nav-list">
-            <li><button class="nav-button active">Salon</button></li>
-            <li><button class="nav-button">Tournoi</button></li>
-            <li><button class="nav-button">Carrière</button></li>
-        </ul>
-    </div>
-    <div class="separator"></div>
-
-    <div class="lobby-body">
         <!-- Menu d'affichage des modes à gauche -->
         <div id="lobby-modes" class="lobby-modes">
-            {% include "matchmaker/modes.html" with mode_form=mode_form lobby_player=lobby_player %}
+            {% include "matchmaker/modes.html" with lobby_player=lobby_player %}
         </div>
 
         <div class="matchmaking-container">
@@ -37,16 +21,20 @@
                 </div>
             </div>
             <!-- Bouton matchmaking en bas -->
-            <div class="matchmaking-button-container" id="matchmaking-button">
+            <div class="matchmaking-button-container" id="matchmaking">
                 {% include "matchmaker/matchmaking.html" with lobby_player=lobby_player %}
             </div>
         </div>
+        <div id="match-found-overlay" class="match-found-overlay">
+            <h1>Partie trouvée !</h1>
+            <p id="countdown-text">3</p>
+        </div>        
 
         <!-- Colonne de droite -->
         <div class="friends-container">
             <div class="friends-window">
                 <div id="lobby-list">
-                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members lobby_users=lobby_users friends=user.friends Status=Status%}
+                    {% include "matchmaker/lobby_list.html" with lobby_players=lobby.members %}
                 </div>
                 <!-- Menu pour inviter / rejoindre ses amis (caché) -->
                 <div id="friend-actions-menu" class="friend-actions-menu">
@@ -58,7 +46,7 @@
             </div>
             <!-- En bas de la colonne, après les amis hors ligne : Carousel des demandes d'amis -->
             <div id="friend-requests">
-                {% include "matchmaker/friend_requests.html" with requests=user.requests %}
+                {% include "matchmaker/friend_requests.html" with requests=user.requests members_count=lobby.members|length %}
             </div>
             <!-- Tout en bas de la colonne, après le carousel : Menu pour ajouter un ami -->
             <div class="add-friend-section">
@@ -66,14 +54,18 @@
                 <button id="addFriendButton" class="btn add-friend-button">+</button>
             </div>
         </div>
-    </div>
     {% endwith %}
-</div>
+{% endblock %}
 
+{% block extraJS %}
 <!-- jQuery et Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script type="module" src="{% static 'matchmaker/js/lobby.js' %}?v={{ timestamp }}"></script>
-
+<script>
+    var MatchmakingMode = JSON.parse("{{ MatchmakingMode|escapejs }}");
+    var GameMode = JSON.parse("{{ GameMode|escapejs }}");
+    var Connectivity = JSON.parse("{{ Connectivity|escapejs }}");
+</script>
 {% endblock %}

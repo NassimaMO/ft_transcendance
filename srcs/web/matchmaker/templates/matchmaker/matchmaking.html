@@ -1,1 +1,12 @@
-<button class="btn start-matchmaking {% if not lobby_player.is_leader %}btn-grayed-out{% endif %}">JOUER</button>
+<button id="matchmaking-btn" 
+    class="btn {% if not lobby_player.is_leader or not lobby.all_ready %}btn-grayed-out btn-disabled {% endif %}start-matchmaking">
+    {% if lobby.status == LobbyStatus.IN_QUEUE %}
+        00:00
+    {% else %}
+        JOUER
+    {% endif %}
+</button>
+<button id="leaveLobbyButton" 
+    class="btn leave-lobby{% if lobby.members|length == 1 %} btn-grayed-out btn-disabled{% endif %}">
+    Leave Lobby
+</button>

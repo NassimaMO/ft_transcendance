@@ -73,7 +73,7 @@ class APIPlay(APIAuth):
         return response
     
     def start_matchmaking(self, verbose=False):
-        data = {'is_in_queue': True}
+        data = {'status': "start"}
         response = self.api_request(self.get_lobby_url(), data, method="PUT")
         if response.status_code == 200 or response.status_code == 201:
             if verbose:

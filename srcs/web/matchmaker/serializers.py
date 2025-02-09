@@ -1,15 +1,34 @@
 from rest_framework import serializers
 from account.serializers import UserSerializer
 import logging
-from .models import MatchChoice, Lobby, LobbyPlayer
+from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby, UserRank, Game, LobbyStatus, GameMode, Connectivity, MatchmakingMode
 
 logger = logging.getLogger('default')
 
 
+class UserRankSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRank
+        fields = ['division', 'mark', 'rank']
+
+    def get_rank(self, obj):
+        return obj.rank.name
+
+
+class UserRanksSerializer(serializers.Serializer):
+    ranks = UserRankSerializer(many=True)
+
+    def to_representation(self, queryset):
+        ranks_dict = {game.name: {'rank': 'unranked'} for game in Game.objects.all()}
+        for rank in queryset.all():
+            ranks_dict[rank.game.name] = UserRankSerializer(rank).data
+        return ranks_dict
+    
+
 class MatchChoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = MatchChoice
-        fields = ['connectivity', 'mode', 'matchmaking']
+        fields = ['game', 'connectivity', 'mode', 'matchmaking', 'auto_fill']
 
     def is_valid(self, *, raise_exception=False):
         valid = super().is_valid(raise_exception=raise_exception)
@@ -23,12 +42,33 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
                         raise serializers.ValidationError(self.errors)
                     return False
             attrs = {field: self.initial_data.get(field) for field in self.fields}
-            self._validated_data = self.validate(attrs)
             self.errors.clear()
+            self._validated_data = self.validate(attrs)
             return True
         if raise_exception:
             raise serializers.ValidationError(self.errors)
         return False
+
+    def validate(self, attrs):
+        warnings = {}
+        if attrs.get("auto_fill") == 'on':
+            attrs["auto_fill"] = True
+        if attrs.get("auto_fill") == "off":
+            attrs['auto_fill'] = False
+        if attrs.get("mode") == GameMode.SOLO:
+            if attrs.get("connectivity") != Connectivity.LOCAL:
+                warnings["connectivity"] = "La connectivité a été forcée en locale pour ce choix de modes."
+                attrs["connectivity"] = Connectivity.LOCAL
+            if attrs.get("matchmaking") != MatchmakingMode.UNRANK:
+                warnings["matchmaking"] = "Le matchmaking a été forcé en non classé pour ce choix de modes."
+                attrs["matchmaking"] = MatchmakingMode.UNRANK
+        if attrs.get('auto_fill') is True and \
+            (attrs.get("mode") == GameMode.SOLO or attrs.get("mode") == GameMode.MULTI_1V1 or \
+            attrs.get("connectivity") == Connectivity.LOCAL) :
+            warnings["auto_fill"] = "Le remplissage automatique a été désactivé pour ce choix de modes."
+            attrs["auto_fill"] = False
+        attrs["_warnings"] = warnings
+        return attrs
 
     def save(self, **kwargs):
         fields = {field.name for field in self.Meta.model._meta.fields}
@@ -39,6 +79,10 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
         if match_choice:
             return match_choice
         return super().save(**kwargs)
+    
+    def create(self, validated_data):
+        validated_data.pop('_warnings', None)
+        return super().create(validated_data)
 
 
 class LobbyRequestSerializer(serializers.Serializer):
@@ -74,14 +118,19 @@ class LobbyPlayerSerializer(serializers.Serializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+    
+    def validate(self, data):
+        if not data.get("is_ready", True) and data.get("is_leader", False):
+            raise serializers.ValidationError(
+                "Le leader ne peut pas ne pas être prêt."
+            )
+        return data
 
 
 class LobbySerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    members = LobbyPlayerSerializer(many=True)
     match_choice = MatchChoiceSerializer()
     is_open = serializers.BooleanField()
-    is_in_queue = serializers.BooleanField()
 
     def get_players(self, obj):
         request = self.context.get('request')
@@ -93,6 +142,13 @@ class LobbySerializer(serializers.Serializer):
     def to_representation(self, instance) :
         data = super().to_representation(instance)
         data['members'] = self.get_players(instance)
+        if instance.status == LobbyStatus.IN_QUEUE:
+            waiting_lobby = WaitingLobby.get_by_lobby(instance)
+            if waiting_lobby:
+                data['queue_start'] = waiting_lobby.start.timestamp()
+        if self.context.get('type') == 'template':
+            data['all_ready'] = instance.all_ready
+        data['status'] = instance.status
         return data
     
     def create(self, validated_data):

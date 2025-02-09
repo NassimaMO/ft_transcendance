@@ -27,22 +27,21 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('rules/', views.rules, name='rules'),
     path('about/', views.about, name='about'),
+    path('api/', include('api.urls'))
 ]
 
 if apps.is_installed('pong'):
-    urlpatterns += [path('play/', include('pong.urls'))]
-else :
-    urlpatterns += [path('play/', views.play, name='play')]
+    urlpatterns += [path('pong/', include('pong.urls'))]
 if apps.is_installed('account'):
     urlpatterns += [path('account/', include('account.urls'))]
 if apps.is_installed('api'):
     urlpatterns += [path('api/', include('api.urls'))]
 if apps.is_installed('matchmaker'):
-    urlpatterns += [path('match/', include('matchmaker.urls'))]
+    urlpatterns += [path('', include('matchmaker.urls'))]
 if apps.is_installed('boards'):
     urlpatterns += [path('boards/', include('boards.urls'))]
 
-if settings.DEBUG:
+if settings.DEBUG is True:
     urlpatterns += [path('media/static/<path:file_path>', views.media, name='media')]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

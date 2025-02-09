@@ -58,11 +58,14 @@ LOGGING = {
     },
 }
 
-
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]', 'host.docker.internal']
-ALLOWED_HOSTS += os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '[::1]', 'host.docker.internal']
+    ALLOWED_HOSTS += os.environ.get("DJANGO_ALLOWED_HOSTS").split(" ")
+
 
 # Application definition
 
@@ -225,7 +228,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Proxy
 
 SESSION_COOKIE_SAMESITE = 'Lax'
-if bool(int(os.getenv('DEBUG'))) == False :
+if DEBUG is False :
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

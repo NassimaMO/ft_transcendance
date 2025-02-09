@@ -3,8 +3,9 @@ from rest_framework.response import Response # type: ignore
 from asgiref.sync import async_to_sync # type: ignore
 from channels.layers import get_channel_layer # type: ignore
 from account.models import User, UserChange
-from matchmaker.models import LobbyChange, LobbyPlayer
+from matchmaker.models import LobbyChange, LobbyPlayer, LobbyStatus, GameMode, Team, Entry, Match
 import logging
+import random
 
 logger = logging.getLogger('default')
 
@@ -45,8 +46,8 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     if code == "invalid_request_type" :
         return f"Invalid request type : '{kwargs.get('request_type')}'. Expected values: 'invite' or 'join'."
     #
-    if code == "invalid_is_in_queue":
-        return f"Invalid value for 'is_in_queue': '{kwargs.get('is_in_queue')}'. Expected values: 'true' or 'false'."
+    if code == "invalid_lobby_status":
+        return "Invalid lobby status : expected 'default' or 'start'."
     #
     if code == "already_in_queue":
         return "You are already in queue."
@@ -70,22 +71,22 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
         return "You left the lobby."
     #
     if code == "request_denied":
-        return f"{kwargs.get('request_type').capitalize()} request from user {kwargs.get('user_message')} denied."
+        return f"{kwargs.get('request_type').capitalize()} request from user {kwargs.get('str')} denied."
     #
     if code == "request_accepted":
-        return f"{kwargs.get('request_type').capitalize()} request from user {kwargs.get('user_message')} accepted."
+        return f"{kwargs.get('request_type').capitalize()} request from user {kwargs.get('str')} accepted."
     #
     if code == "request_sent":
-        return f"{kwargs.get('request_type').capitalize()} request sent to user {kwargs.get('user_message')}."
+        return f"{kwargs.get('request_type').capitalize()} request sent to user {kwargs.get('str')}."
     #
     if code == "member_kicked":
         return f"Member '{kwargs.get('username')}' has been kicked."
     #
     if code == "unknown_friend_request":
-        return f"Request from user {kwargs.get('user_message')} not found. Is it your imaginary friend ?"
+        return f"Request from user {kwargs.get('str')} not found. Is it your imaginary friend ?"
     #
     if code == "unknown_friend":
-        return f"User {kwargs.get('user_message')} not found. Is it your imaginary friend ?"
+        return f"User {kwargs.get('str')} not found. Is it your imaginary friend ?"
     #
     if code == "friend_requests_removed":
         return "All friend requests removed."
@@ -100,19 +101,19 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
         return f"You already asked this user to be your friend. Stop insist. You need to face the truth."
     #
     if code == "friend_request_sent":
-        return f"A friend request has been sent to user {kwargs.get('user_message')}"
+        return f"A friend request has been sent to user {kwargs.get('str')}"
     #
     if code == "friend_request_accepted":
-        return f"Friend request from user {kwargs.get('user_message')} successfully accepted. You two are now friends."
+        return f"Friend request from user {kwargs.get('str')} successfully accepted. You two are now friends."
     #
     if code == "friend_request_denied":
-        return f"Friend request from user {kwargs.get('user_message')} successfully denied."
+        return f"Friend request from user {kwargs.get('str')} successfully denied."
     #
     if code == "registration_success":
         return "You registered successfully."
     #
     if code == "friend_removed":
-        return f"User {kwargs.get('user_message')} is no longer your friend. Good riddance."
+        return f"User {kwargs.get('str')} is no longer your friend. Good riddance."
     #
     split = code.split('_')
     if split[-1] == "updated":
@@ -120,6 +121,9 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     #
     if split[-1] == "deleted":
         return f"{' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} deleted successfully."
+    #
+    if split[-1] == "created":
+        return f"A {' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} has been successfully created."
     #
     if split[0] == "unknown":
         return f"This {' '.join([s for s in split[1:]])} was not found."
@@ -147,38 +151,48 @@ def add_message(message_dict: dict, code: str, level: str = "INFO", **kwargs) ->
             message_dict["messages"][code] = get_message_str(code, "ERROR", **kwargs)
 
 
-def check_user(**kwargs):
-    """Helper to centralize user checking on id or username"""
+def check_args(_class, **kwargs):
+    """Helper to centralize objects checking on id or username"""
 
-    user_id = kwargs.get("user_id")
-    username = kwargs.get("username")
+    id = None
+    name = None
+    for key, value in kwargs.items():
+        if key == f"{_class.__name__.lower()}_id":
+            id = value
+        elif key == f"{_class.__name__.lower()}_name" or key == f"{_class.__name__.lower()}name":
+            name = value
+    if id is None and name is None:
+        return {"obj": None, "error_response": Response({}, status=status.HTTP_400_BAD_REQUEST)}
     request_status = status.HTTP_404_NOT_FOUND
-    user_message = ''
+    str = ''
     error = ''
-    if user_id:
+    if id:
         try:
-            user = User.objects.get(id=user_id)
+            obj = _class.objects.get(id=id)
         except Exception:
-            user = None
-        user_message = f"with id {user_id}"
-    elif username:
+            obj = None
+        str = f"with id {id}"
+    elif name:
         try:
-            user = User.objects.get(username=username)
+            if _class == User:
+                obj = _class.objects.get(username=name)
+            else:
+                obj = _class.objects.get(name=name)
         except Exception:
-            user = None
-        user_message = f"with username {username}"
+            obj = None
+        str = f"with name {name}"
     else:
-        user = None
+        obj = None
         error = ": Missing or invalid identifier"
         request_status = status.HTTP_400_BAD_REQUEST
-    if not user:
+    if not obj:
         message = {
             "errors": {
-                "unknown_user": f"User {user_message} not found {error}"
+                f"unknown_{_class.__name__.lower()}": f"{_class.__name__} {str} not found {error}"
                 }
             }
-        return {"user": None, "error_response": Response(message, status=request_status)}
-    return {"user": user, "user_message": user_message}
+        return {"obj": None, "error_response": Response(message, status=request_status)}
+    return {"obj": obj, "str": str}
 
 
 def send_ws_message(recipient_type, recipient_id, message_type, **extra) :
@@ -205,21 +219,33 @@ def send_notifications(recipient_type, recipient_id, *changes):
 
 def change_lobby_api(player, lobby):
     send_notifications("lobby", player.lobby.id, {'type': LobbyChange.LEAVE, 'username': player.user.username})
+    send_notifications("matchmaking_lobby", player.lobby.id, {'type': LobbyChange.LEAVE})
     new_leader = player.change_lobby(lobby)
     if new_leader:
         send_notifications("lobby_player", new_leader.id, {'type': LobbyChange.PLAYER})
     send_notifications("lobby", lobby.id, {'type': LobbyChange.JOIN, 'username': player.user.username})
     send_notifications("lobby_player", player.id, {'type': LobbyChange.LOBBY})
+    send_notifications("matchmaking_player", player.id, {'type': LobbyChange.LOBBY})
+
+
+def change_matchmaking_api(lobby_player, change):
+    lobby_player.lobby.status = LobbyStatus.IN_QUEUE if change == "start" else False
+    lobby_player.lobby.save()
+    send_ws_message("matchmaking_player", lobby_player.id, change)
 
 
 def leave_lobby_api(player, back_to_main_lobby=True):
     send_notifications("lobby", player.lobby.id, {'type': LobbyChange.LEAVE, 'username': player.user.username})
+    send_notifications("matchmaking_lobby", player.lobby.id, {'type': LobbyChange.LEAVE})
+    if player.lobby.status == LobbyStatus.IN_QUEUE:
+        change_matchmaking_api(player, "stop")
     new_leader = player.leave_lobby()
     if new_leader:
         send_notifications("lobby_player", new_leader.id, {'type': LobbyChange.PLAYER})
     if back_to_main_lobby:
         player.join_lobby()
         send_notifications("lobby_player", player.id, {'type': LobbyChange.LOBBY})
+        send_notifications("matchmaking_player", player.id, {'type': LobbyChange.LOBBY})
 
 
 def notify_friends_api(user):
@@ -227,3 +253,30 @@ def notify_friends_api(user):
         friend_player = LobbyPlayer.get_by_user(friend)
         if friend_player:
             send_notifications("lobby_player", friend_player.id, {'type': UserChange.INFO, 'username': user.username})
+
+
+def create_match(lobbies):
+    match_choice = lobbies[0].match_choice
+    match = Match.objects.create(
+        info=match_choice,
+    )
+    players = [player for _lobby in lobbies for player in _lobby.members]
+    if match_choice.mode == GameMode.SOLO:
+        player_team = Team.objects.create()
+        Entry.objects.create(user=players[0].user, team=player_team, pseudo=players[0].pseudo)
+        ai_team = Team.objects.create()
+        Entry.objects.create(user=None, team=ai_team, pseudo="IA")
+        match.teams.add(player_team, ai_team)
+    elif match_choice.mode == GameMode.MULTI_1V1 :
+        for player in players:
+            team = Team.objects.create()
+            Entry.objects.create(user=player.user, team=team, pseudo=player.pseudo)
+            match.teams.add(team)
+    elif match_choice.mode == GameMode.MULTI_2V2:
+        for index, player in enumerate(players):
+            if index % 2 == 0:
+                team = Team.objects.create()
+            Entry.objects.create(user=player.user, team=team, pseudo=player.pseudo)
+            if index % 2 == 1:
+                match.teams.add(team)
+    return match

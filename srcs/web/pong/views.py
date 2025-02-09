@@ -1,35 +1,10 @@
 from django.shortcuts import render, redirect # type: ignore
-from matchmaker.forms import MatchChoiceForm
-from matchmaker.models import Match, MatchChoice
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required # type: ignore
 import logging
 
 logger = logging.getLogger('default')
 
 @login_required
-def play(request):
-    if request.method == 'POST':
-        form = MatchChoiceForm(request.POST)
-        if form.is_valid():
-            form.save()
-            cleaned_data = form.clean()
-            connectivity = cleaned_data.get('connectivity')
-            mode = cleaned_data.get('mode')
-            matchmaking = cleaned_data.get('matchmaking')
-            match_choice = MatchChoice.create(connectivity=connectivity, mode=mode, matchmaking=matchmaking)
-            match_choice.save()
-            if match_choice.need_matchmaking() :
-                return redirect('matchmaking', match_choice.id)
-            else :
-                match = Match.objects.create(info=match_choice)
-                match.save()
-                return redirect('game', match.id)
-        else :
-            logger.info("invalid form")
-    else:
-        form = MatchChoiceForm()
-    return render(request, "pong/play.html", {'form': form})
-
-@login_required
 def game(request, game_id) :
-    return render(request, "pong/game.html", {'game_id': game_id})
+    return render(request, "pong/game.html", {'game_id': game_id, "timestamp": int(timezone.now().timestamp())})

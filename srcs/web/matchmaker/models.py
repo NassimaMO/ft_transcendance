@@ -15,40 +15,119 @@ logger = logging.getLogger('default')
 
 # ********************************************* POSTGRES ORM MODELS *********************************************
 
+class Game(models.Model):
+	name = models.CharField(max_length=100, unique=True)
 
-class GameMode(models.TextChoices) :
+	def __str__(self):
+		return self.name
+	
+	@classmethod
+	def get_default(cls):
+		return cls.objects.first() if cls.objects.exists() else None
+	
+	@classmethod
+	def get_default_id(cls):
+		return cls.get_default().id
+			
+
+class Rank(models.Model):
+	game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="ranks")
+	name = models.CharField(max_length=20)
+	order = models.IntegerField()
+	marks_required = models.IntegerField(default=0)
+
+	class Meta:
+		unique_together = ("game", "name")
+		ordering = ["game", "order"]
+
+	def __str__(self):
+		return f"{self.game.name} - {self.name}"
+
+	def next_rank(self):
+		next_rank = Rank.objects.filter(game=self.game, order__gt=self.order).order_by("order").first()
+		return next_rank if next_rank else self
+
+	def previous_rank(self):
+		prev_rank = Rank.objects.filter(game=self.game, order__lt=self.order).order_by("-order").first()
+		return prev_rank if prev_rank else self
+
+
+class UserRank(models.Model):
+	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ranks")
+	game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="user_ranks")
+	rank = models.ForeignKey(Rank, on_delete=models.CASCADE, related_name="user_ranks")
+	division = models.IntegerField(default=4)
+	marks = models.IntegerField(default=0)
+
+	class Meta:
+		unique_together = ("user", "game")
+
+	def __str__(self):
+		return f"{self.game.name}: {self.rank.name} {self.division}"
+
+	def promote(self):
+		if self.marks >= self.rank.marks_required:
+			if self.division == 1:
+				next_rank = self.rank.next_rank()
+				if next_rank != self.rank: 
+					self.division = 4
+					self.marks = 0
+					self.rank = next_rank
+			else:
+				self.division -= 1
+				self.marks = 0
+		else:
+			self.marks += 1
+		self.save()
+
+	def demote(self):
+		if self.marks == 0:
+			if self.division == 4:
+				prev_rank = self.rank.previous_rank()
+				if prev_rank != self.rank:
+					self.division = 1
+					self.marks = prev_rank.marks_required
+					self.rank = prev_rank
+			else:
+				self.division += 1
+				self.marks = self.rank.marks_required
+		else:
+			self.marks -= 1
+		self.save()
+
+
+class ChoiceEnum(models.TextChoices):
+    @classmethod
+    def to_dict(cls):
+        return {mode.name: {"value": mode.value, "label": mode.label} for mode in cls}
+
+
+class GameMode(ChoiceEnum) :
 	SOLO = "Solo", "Un joueur (VS IA)"
 	MULTI_1V1 = "1v1", "Multijoueur (1v1)"
 	MULTI_2V2 = "2v2", "Multijoueur (2v2)"
 
 
-class Connecitvity(models.TextChoices) :
+class Connectivity(ChoiceEnum) :
 	LOCAL = "Local", "Local"
 	ONLINE = "En ligne", "En ligne"
 
 
-class MatchmakingMode(models.TextChoices) :
+class MatchmakingMode(ChoiceEnum) :
 	UNRANK = "Non Classé", "Non Classé"
 	RANK = "Classé", "Classé"
 	TOURNAMENT = "Tournoi", "Tournoi"
 
 
 class MatchChoice(models.Model):
-	connectivity = models.CharField(max_length=20, choices=Connecitvity.choices, default=Connecitvity.LOCAL)
+	game = models.ForeignKey('Game', default=Game.get_default, related_name="matches", on_delete=models.CASCADE)
+	connectivity = models.CharField(max_length=20, choices=Connectivity.choices, default=Connectivity.LOCAL)
 	mode = models.CharField(max_length=20, choices=GameMode.choices, default=GameMode.SOLO)
 	matchmaking = models.CharField(max_length=20, choices=MatchmakingMode.choices, default=MatchmakingMode.UNRANK)
+	auto_fill = models.BooleanField(default=True)
 
 	class Meta:
-		unique_together = ('connectivity', 'mode', 'matchmaking')
-
-	@classmethod
-	def create(cls, connectivity=Connecitvity.LOCAL, mode=GameMode.SOLO, matchmaking=MatchmakingMode.UNRANK):
-		match_choice, created = cls.objects.get_or_create(
-			connectivity=connectivity,
-			mode=mode,
-			matchmaking=matchmaking
-		)
-		return match_choice
+		unique_together = ('game', 'connectivity', 'mode', 'matchmaking', 'auto_fill')
 	
 	@classmethod
 	def get(cls, pk):
@@ -56,14 +135,40 @@ class MatchChoice(models.Model):
 			return cls.objects.get(pk=pk)
 		except cls.DoesNotExist:
 			return None
+		
+	@classmethod
+	def get_default(cls):
+		defaults = {
+			'game': cls._meta.get_field('game').get_default(),
+			'connectivity': cls._meta.get_field('connectivity').get_default(),
+			'mode': cls._meta.get_field('mode').get_default(),
+			'matchmaking': cls._meta.get_field('matchmaking').get_default(),
+		}
+		if defaults['game'] is not None:
+			defaults['game'] = Game.objects.get(pk=defaults['game'])
+		return cls.objects.get_or_create(**defaults)[0]
+
+	@classmethod
+	def get_default_id(cls):
+		return cls.get_default().id
 
 	def __str__(self):
-		return f"{self.mode} - {self.connectivity} - {self.matchmaking}"
+		return f"<MatchChoice {self.id}: {self.jeu}-{self.mode}-{self.connectivity}-{self.matchmaking}-{'autofill' if self.auto_fill else ''}"
 	
 	def need_matchmaking(self) :
-		if (self.mode == GameMode.SOLO or self.connectivity == Connecitvity.LOCAL) :
+		if (self.mode == GameMode.SOLO or self.connectivity == Connectivity.LOCAL) :
 			return False
 		return True
+	
+	# @classmethod
+	# def create(cls, connectivity=Connectivity.LOCAL, mode=GameMode.SOLO, matchmaking=MatchmakingMode.UNRANK):
+	# 	match_choice, created = cls.objects.get_or_create(
+	# 		connectivity=connectivity,
+	# 		mode=mode,
+	# 		matchmaking=matchmaking
+	# 	)
+	# 	return match_choice
+
 
 
 class MatchChoiceFilter(django_filters.FilterSet):
@@ -75,23 +180,9 @@ class MatchChoiceFilter(django_filters.FilterSet):
 		model = MatchChoice
 		fields = ['connectivity', 'mode', 'matchmaking']
 
-
-def get_default_match_choice():
-	defaults = {
-		'connectivity': MatchChoice._meta.get_field('connectivity').get_default(),
-		'mode': MatchChoice._meta.get_field('mode').get_default(),
-		'matchmaking': MatchChoice._meta.get_field('matchmaking').get_default(),
-	}
-	return MatchChoice.objects.get_or_create(**defaults)[0]
-
-
-def get_default_match_choice_id():
-	return get_default_match_choice().id
-
-
 class Match(models.Model):
 	date = models.DateTimeField(default=timezone.now)
-	info = models.ForeignKey('MatchChoice', related_name="matches", default=get_default_match_choice_id, on_delete=models.CASCADE)
+	info = models.ForeignKey('MatchChoice', related_name="matches", on_delete=models.CASCADE)
 	teams = models.ManyToManyField('Team', related_name="matches")
 
 	def __str__(self):
@@ -106,6 +197,7 @@ class MatchFilter(django_filters.FilterSet):
 	username = django_filters.CharFilter(field_name="teams__players__username")
 	date = django_filters.DateFilter(field_name="date", lookup_expr="exact")
 	date_range = django_filters.DateFromToRangeFilter(field_name="date")
+	game = django_filters.CharFilter(field_name="info__game__name")
 	connectivity = MatchChoiceFilter.declared_filters['connectivity']
 	mode = MatchChoiceFilter.declared_filters['mode']
 	matchmaking = MatchChoiceFilter.declared_filters['matchmaking']
@@ -113,7 +205,7 @@ class MatchFilter(django_filters.FilterSet):
 
 	class Meta:
 		model = Match
-		fields = ['user_id', 'username', 'date', 'date_range', 'connectivity', 'mode', 'matchmaking', 'win']
+		fields = ['game', 'user_id', 'username', 'date', 'date_range', 'connectivity', 'mode', 'matchmaking', 'win']
 
 	def filter_by_win(self, queryset, name, value):
 		user = self.request.user
@@ -160,28 +252,52 @@ class Entry(models.Model):
 
 
 class WaitingLobby(rom.Model):
-	# id = rom.PrimaryKey(index=True)
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
 	start = rom.DateTime(default=datetime.now())
 	matchmaking = rom.ManyToOne("Matchmaking", on_delete="cascade")
 
 	@classmethod
-	def get_or_create(cls, lobby, matchmaking):
+	def get_or_create(cls, lobby, matchmaking=None):
 		waiting_lobbies = cls.query.all()
 		for waiting_lobby in waiting_lobbies :
-			if waiting_lobby.id == lobby.id :
-				waiting_lobby.matchmaking = matchmaking
+			if waiting_lobby.lobby and waiting_lobby.lobby.id == lobby.id :
+				if matchmaking and (not waiting_lobby.matchmaking or waiting_lobby.matchmaking.id != matchmaking.id) :
+					waiting_lobby.matchmaking = matchmaking
+					waiting_lobby.save()
 				return waiting_lobby
-		waiting_lobby = cls(lobby=lobby, matchmaking=matchmaking)
+		if matchmaking:
+			waiting_lobby = cls(lobby=lobby, matchmaking=matchmaking)
+		else:
+			waiting_lobby = cls(lobby=lobby)
 		waiting_lobby.save()
 		return waiting_lobby
 	
+	@classmethod
+	def get_by_lobby(cls, lobby):
+		waiting_lobbies = cls.query.all()
+		for waiting_lobby in waiting_lobbies :
+			if waiting_lobby.lobby and waiting_lobby.lobby.id == lobby.id :
+				return waiting_lobby
+	
 	def __str__(self) :
-		return f"<WLobby {self.lobby.leader}(start:{self.start})>"
+		return f"<WLobby {self.lobby.id}(start:{self.start})>"
+	
+	def get_queue_time(self):
+		time_difference = datetime.now() - self.start
+		return time_difference.total_seconds()
+	
+	def add_to_queue(self, matchmaking):
+		if not self.matchmaking or self.matchmaking.id != matchmaking.id:
+			self.matchmaking = matchmaking
+		self.start = datetime.now()
+		self.save()
+	
+	def remove_from_queue(self):
+		self.matchmaking = None
+		self.save()
 	
 
 class Matchmaking(rom.Model) :
-	# id = rom.PrimaryKey(index=True)
 	match_choice = rom.ForeignModel(MatchChoice)
 	queue = rom.OneToMany("WaitingLobby")
 
@@ -249,8 +365,14 @@ class LobbyChange():
 	PLAYER = "player"
 
 
+class LobbyStatus():
+	DEFAULT = "default"
+	START = "start"
+	IN_QUEUE = "in_queue"
+	REDIRECT = "redirect"
+	IN_GAME = "in_game"
+
 class LobbyPlayer(rom.Model) :
-	# id = rom.PrimaryKey(index=True)
 	user = rom.ForeignModel(User)
 	_pseudo = rom.String()
 	is_ready = rom.Boolean(default=True)
@@ -328,9 +450,19 @@ class LobbyPlayer(rom.Model) :
 class Lobby(rom.Model) :
 	id = rom.PrimaryKey(index=True)
 	members = rom.OneToMany("LobbyPlayer")
-	match_choice = rom.ForeignModel(MatchChoice, default=get_default_match_choice)
+	match_choice = rom.ForeignModel(MatchChoice, default=MatchChoice.get_default)
 	is_open = rom.Boolean(default=False)
-	is_in_queue = rom.Boolean(default=False)
+	_status = rom.String(default=LobbyStatus.DEFAULT.encode('utf-8'))
+
+	@property
+	def status(self):
+		if self._status:
+			return self._status.decode('utf-8')
+	
+	@status.setter
+	def status(self, value):
+		if value:
+			self._status = value.encode('utf-8')
 
 	@classmethod
 	def get_by_user(cls, user):
@@ -345,6 +477,10 @@ class Lobby(rom.Model) :
 			return lobby_player.lobby
 		lobby_player.join_lobby()
 		return lobby_player.lobby
+	
+	@property
+	def all_ready(self):
+		return all(player.is_ready for player in self.members)
 	
 	def add_player(self, user) :
 		player = LobbyPlayer.get_or_create(user)
@@ -373,3 +509,9 @@ class Lobby(rom.Model) :
 			if user.is_friend_with(member.user):
 				return True
 		return False
+	
+	def get_queue_time(self):
+		waiting_lobby = WaitingLobby.get_by_lobby(self)
+		if waiting_lobby:
+			return waiting_lobby.get_queue_time()
+		return 0

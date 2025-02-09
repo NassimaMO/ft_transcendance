@@ -1,5 +1,20 @@
 import * as THREE from 'three'
-import * as Object from './buildObject.js'
+import * as Object from './buildGeometry.js'
+import * as Config from './config.js'
+
+
+export let windowWidth = window.innerWidth
+export let windowHeight = window.innerHeight
+
+export function setWindowHeight(innerHeight)
+{
+	windowWidth = innerHeight;
+}
+
+export function setWindowWidth(innerWidth)
+{
+	windowWidth = innerWidth;
+}
 
 function initThreeJs()
 {
@@ -10,8 +25,8 @@ function initThreeJs()
 		camera : new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ),
 		renderer
 	}
-	threeJs.renderer.setSize( window.innerWidth - 10, window.innerHeight - 200)
-	threeJs.camera.position.z = 200;
+	threeJs.renderer.shadowMap.enabled = true
+	threeJs.renderer.setSize( window.innerWidth, window.innerHeight - 150)
 	document.body.appendChild( renderer.domElement )
 	return (threeJs)
 }
@@ -19,25 +34,35 @@ function initThreeJs()
 function buildMap(threeJs)
 {
 	const	map	= Object.map()
-	threeJs.scene.add(map.wallLeft.object, map.wallLeft.rectLight,
-					map.wallRight.object, map.wallRight.rectLight,
+	threeJs.scene.add(
 					map.wallUp.object, map.wallUp.rectLight,
 					map.wallDown.object, map.wallDown.rectLight,
 					map.table
 	)
 }
 
-function buildObject(threeJs, puck, paddleLeft, paddleRight)
+function buildObject(threeJs, puck, paddle)
 {
-	threeJs.scene.add(paddleLeft.object, paddleLeft.rectLight,
-				paddleRight.object, paddleRight.rectLight,
+	threeJs.scene.add(paddle.Left.object, paddle.Left.rectLight,
+				paddle.Right.object, paddle.Right.rectLight,
 				puck.object, puck.pointLight);
+	if (Config.mode == 2)
+	{
+		threeJs.scene.add(paddle.DoubleRight.object, paddle.DoubleRight.rectLight,
+		paddle.DoubleLeft.object, paddle.DoubleLeft.rectLight);
+	}
 }
 
-export function init(puck, paddleLeft, paddleRight)
+function buildLight(threeJs)
+{
+
+}
+
+export function init(puck, paddle)
 {
 	const threeJs = initThreeJs()
 	buildMap(threeJs)
-	buildObject(threeJs, puck, paddleLeft, paddleRight)
+	buildLight(threeJs)
+	buildObject(threeJs, puck, paddle)
 	return threeJs
 }
