@@ -6,9 +6,9 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    position: relative;
     text-align: center;
-    width: 25vw;
-    height: 75vh;
+    height: 556px;
     gap: 5%;
 }
 
@@ -132,24 +132,25 @@
     border: none;
 }
 
-.display-text, .ku-display-arrow {
+.display-text, .display-arrow {
     color: white;
     font-size: 15px;
 }
 
-.ku-display-arrow {
-    transform: rotate(-90deg); 
+.display-arrow {
 }
 
 .overlay-info {
     opacity: 0;
     max-height: 0;
     visibility: hidden;
+    position: absolute;
     width: 100%;
     height: 100%;
 }
 
 .overlay-info.show {
+    position: relative;
     opacity: 1;
     max-height: 100%;
     visibility: visible;
@@ -187,7 +188,9 @@
 }
 
 .win-loss-ratio-pie-chart {
-    height: 85%;
+    margin: 0 auto;
+    height: 100%;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     background: conic-gradient(
         rgb(255, 255, 255) 0% calc(70%), 
