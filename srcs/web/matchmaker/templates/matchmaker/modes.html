@@ -2,9 +2,30 @@
                 <div class="modes-window">
                     <div class="modes-section">
                         {% for field in mode_form %}
+                            {% if field.name == "auto_fill" %}
                             <div class="mode-option">
-                                <span id="default_{{ field.id_for_label }}">{{ field.value }}</span>
+                                <span id="default_{{ field.id_for_label }}">
+                                    {% if not field.field.widget.attrs.disabled %}
+                                        {{ field.label }}
+                                    {% endif %}
+                                    {{ field }}
+                                </span>
                             </div>
+                            {% else %}
+                                {% for value, text in field.field.choices %}
+                                    {% if value == field.value %}
+                                        {% if field.name == "game" %}
+                                        <div class="mode-option">
+                                            <span id="default_{{ field.id_for_label }}">{{ text }}</span>
+                                        </div>
+                                        {% else %}
+                                        <div class="mode-option">
+                                            <span id="default_{{ field.id_for_label }}">{{ field.value }}</span>
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
                         {% endfor %}
 
                         <!-- Bouton en bas pour changer de mode / se mettre prêt -->

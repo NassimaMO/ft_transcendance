@@ -132,7 +132,7 @@ async function matchmakingWSHandler(event)
 	else if (data.type === "match_found")
 	{
 		updateTimerStop();
-		matchFound(data.match_url);
+		matchFound(data.match.url);
 	}
 }
 
@@ -289,23 +289,6 @@ function formatTime(seconds)
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
-// function updateUIMatchmakingAvailable()
-// {
-// 	const button = document.getElementById('matchmaking-btn');
-// 	if (!lobby.members.every(player => player.is_ready))
-// 	{
-// 		button.setAttribute("title", "Tous les joueurs ne sont pas prêts.");
-// 		button.classList.add('btn-grayed-out');
-// 		button.classList.add('btn-disabled');
-// 	}
-// 	else
-// 	{
-// 		button.removeAttribute('title');
-// 		button.classList.remove('btn-disabled');
-// 		button.classList.remove('btn-grayed-out');
-// 	}
-// }
-
 function updateTimerStart()
 {
 	const button = document.getElementById('matchmaking-btn');
@@ -326,7 +309,7 @@ function updateTimerStop()
 
 function updateUIMatchmaking()
 {
-	if (lobby.is_in_queue) {
+	if (lobby.status == "in_queue") {
 		updateTimerStart();
 	}
 	else {
@@ -337,7 +320,7 @@ function updateUIMatchmaking()
 async function startMatchmaking()
 {
 	const data = {
-		is_in_queue: true
+		status: "start"
 	};
 	const response = await APIRequest("/api/lobbies/main/", data, "PATCH");
 	if (response.ok) {
@@ -351,7 +334,7 @@ async function startMatchmaking()
 async function stopMatchmaking()
 {
 	const data = {
-		is_in_queue: false
+		status: "default"
 	};
 	const response = await APIRequest("/api/lobbies/main/", data, "PATCH");
 	if (response.ok)
@@ -381,6 +364,7 @@ function toggleSection(sectionId)
 function openModeSelection()
 {
 	document.getElementById('modeSelectionModal').style.display = 'flex';
+	updateModeOptions();
 }
 
 function closeModeSelection()
@@ -388,13 +372,45 @@ function closeModeSelection()
 	document.getElementById('modeSelectionModal').style.display = 'none';
 }
 
+function updateModeOptions()
+{
+	let modeField = document.getElementById("id_mode");
+    let connectivityField = document.getElementById("id_connectivity");
+    let matchmakingField = document.getElementById("id_matchmaking");
+	let autofillField = document.getElementById("id_auto_fill");
+
+	connectivityField.querySelectorAll("option").forEach(option => option.hidden = false);
+	matchmakingField.querySelectorAll("option").forEach(option => option.hidden = false);
+	autofillField.hidden = false;
+	if (autofillField.disabled) {
+		autofillField.disabled = false;
+	}
+	console.log(autofillField);
+	if (modeField.value === GameMode['SOLO'].value)
+	{
+		const localValue = Connectivity['LOCAL'].value;
+		const unrankValue = MatchmakingMode['UNRANK'].value;
+		connectivityField.value = localValue;
+		matchmakingField.value = unrankValue;
+		connectivityField.querySelectorAll(`option:not([value="${localValue}"])`).forEach(option => option.hidden = true);
+		matchmakingField.querySelectorAll(`option:not([value="${unrankValue}"])`).forEach(option => option.hidden = true);
+		autofillField.hidden = true;
+	}
+	else if (modeField.value === GameMode["MULTI_1V1"].value || connectivityField === Connectivity["LOCAL"].value)
+	{
+		autofillField.hidden = true;
+	}
+}
+
 async function applyModeSelection()
 {
 	const data = {
 		'match-choice': {
+			'game': document.getElementById('id_game').value,
 			'connectivity': document.getElementById('id_connectivity').value,
 			'mode': document.getElementById('id_mode').value,
-			'matchmaking': document.getElementById('id_matchmaking').value
+			'matchmaking': document.getElementById('id_matchmaking').value,
+			'auto_fill': document.getElementById('id_auto_fill').checked
 		}
 	};
 	const response = await APIRequest('/api/lobbies/main/', data, 'PATCH');
@@ -643,6 +659,9 @@ document.addEventListener("DOMContentLoaded", async function ()
 		const inviteMenu = document.getElementById('inviteMenu');
 		const inviteButton = document.getElementById('inviteButton');
 
+		if (event.target.tagName == "SELECT" && event.target.parentElement && event.target.parentElement.classList.contains('modal-section')) {
+			updateModeOptions();
+		}
 		if (event.target.id == "button-lobby" || event.target.id == "button-carreer")
 		{
 			const buttons = document.querySelectorAll('.nav-button');
@@ -654,7 +673,7 @@ document.addEventListener("DOMContentLoaded", async function ()
 		}
 		if (event.target.id === 'matchmaking-btn' && lobby_player.is_leader)
 		{
-			if (lobby.is_in_queue === false && lobby.members.every(player => player.is_ready)) {
+			if (lobby.status === "in_queue" && lobby.members.every(player => player.is_ready)) {
 				startMatchmaking();
 			}
 			else {
@@ -707,16 +726,12 @@ document.addEventListener("DOMContentLoaded", async function ()
 		}
 		else if (event.target.id === 'acceptLobbyRequest')
 		{
-			// const requesterName = document.getElementById('lobbyRequesterName').textContent;
-			// const requestType = request.getAttribute('data-request-type');
 			const request = document.querySelector('span[data-request-type]');
 			const requestId = request.getAttribute('data-request-id');
 			await acceptLobbyRequest(requestId);
 		}
 		else if (event.target.id === 'rejectLobbyRequest')
 		{
-			// const requesterName = document.getElementById('lobbyRequesterName').textContent;
-			// const requestType = request.getAttribute('data-request-type');
 			const request = document.querySelector('span[data-request-type]');
 			const requestId = request.getAttribute('data-request-id');
 			await rejectLobbyRequest(requestId);
@@ -734,9 +749,6 @@ document.addEventListener("DOMContentLoaded", async function ()
 		else if (event.target.parentElement && event.target.parentElement.id === 'onlineFriends') {
 			selectedFriend = handleFriendClick(event, menu, selectedFriend)
 		}
-		// else if (event.target.parentElement && event.target.parentElement.id === 'offlineFriends') {
-		//     selectedFriend = handleFriendClick(event, menu, selectedFriend)
-		// }
 		if (!menu.contains(event.target) && !event.target.classList.contains('list-group-item')) // outside click
 		{
 			closeMenu(menu);
@@ -747,8 +759,8 @@ document.addEventListener("DOMContentLoaded", async function ()
 		}
 	});
 	const inputField = document.getElementById("addFriendInput");
-    // const addButton = document.getElementById("addFriendButton");
-	document.addEventListener('keydown', async function(event) {
+	document.addEventListener('keydown', async function(event)
+	{
 		if (event.key === "Enter")
 		{
 			event.preventDefault();

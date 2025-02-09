@@ -3,8 +3,9 @@ from rest_framework.response import Response # type: ignore
 from asgiref.sync import async_to_sync # type: ignore
 from channels.layers import get_channel_layer # type: ignore
 from account.models import User, UserChange
-from matchmaker.models import LobbyChange, LobbyPlayer
+from matchmaker.models import LobbyChange, LobbyPlayer, LobbyStatus, GameMode, Team, Entry, Match
 import logging
+import random
 
 logger = logging.getLogger('default')
 
@@ -45,8 +46,8 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     if code == "invalid_request_type" :
         return f"Invalid request type : '{kwargs.get('request_type')}'. Expected values: 'invite' or 'join'."
     #
-    if code == "invalid_is_in_queue":
-        return f"Invalid value for 'is_in_queue': '{kwargs.get('is_in_queue')}'. Expected values: 'true' or 'false'."
+    if code == "invalid_lobby_status":
+        return "Invalid lobby status : expected 'default' or 'start'."
     #
     if code == "already_in_queue":
         return "You are already in queue."
@@ -120,6 +121,9 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     #
     if split[-1] == "deleted":
         return f"{' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} deleted successfully."
+    #
+    if split[-1] == "created":
+        return f"A {' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} has been successfully created."
     #
     if split[0] == "unknown":
         return f"This {' '.join([s for s in split[1:]])} was not found."
@@ -225,7 +229,7 @@ def change_lobby_api(player, lobby):
 
 
 def change_matchmaking_api(lobby_player, change):
-    lobby_player.lobby.is_in_queue = True if change == "start" else False
+    lobby_player.lobby.status = LobbyStatus.IN_QUEUE if change == "start" else False
     lobby_player.lobby.save()
     send_ws_message("matchmaking_player", lobby_player.id, change)
 
@@ -233,7 +237,7 @@ def change_matchmaking_api(lobby_player, change):
 def leave_lobby_api(player, back_to_main_lobby=True):
     send_notifications("lobby", player.lobby.id, {'type': LobbyChange.LEAVE, 'username': player.user.username})
     send_notifications("matchmaking_lobby", player.lobby.id, {'type': LobbyChange.LEAVE})
-    if player.lobby.is_in_queue:
+    if player.lobby.status == LobbyStatus.IN_QUEUE:
         change_matchmaking_api(player, "stop")
     new_leader = player.leave_lobby()
     if new_leader:
@@ -249,3 +253,30 @@ def notify_friends_api(user):
         friend_player = LobbyPlayer.get_by_user(friend)
         if friend_player:
             send_notifications("lobby_player", friend_player.id, {'type': UserChange.INFO, 'username': user.username})
+
+
+def create_match(lobbies):
+    match_choice = lobbies[0].match_choice
+    match = Match.objects.create(
+        info=match_choice,
+    )
+    players = [player for _lobby in lobbies for player in _lobby.members]
+    if match_choice.mode == GameMode.SOLO:
+        player_team = Team.objects.create()
+        Entry.objects.create(user=players[0].user, team=player_team, pseudo=players[0].pseudo)
+        ai_team = Team.objects.create()
+        Entry.objects.create(user=None, team=ai_team, pseudo="IA")
+        match.teams.add(player_team, ai_team)
+    elif match_choice.mode == GameMode.MULTI_1V1 :
+        for player in players:
+            team = Team.objects.create()
+            Entry.objects.create(user=player.user, team=team, pseudo=player.pseudo)
+            match.teams.add(team)
+    elif match_choice.mode == GameMode.MULTI_2V2:
+        for index, player in enumerate(players):
+            if index % 2 == 0:
+                team = Team.objects.create()
+            Entry.objects.create(user=player.user, team=team, pseudo=player.pseudo)
+            if index % 2 == 1:
+                match.teams.add(team)
+    return match

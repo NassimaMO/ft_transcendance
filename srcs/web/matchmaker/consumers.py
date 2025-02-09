@@ -7,10 +7,8 @@ from rest_framework.test import APIRequestFactory # type: ignore
 from asgiref.sync import sync_to_async # type: ignore
 from . import models
 from account.models import Status
-# from api.lobby.views import UserLobbiesMainView
-# from api.user.views import UserMeView
-from api.utils import leave_lobby_api, notify_friends_api
-from matchmaker.models import WebsocketStatus, LobbyChange
+from api.utils import leave_lobby_api, notify_friends_api, create_match
+from matchmaker.models import WebsocketStatus, LobbyChange, LobbyStatus
 from datetime import datetime
 
 logger = logging.getLogger("default")
@@ -104,9 +102,9 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             await self.notify_queue_stop()
 
     def add_to_queue(self):
-        if not self.player.lobby.is_in_queue :
+        if self.player.lobby.status != LobbyStatus.IN_QUEUE :
             with rom.util.EntityLock(self.player.lobby, 5, 90):
-                self.player.lobby.update(is_in_queue=True)
+                self.player.lobby.update(status=LobbyStatus.IN_QUEUE)
         self.matchmaking = models.Matchmaking.get_or_create(self.match_choice)
         self.waiting_lobby = models.WaitingLobby.get_or_create(self.player.lobby)
         self.waiting_lobby.add_to_queue(self.matchmaking)
@@ -116,9 +114,9 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if self.waiting_lobby :
             self.waiting_lobby.delete()
         self.waiting_lobby = None
-        if self.player.lobby.is_in_queue:
+        if self.player.lobby.status == LobbyStatus.IN_QUEUE:
             with rom.util.EntityLock(self.player.lobby, 5, 90):
-               self.player.lobby.update(is_in_queue=False)
+               self.player.lobby.update(status=LobbyStatus.DEFAULT)
         self.logger("Lobby removed from queue")
 
     def time_algo(self):
@@ -157,14 +155,17 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if lobbies :
             self.logger("Creating match")
             await sync_to_async(self.remove_from_queue)()
-            match = await sync_to_async(models.Match.objects.create)(info=self.match_choice)
-            match_url = f'/play/game/{match.id}/'
+            match = await sync_to_async(create_match)(lobbies)
+            match_url = f'/pong/{match.id}/'
             for lobby in lobbies :
                 await self.channel_layer.group_send(
                     f"matchmaking_lobby_{lobby.id}",
                     {
                         'type': 'match_found',
-                        'match_url': match_url
+                        'match': {
+                            'id': match.id,
+                            'url': match_url
+                        }
                     }
                 )
 

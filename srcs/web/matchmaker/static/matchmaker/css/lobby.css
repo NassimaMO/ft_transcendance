@@ -7,15 +7,16 @@
 }
 
 .modes-container {
-    flex: 0 0 220px;
+    flex: 0 0 200px;
     background-color: rgba(30, 30, 30, 0.95);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    height: 250px;
+    height: 280px;
     overflow-y: auto;
     color: white;
     padding: 20px;
     align-self: center;
     margin: 20px;
+    border-radius: 15px;
 }
 
 .modes-window {

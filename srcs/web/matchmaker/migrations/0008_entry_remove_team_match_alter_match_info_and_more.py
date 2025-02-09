@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='match',
             name='info',
-            field=models.ForeignKey(default=matchmaker.models.get_default_match_choice_id, on_delete=django.db.models.deletion.CASCADE, related_name='matches', to='matchmaker.matchchoice'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='matches', to='matchmaker.matchchoice'),
         ),
         migrations.AlterField(
             model_name='match',

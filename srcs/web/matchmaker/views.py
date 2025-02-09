@@ -1,8 +1,8 @@
-import logging
+import logging, json
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from matchmaker.forms import MatchChoiceForm
-from .models import Lobby, LobbyPlayer
+from .models import Lobby, LobbyPlayer, LobbyStatus, GameMode, Connectivity, MatchmakingMode
 from .serializers import LobbySerializer, LobbyPlayerSerializer
 from account.serializers import UserSerializer
 from account.models import Status
@@ -60,7 +60,7 @@ def matchmaking_view(request) :
         return redirect("lobby-home")
     lobby_player_data = LobbyPlayerSerializer(lobby_player, context={'request':request, 'type':'template'}).data
     lobby_data = LobbySerializer(lobby_player.lobby, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/matchmaking.html', {'lobby_player': lobby_player_data, 'lobby': lobby_data})
+    return render(request, 'matchmaker/matchmaking.html', {'lobby_player': lobby_player_data, 'lobby': lobby_data, "LobbyStatus": LobbyStatus})
 
 @login_required
 def invite_banner_view(request) :
@@ -100,7 +100,15 @@ def lobby_view(request, lobby_id) :
         mode_form = MatchChoiceForm(instance=player.lobby.match_choice)
         lobby = LobbySerializer(player.lobby, context={'request':request, 'type':'template'}).data
         user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/lobby.html', 
-                  {"lobby": lobby, 
-                   'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
-                   'mode_form': mode_form, 'user': user, 'Status': Status, "timestamp": int(timezone.now().timestamp())})
+    context = {
+        'user': user,
+        "lobby": lobby, 
+        'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
+        'mode_form': mode_form,
+        'Status': Status,
+        "MatchmakingMode": json.dumps(MatchmakingMode.to_dict(), ensure_ascii=False),
+        "GameMode": json.dumps(GameMode.to_dict(), ensure_ascii=False),
+        "Connectivity": json.dumps(Connectivity.to_dict(), ensure_ascii=False),
+        "timestamp": int(timezone.now().timestamp())
+    }
+    return render(request, 'matchmaker/lobby.html', context)
