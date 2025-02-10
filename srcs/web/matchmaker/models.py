@@ -41,7 +41,7 @@ class Rank(models.Model):
 		ordering = ["game", "order"]
 
 	def __str__(self):
-		return f"{self.game.name} - {self.name}"
+		return self.name
 
 	def next_rank(self):
 		next_rank = Rank.objects.filter(game=self.game, order__gt=self.order).order_by("order").first()
@@ -63,7 +63,7 @@ class UserRank(models.Model):
 		unique_together = ("user", "game")
 
 	def __str__(self):
-		return f"{self.game.name}: {self.rank.name} {self.division}"
+		return f"{self.game}: {self.rank} {self.division}"
 
 	def promote(self):
 		if self.marks >= self.rank.marks_required:
@@ -97,9 +97,9 @@ class UserRank(models.Model):
 
 
 class ChoiceEnum(models.TextChoices):
-    @classmethod
-    def to_dict(cls):
-        return {mode.name: {"value": mode.value, "label": mode.label} for mode in cls}
+	@classmethod
+	def to_dict(cls):
+		return {mode.name: {"value": mode.value, "label": mode.label} for mode in cls}
 
 
 class GameMode(ChoiceEnum) :
@@ -124,7 +124,7 @@ class MatchChoice(models.Model):
 	connectivity = models.CharField(max_length=20, choices=Connectivity.choices, default=Connectivity.LOCAL)
 	mode = models.CharField(max_length=20, choices=GameMode.choices, default=GameMode.SOLO)
 	matchmaking = models.CharField(max_length=20, choices=MatchmakingMode.choices, default=MatchmakingMode.UNRANK)
-	auto_fill = models.BooleanField(default=True)
+	auto_fill = models.BooleanField(default=False)
 
 	class Meta:
 		unique_together = ('game', 'connectivity', 'mode', 'matchmaking', 'auto_fill')
@@ -153,7 +153,7 @@ class MatchChoice(models.Model):
 		return cls.get_default().id
 
 	def __str__(self):
-		return f"<MatchChoice {self.id}: {self.jeu}-{self.mode}-{self.connectivity}-{self.matchmaking}-{'autofill' if self.auto_fill else ''}"
+		return f"<MatchChoice {self.id}: {self.game}-{self.mode}-{self.connectivity}-{self.matchmaking}-{'autofill' if self.auto_fill else ''}"
 	
 	def need_matchmaking(self) :
 		if (self.mode == GameMode.SOLO or self.connectivity == Connectivity.LOCAL) :
@@ -233,7 +233,7 @@ class Team(models.Model):
 
 
 class Entry(models.Model):
-	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE)
+	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE, null=True, blank=True)
 	team = models.ForeignKey(Team, related_name="history", on_delete=models.CASCADE)
 	pseudo = models.CharField(max_length=20)
 	score = models.IntegerField(default=0)
@@ -348,14 +348,20 @@ class LobbyRequest(rom.Model):
 			self._sender = value.user.username.encode('utf-8')
 
 
-class WebsocketStatus():
+class BaseCodes():
+	@classmethod
+	def to_dict(cls):
+		return {attr: value for attr, value in cls.__dict__.items() if not attr.startswith("__") and not callable(value)}
+
+
+class WebsocketStatus(BaseCodes):
 	DISCONNECTED = 0
 	CONNECTING = 1
 	CONNECTED = 2
 	DISCONNECTING = 3
 
 
-class LobbyChange():
+class LobbyChange(BaseCodes):
 	MATCH_CHOICE = "match-choice"
 	LEAVE = "leave"
 	JOIN = "join"
@@ -365,7 +371,7 @@ class LobbyChange():
 	PLAYER = "player"
 
 
-class LobbyStatus():
+class LobbyStatus(BaseCodes):
 	DEFAULT = "default"
 	START = "start"
 	IN_QUEUE = "in_queue"

@@ -148,9 +148,7 @@ class MainLobbyView(APIView):
 			lobby_status = request.data.get("status")
 			match_choice = request.data.get("match-choice")
 			if match_choice:
-				# logger.info(f"raw data: match_choice")
 				serializer = MatchChoiceSerializer(data=match_choice)
-				logger.info(f"initial data: {serializer.initial_data}")
 				if serializer.is_valid():
 					match_choice_instance = serializer.save()
 					lobby_player.lobby.match_choice = match_choice_instance
@@ -170,7 +168,7 @@ class MainLobbyView(APIView):
 						return Response(message, status=status.HTTP_200_OK)
 					if not lobby_player.lobby.match_choice.need_matchmaking():
 						lobby_player.lobby.status = LobbyStatus.REDIRECT
-						match = create_match(lobby_player.lobby)
+						match = create_match([lobby_player.lobby])
 						message['match'] = {'id': match.id, 'url': f'/pong/{match.id}'}
 						add_message(message, "match_created")
 						return Response(message, status=status.HTTP_303_SEE_OTHER)

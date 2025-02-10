@@ -19,7 +19,7 @@ class MatchChoiceForm(forms.ModelForm):
         if self.has_error(NON_FIELD_ERRORS, code="unique_together") :
             return True
         return False
-    
+
     def save(self, commit=True):
         game = self.cleaned_data.get('game')
         connectivity = self.cleaned_data.get('connectivity')
@@ -33,13 +33,18 @@ class MatchChoiceForm(forms.ModelForm):
         return instance
 
     def __init__(self, *args, **kwargs):
+        self.is_edit = kwargs.pop('is_edit', False)
         super().__init__(*args, **kwargs)
         self.fields['game'].label_from_instance = lambda obj: obj.name.capitalize()
-        self.fields['auto_fill'].widget.attrs['disabled'] = True
+        if not self.is_edit:
+            self.fields['auto_fill'].widget.attrs['id'] = f"default_id_auto_fill"
+            self.fields['auto_fill'].widget.attrs['disabled'] = True
         mode = self.initial.get('mode', None)
         connectivity = self.initial.get('connectivity', None)
         if mode == GameMode.SOLO or mode == GameMode.MULTI_1V1 or connectivity == Connectivity.LOCAL:
             self.fields['auto_fill'].widget.attrs['hidden'] = True
+        else:
+            self.fields['auto_fill'].widget.attrs['hidden'] = False
 
     def clean(self):
         cleaned_data = super().clean()

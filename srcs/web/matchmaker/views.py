@@ -22,7 +22,7 @@ def modes_view(request):
     if not lobby :
         return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST, instance=lobby.match_choice)
+        mode_form = MatchChoiceForm(data=request.POST, instance=lobby.match_choice, is_edit=True)
         if mode_form.is_valid():
             lobby.match_choice = mode_form.save()
             lobby.save()
@@ -31,9 +31,10 @@ def modes_view(request):
                           {'mode_form': mode_form, 'lobby_player': lobby_player, 'form_errors': mode_form.errors})
     else :
         mode_form = MatchChoiceForm(instance=lobby.match_choice)
+        mode_form_edit = MatchChoiceForm(instance=lobby.match_choice, is_edit=True)
     lobby_player = LobbyPlayer.get_or_create(request.user)
     data = LobbyPlayerSerializer(lobby_player, context={'request':request, 'type':'template'}).data
-    return render(request, 'matchmaker/modes.html', {'mode_form': mode_form, 'lobby_player': data})
+    return render(request, 'matchmaker/modes.html', {'mode_form': mode_form, 'mode_form_edit': mode_form_edit, 'lobby_player': data})
 
 @login_required
 def lobby_list_view(request) :
@@ -94,10 +95,11 @@ def lobby_view(request, lobby_id) :
     if not player or not player.lobby:
         return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST, instance=player.lobby.match_choice)
+        mode_form = MatchChoiceForm(data=request.POST, instance=player.lobby.match_choice, is_edit=True)
         mode_form.save()
     else :
         mode_form = MatchChoiceForm(instance=player.lobby.match_choice)
+        mode_form_edit = MatchChoiceForm(instance=player.lobby.match_choice, is_edit=True)
         lobby = LobbySerializer(player.lobby, context={'request':request, 'type':'template'}).data
         user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
     context = {
@@ -105,7 +107,9 @@ def lobby_view(request, lobby_id) :
         "lobby": lobby, 
         'lobby_users': [lobby_player['user'] for lobby_player in lobby['members']], 
         'mode_form': mode_form,
+        'mode_form_edit': mode_form_edit,
         'Status': Status,
+        "LobbyStatus": json.dumps(LobbyStatus.to_dict(), ensure_ascii=False),
         "MatchmakingMode": json.dumps(MatchmakingMode.to_dict(), ensure_ascii=False),
         "GameMode": json.dumps(GameMode.to_dict(), ensure_ascii=False),
         "Connectivity": json.dumps(Connectivity.to_dict(), ensure_ascii=False),
