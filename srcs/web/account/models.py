@@ -72,28 +72,13 @@ class User(AbstractUser):
 		return user in self.friends.all()
 	
 	# STATS
+
+	def get_matches(self):
+		from matchmaker.models import Match
+		return Match.objects.filter(teams__players__user=self).distinct().order_by('-date')
 	
-	def ordered_history(self):
+	def get_ordered_history(self):
 		return self.history.annotate(date=F('team__matches__date')).order_by('-date')
-
-	"""def get_history(self, all_games_played, user):
-        history = []
-        for match in all_games_played:
-            matches = {}
-            winning_team = Team.objects.filter(match=match).order_by('-score').first()
-            if winning_team and winning_team.players.filter(id=user.id).exists():
-                matches["result"] = "Victory"
-                matches["team1_score"] = winning_team.score
-                matches["team2_score"] = Team.objects.filter(match=match).exclude(id=winning_team.id).first()
-
-            else:
-                matches["result"] = "Defeat"
-                matches["team1_score"] = Team.objects.filter(match=match).exclude(id=winning_team.id).first()
-                matches["team2_score"] = winning_team.score
-            matches["mode"] = match.info.mode
-            matches["date"] = match.date
-            history.append(matches)
-        return history"""
 
 	def get_total_games_won(self):
 		return sum(int(entry.is_winner()) for entry in self.history.all())
@@ -106,7 +91,7 @@ class User(AbstractUser):
 	
 	def get_win_streak(self):
 		win_streak = 0
-		for entry in self.ordered_history():
+		for entry in self.get_ordered_history():
 			if entry.is_winner():
 				win_streak += 1
 			else:

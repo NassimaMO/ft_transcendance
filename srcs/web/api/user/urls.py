@@ -15,7 +15,7 @@ urlpatterns = [
     path('users/me/ranks/', views.UserMeRanksView.as_view(), name='api-user-me-ranks'),
     path('users/me/ranks/<int:game_id>/', views.UserMeRankView.as_view(), name='api-user-me-rank-id'),
     path('users/me/ranks/<str:game_name>/', views.UserMeRankView.as_view(), name='api-user-me-rank-name'),
-
+    path('users/me/history/', views.UserMeHistoryView.as_view(), name='api-user-me-history'),
     path('users/me/stats/', views.UserMeStatsView.as_view(), name='api-user-me-stats'),
 
 

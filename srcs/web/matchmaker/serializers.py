@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from account.serializers import UserSerializer
 import logging
-from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby, UserRank, Game, LobbyStatus, GameMode, Connectivity, MatchmakingMode
+from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby, UserRank, Game, LobbyStatus
+from .models import GameMode, Connectivity, MatchmakingMode, Match, Team, Entry
 
-logger = logging.getLogger('default')
 
 
 class UserRankSerializer(serializers.ModelSerializer):
@@ -26,9 +26,15 @@ class UserRanksSerializer(serializers.Serializer):
     
 
 class MatchChoiceSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = MatchChoice
-        fields = ['game', 'connectivity', 'mode', 'matchmaking', 'auto_fill']
+        fields = ['connectivity', 'mode', 'matchmaking']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['game'] = instance.game.name.capitalize()
+        return data
 
     def is_valid(self, *, raise_exception=False):
         valid = super().is_valid(raise_exception=raise_exception)
@@ -51,10 +57,10 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         warnings = {}
-        if attrs.get("auto_fill") == 'on':
-            attrs["auto_fill"] = True
-        if attrs.get("auto_fill") == "off":
-            attrs['auto_fill'] = False
+        # if attrs.get("auto_fill") == 'on':
+        #     attrs["auto_fill"] = True
+        # if attrs.get("auto_fill") == "off":
+        #     attrs['auto_fill'] = False
         if attrs.get("mode") == GameMode.SOLO:
             if attrs.get("connectivity") != Connectivity.LOCAL:
                 warnings["connectivity"] = "La connectivité a été forcée en locale pour ce choix de modes."
@@ -62,11 +68,11 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
             if attrs.get("matchmaking") != MatchmakingMode.UNRANK:
                 warnings["matchmaking"] = "Le matchmaking a été forcé en non classé pour ce choix de modes."
                 attrs["matchmaking"] = MatchmakingMode.UNRANK
-        if attrs.get('auto_fill') is True and \
-            (attrs.get("mode") == GameMode.SOLO or attrs.get("mode") == GameMode.MULTI_1V1 or \
-            attrs.get("connectivity") == Connectivity.LOCAL) :
-            warnings["auto_fill"] = "Le remplissage automatique a été désactivé pour ce choix de modes."
-            attrs["auto_fill"] = False
+        # if attrs.get('auto_fill') is True and \
+        #     (attrs.get("mode") == GameMode.SOLO or attrs.get("mode") == GameMode.MULTI_1V1 or \
+        #     attrs.get("connectivity") == Connectivity.LOCAL) :
+        #     warnings["auto_fill"] = "Le remplissage automatique a été désactivé pour ce choix de modes."
+        #     attrs["auto_fill"] = False
         attrs["_warnings"] = warnings
         return attrs
 
@@ -83,6 +89,38 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('_warnings', None)
         return super().create(validated_data)
+    
+
+class EntrySerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = Entry
+        fields = ['user', 'pseudo', 'score']
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = ['score']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['players'] = EntrySerializer(instance.players, many=True).data
+        return data
+    
+
+class MatchSerializer(serializers.ModelSerializer):
+    info = MatchChoiceSerializer()
+
+    class Meta:
+        model = Match
+        fields = ['date', 'info']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['teams'] = TeamSerializer(instance.teams, many=True).data
+        return data
 
 
 class LobbyRequestSerializer(serializers.Serializer):
@@ -131,6 +169,7 @@ class LobbySerializer(serializers.Serializer):
     id = serializers.IntegerField()
     match_choice = MatchChoiceSerializer()
     is_open = serializers.BooleanField()
+    auto_fill = serializers.BooleanField()
 
     def get_players(self, obj):
         request = self.context.get('request')

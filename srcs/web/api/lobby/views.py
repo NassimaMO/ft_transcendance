@@ -134,10 +134,11 @@ class MainLobbyView(APIView):
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 	def patch(self, request):
-			"""Change your Lobby (match choice, queue, open/public)"""
+		"""Change your Lobby (match choice, queue, open/public)"""
 
-			message = {}
-		# try:
+		message = {}
+		request_status = status.HTTP_200_OK
+		try:
 			lobby_player = LobbyPlayer.get_by_user(request.user)
 			if not lobby_player or not lobby_player.lobby:
 				add_message(message, "not_in_lobby", level="ERROR")
@@ -145,9 +146,12 @@ class MainLobbyView(APIView):
 			if not lobby_player.is_leader:
 				add_message(message, "not_leader", level="ERROR")
 				return Response(message, status=status.HTTP_403_FORBIDDEN)
-			lobby_status = request.data.get("status")
-			match_choice = request.data.get("match-choice")
-			if match_choice:
+			if not request.data:
+				add_message(message, "no_data", level="ERROR")
+				return Response(message, status=status.HTTP_400_BAD_REQUEST)
+			lobby_status = request.data.pop("status", None)
+			match_choice = request.data.pop("match-choice", None)
+			if match_choice is not None:
 				serializer = MatchChoiceSerializer(data=match_choice)
 				if serializer.is_valid():
 					match_choice_instance = serializer.save()
@@ -158,40 +162,49 @@ class MainLobbyView(APIView):
 						'id': match_choice_instance.id,
 					}
 					add_message(message, "match_choice_updated")
-					return Response(message, status=status.HTTP_200_OK)
 				else:
-					return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-			elif lobby_status is not None:
+					if not message.get('errors'):
+						message['errors'] = serializer.errors
+					else:
+						message['errors'].extend(serializer.errors)
+					request_status=status.HTTP_400_BAD_REQUEST
+			if lobby_status is not None:
 				if lobby_status == "start":
 					if lobby_player.lobby.status == LobbyStatus.IN_QUEUE:
 						add_message(message, "already_in_queue")
 						return Response(message, status=status.HTTP_200_OK)
 					if not lobby_player.lobby.match_choice.need_matchmaking():
 						lobby_player.lobby.status = LobbyStatus.REDIRECT
-						match = create_match([lobby_player.lobby])
+						match = create_match([[lobby_player.lobby]])
 						message['match'] = {'id': match.id, 'url': f'/pong/{match.id}'}
 						add_message(message, "match_created")
-						return Response(message, status=status.HTTP_303_SEE_OTHER)
+						request_status = status.HTTP_303_SEE_OTHER
 					change_matchmaking_api(lobby_player, "start")
 					add_message(message, "matchmaking_started")
-					return Response(message, status=status.HTTP_200_OK)
 				elif lobby_status == "default":
 					if lobby_player.lobby.status != LobbyStatus.IN_QUEUE:
 						add_message(message, "not_in_queue")
-						return Response(message, status=status.HTTP_200_OK)
 					change_matchmaking_api(lobby_player, "stop")
 					add_message(message, "matchmaking_stopped")
-					return Response(message, status=status.HTTP_200_OK)
 				else:
 					add_message(message, "invalid_lobby_status", level="ERROR")
-					return Response(message, status=status.HTTP_400_BAD_REQUEST)
-			else:
-				add_message(message, "no_data", level="ERROR")
-				return Response(message, status=status.HTTP_400_BAD_REQUEST)
-		# except Exception as e:
-		# 	logger.error(f"Error updating lobby: {e}")
-		# 	add_message(message, "server_error", level="ERROR")
-		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+					request_status = status.HTTP_400_BAD_REQUEST
+			if request.data:
+				serializer = LobbySerializer(lobby_player.lobby, data=request.data, context={"request": request}, partial=True)
+				if serializer.is_valid():
+					serializer.save()
+					add_message(message, "lobby_updated")
+				else:
+					if not message.get('errors'):
+						message['errors'] = serializer.errors
+					else:
+						message['errors'].extend(serializer.errors)
+					request_status=status.HTTP_400_BAD_REQUEST
+			return Response(message, status=request_status)
+		except Exception as e:
+			logger.error(f"Error updating lobby: {e}")
+			add_message(message, "server_error", level="ERROR")
+			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		
 	def put(self, request):
 		"""Leave your Lobby (and return to another)"""

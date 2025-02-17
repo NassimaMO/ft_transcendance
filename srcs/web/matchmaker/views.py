@@ -1,12 +1,12 @@
 import logging, json
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from matchmaker.forms import MatchChoiceForm
+from django.contrib.auth.decorators import login_required # type: ignore
+from django.shortcuts import render, redirect # type: ignore
+from matchmaker.forms import LobbyForm
 from .models import Lobby, LobbyPlayer, LobbyStatus, GameMode, Connectivity, MatchmakingMode
 from .serializers import LobbySerializer, LobbyPlayerSerializer
 from account.serializers import UserSerializer
 from account.models import Status
-from django.utils import timezone
+from django.utils import timezone # type: ignore
 
 
 logger = logging.getLogger('default')
@@ -22,16 +22,16 @@ def modes_view(request):
     if not lobby :
         return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST, instance=lobby.match_choice, is_edit=True)
+        mode_form = LobbyForm(data=request.POST, instance=lobby, is_edit=True)
         if mode_form.is_valid():
-            lobby.match_choice = mode_form.save()
+            lobby = mode_form.save()
             lobby.save()
         else:
             return render(request, 'matchmaker/modes.html', 
                           {'mode_form': mode_form, 'lobby_player': lobby_player, 'form_errors': mode_form.errors})
     else :
-        mode_form = MatchChoiceForm(instance=lobby.match_choice)
-        mode_form_edit = MatchChoiceForm(instance=lobby.match_choice, is_edit=True)
+        mode_form = LobbyForm(instance=lobby)
+        mode_form_edit = LobbyForm(instance=lobby, is_edit=True)
     lobby_player = LobbyPlayer.get_or_create(request.user)
     data = LobbyPlayerSerializer(lobby_player, context={'request':request, 'type':'template'}).data
     return render(request, 'matchmaker/modes.html', {'mode_form': mode_form, 'mode_form_edit': mode_form_edit, 'lobby_player': data})
@@ -95,11 +95,11 @@ def lobby_view(request, lobby_id) :
     if not player or not player.lobby:
         return redirect("lobby-home")
     if request.method == 'POST' :
-        mode_form = MatchChoiceForm(data=request.POST, instance=player.lobby.match_choice, is_edit=True)
+        mode_form = LobbyForm(data=request.POST, instance=player.lobby, is_edit=True)
         mode_form.save()
     else :
-        mode_form = MatchChoiceForm(instance=player.lobby.match_choice)
-        mode_form_edit = MatchChoiceForm(instance=player.lobby.match_choice, is_edit=True)
+        mode_form = LobbyForm(instance=player.lobby)
+        mode_form_edit = LobbyForm(instance=player.lobby, is_edit=True)
         lobby = LobbySerializer(player.lobby, context={'request':request, 'type':'template'}).data
         user = UserSerializer(request.user, context={'request':request, 'type':'template'}).data
     context = {

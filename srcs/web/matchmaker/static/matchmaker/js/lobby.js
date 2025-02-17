@@ -353,7 +353,8 @@ async function stopMatchmaking()
 	}
 }
 
-function matchFound(url) {
+function matchFound(url)
+{
 	clearInterval(timerInterval);
     showMatchFound(url);
 }
@@ -432,8 +433,8 @@ async function applyModeSelection()
 			'connectivity': document.getElementById('id_connectivity').value,
 			'mode': document.getElementById('id_mode').value,
 			'matchmaking': document.getElementById('id_matchmaking').value,
-			'auto_fill': document.getElementById('id_auto_fill').checked
-		}
+		},
+		'auto_fill': document.getElementById('id_auto_fill').checked
 	};
 	const response = await APIRequest('/api/lobbies/main/', data, 'PATCH');
 	if (response.ok) {

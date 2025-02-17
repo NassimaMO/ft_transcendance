@@ -130,6 +130,7 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     #
     if split[0] == "no":
         return f"There is no {' '.join([s for s in split[1:]])}."
+    #
     return "Invalid request (error code unknown)"
 
 
@@ -208,7 +209,7 @@ def send_ws_message(recipient_type, recipient_id, message_type, **extra) :
         group_name,
         message
     )
-    logger.info(f"[API] Sending message to channel : {group_name} : {message}")
+    logger.info(f"[API] Sending {message_type} to channel {group_name} - Changes : {[change.get('type', change) for change in extra.get('changes', {})]}")
 
 
 def send_notifications(recipient_type, recipient_id, *changes):
@@ -229,7 +230,7 @@ def change_lobby_api(player, lobby):
 
 
 def change_matchmaking_api(lobby_player, change):
-    lobby_player.lobby.status = LobbyStatus.IN_QUEUE if change == "start" else False
+    lobby_player.lobby.status = LobbyStatus.IN_QUEUE if change == "start" else LobbyStatus.DEFAULT
     lobby_player.lobby.save()
     send_ws_message("matchmaking_player", lobby_player.id, change)
 
@@ -255,28 +256,16 @@ def notify_friends_api(user):
             send_notifications("lobby_player", friend_player.id, {'type': UserChange.INFO, 'username': user.username})
 
 
-def create_match(lobbies):
-    match_choice = lobbies[0].match_choice
-    match = Match.objects.create(
-        info=match_choice,
-    )
-    players = [player for _lobby in lobbies for player in _lobby.members]
+def create_match(teams):
+    match_choice = teams[0][0].match_choice
+    match = Match.objects.create(info=match_choice)
+    for team in teams:
+        team_obj = Team.objects.create()
+        for lobby in team:
+            team_obj.players.add(*[Entry.objects.create(user=player.user, pseudo=player.pseudo) for player in lobby.members])
+        match.teams.add(team_obj)
     if match_choice.mode == GameMode.SOLO:
-        player_team = Team.objects.create()
-        Entry.objects.create(user=players[0].user, team=player_team, pseudo=players[0].pseudo)
-        ai_team = Team.objects.create()
-        Entry.objects.create(user=None, team=ai_team, pseudo="IA")
-        match.teams.add(player_team, ai_team)
-    elif match_choice.mode == GameMode.MULTI_1V1 :
-        for player in players:
-            team = Team.objects.create()
-            Entry.objects.create(user=player.user, team=team, pseudo=player.pseudo)
-            match.teams.add(team)
-    elif match_choice.mode == GameMode.MULTI_2V2:
-        for index, player in enumerate(players):
-            if index % 2 == 0:
-                team = Team.objects.create()
-            Entry.objects.create(user=player.user, team=team, pseudo=player.pseudo)
-            if index % 2 == 1:
-                match.teams.add(team)
+        team_obj = Team.objects.create()
+        team_obj.players.add(Entry.objects.create(user=None, pseudo="IA"))
+        match.teams.add(team_obj)
     return match
