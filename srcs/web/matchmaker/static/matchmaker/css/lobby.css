@@ -14,8 +14,9 @@
 }
 
 .modes-container {
+    z-index: 1;
     flex: 0 0 200px;
-    background-color: rgba(30, 30, 30, 0.95);
+    background-color: rgba(30, 30, 30, 0.90);
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     height: 280px;
     overflow-y: auto;
@@ -37,6 +38,14 @@
     flex-direction: column;
     justify-content: center;
     height: 100%;
+}
+
+.modes-section label {
+    margin-right: 10px;
+}
+
+.modes-section input {
+    margin-left: auto;
 }
 
 .mode-option {
@@ -109,7 +118,7 @@ h3 {
 }
 
 .modal-section label {
-    display: block;
+    display: inline-block;
     margin-bottom: 5px;
 }
 
@@ -119,6 +128,18 @@ h3 {
     border: none;
     background-color: #444;
     color: white;
+}
+
+.modal-section input[type="checkbox"] {
+    margin-left: 20px;
+}
+
+.modal-option.checkbox {
+    margin-top: 20px;
+}
+
+.modal-option.select {
+    padding: 7px;
 }
 
 .modal-action {

@@ -9,7 +9,7 @@ from account.serializers import UserSerializer
 from account.models import User, UserChange
 from .serializers import RegisterSerializer
 from matchmaker.models import LobbyPlayer, Game, Rank
-from matchmaker.serializers import UserRanksSerializer, UserRankSerializer
+from matchmaker.serializers import UserRanksSerializer, UserRankSerializer, MatchSerializer
 import logging
 from api.utils import add_message
 
@@ -396,8 +396,8 @@ class UserRanksView(APIView):
 	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
 	def get(self, request, **kwargs):
-			message = {}
-		# try:
+		message = {}
+		try:
 			checking = check_args(User, **kwargs)
 			user = checking.get("obj")
 			if user is None:
@@ -405,10 +405,10 @@ class UserRanksView(APIView):
 			data = UserRanksSerializer(user.ranks, context={'request': request}).data
 			message['ranks'] = data
 			return Response(message, status=status.HTTP_200_OK)
-		# except Exception as e:
-		# 	logger.error(f"Error fetching ranks info: {e}")
-		# 	add_message(message, "server_error", level="ERROR")
-		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		except Exception as e:
+			logger.error(f"Error fetching ranks info: {e}")
+			add_message(message, "server_error", level="ERROR")
+			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UserMeRankView(APIView):
@@ -418,8 +418,8 @@ class UserMeRankView(APIView):
 	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
 	def get(self, request, **kwargs):
-			message = {}
-		# try:
+		message = {}
+		try:
 			checking = check_args(Game, **kwargs)
 			game = checking.get("obj")
 			if game is None:
@@ -428,10 +428,10 @@ class UserMeRankView(APIView):
 			data = UserRankSerializer(rank, context={'request': request}).data
 			message['rank'] = data
 			return Response(data, status=status.HTTP_200_OK)
-		# except Exception as e:
-		# 	logger.error(f"Error fetching rank info: {e}")
-		# 	add_message(message, "server_error", level="ERROR")
-		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		except Exception as e:
+			logger.error(f"Error fetching rank info: {e}")
+			add_message(message, "server_error", level="ERROR")
+			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		
 
 class UserRankView(APIView):
@@ -441,8 +441,8 @@ class UserRankView(APIView):
 	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
 	def get(self, request, **kwargs):
-			message = {}
-		# try:
+		message = {}
+		try:
 			checking = check_args(User, **kwargs)
 			user = checking.get("obj")
 			if user is None:
@@ -455,8 +455,27 @@ class UserRankView(APIView):
 			data = UserRankSerializer(rank, context={'request': request}).data
 			message['rank'] = data
 			return Response(data, status=status.HTTP_200_OK)
+		except Exception as e:
+			logger.error(f"Error fetching rank info: {e}")
+			add_message(message, "server_error", level="ERROR")
+			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserMeHistoryView(APIView):
+	"""PATH users/me/history/"""
+
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+	def get(self, request, **kwargs):
+			message = {}
+		# try:
+			matches = request.user.get_matches()
+			data = MatchSerializer(matches, many=True).data
+			message['history'] = data
+			return Response(data, status=status.HTTP_200_OK)
 		# except Exception as e:
-		# 	logger.error(f"Error fetching rank info: {e}")
+		# 	logger.error(f"Error fetching history info: {e}")
 		# 	add_message(message, "server_error", level="ERROR")
 		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

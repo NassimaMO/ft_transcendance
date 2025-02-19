@@ -31,6 +31,11 @@ async function APIRequest(url, data=null, http_method='GET')
 					console.error(`[APIRequest] Erreur (${key}): ${message}`);
 				}
 			}
+			else if (response.status == 303)
+			{
+				console.log("Redirection...");
+				window.location.href = jsonResponse.match.url;
+			}
 			else {
 				console.error('[APIRequest] Une erreur inattendue est survenue.');
 			}
@@ -348,7 +353,8 @@ async function stopMatchmaking()
 	}
 }
 
-function matchFound(url) {
+function matchFound(url)
+{
 	clearInterval(timerInterval);
     showMatchFound(url);
 }
@@ -372,6 +378,26 @@ function closeModeSelection()
 	document.getElementById('modeSelectionModal').style.display = 'none';
 }
 
+function deactivateAutoFill()
+{
+	let autofillField = document.getElementById("id_auto_fill");
+	let label = document.querySelector(`label[for="id_auto_fill"]`);
+
+	autofillField.checked = false;
+	autofillField.hidden = true;
+	label.hidden = true;
+}
+
+function activateAutoFill()
+{
+	let autofillField = document.getElementById("id_auto_fill");
+	let label = document.querySelector(`label[for="id_auto_fill"]`);
+
+	autofillField.checked = true;
+	autofillField.hidden = false;
+	label.hidden = false;
+}
+
 function updateModeOptions()
 {
 	let modeField = document.getElementById("id_mode");
@@ -381,11 +407,6 @@ function updateModeOptions()
 
 	connectivityField.querySelectorAll("option").forEach(option => option.hidden = false);
 	matchmakingField.querySelectorAll("option").forEach(option => option.hidden = false);
-	autofillField.hidden = false;
-	if (autofillField.disabled) {
-		autofillField.disabled = false;
-	}
-	console.log(autofillField);
 	if (modeField.value === GameMode['SOLO'].value)
 	{
 		const localValue = Connectivity['LOCAL'].value;
@@ -394,11 +415,13 @@ function updateModeOptions()
 		matchmakingField.value = unrankValue;
 		connectivityField.querySelectorAll(`option:not([value="${localValue}"])`).forEach(option => option.hidden = true);
 		matchmakingField.querySelectorAll(`option:not([value="${unrankValue}"])`).forEach(option => option.hidden = true);
-		autofillField.hidden = true;
+		deactivateAutoFill()
 	}
-	else if (modeField.value === GameMode["MULTI_1V1"].value || connectivityField === Connectivity["LOCAL"].value)
-	{
-		autofillField.hidden = true;
+	else if (modeField.value === GameMode["MULTI_1V1"].value || connectivityField.value === Connectivity["LOCAL"].value) {
+		deactivateAutoFill()
+	}
+	else if (autofillField.hidden) {
+		activateAutoFill();
 	}
 }
 
@@ -410,8 +433,8 @@ async function applyModeSelection()
 			'connectivity': document.getElementById('id_connectivity').value,
 			'mode': document.getElementById('id_mode').value,
 			'matchmaking': document.getElementById('id_matchmaking').value,
-			'auto_fill': document.getElementById('id_auto_fill').checked
-		}
+		},
+		'auto_fill': document.getElementById('id_auto_fill').checked
 	};
 	const response = await APIRequest('/api/lobbies/main/', data, 'PATCH');
 	if (response.ok) {
@@ -659,7 +682,7 @@ document.addEventListener("DOMContentLoaded", async function ()
 		const inviteMenu = document.getElementById('inviteMenu');
 		const inviteButton = document.getElementById('inviteButton');
 
-		if (event.target.tagName == "SELECT" && event.target.parentElement && event.target.parentElement.classList.contains('modal-section')) {
+		if (event.target.parentElement && event.target.parentElement.classList.contains('modal-option')) {
 			updateModeOptions();
 		}
 		if (event.target.id == "button-lobby" || event.target.id == "button-carreer")
@@ -673,7 +696,7 @@ document.addEventListener("DOMContentLoaded", async function ()
 		}
 		if (event.target.id === 'matchmaking-btn' && lobby_player.is_leader)
 		{
-			if (lobby.status === "in_queue" && lobby.members.every(player => player.is_ready)) {
+			if (lobby.status === LobbyStatus['DEFAULT'] && lobby.members.every(player => player.is_ready)) {
 				startMatchmaking();
 			}
 			else {

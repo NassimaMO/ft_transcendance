@@ -2,10 +2,10 @@
 {% load static %}
 
 {% block extraCSS %}
+{{ block.super }}
     <link rel="stylesheet" type="text/css" href="{% static 'boards/css/boards.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'boards/css/dashboard.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'boards/css/history.css' %}">
-    {{ block.super }}
 {% endblock %}
     
     {% block lobbyBody %}

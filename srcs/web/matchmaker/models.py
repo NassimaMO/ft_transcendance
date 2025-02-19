@@ -41,7 +41,7 @@ class Rank(models.Model):
 		ordering = ["game", "order"]
 
 	def __str__(self):
-		return f"{self.game.name} - {self.name}"
+		return self.name
 
 	def next_rank(self):
 		next_rank = Rank.objects.filter(game=self.game, order__gt=self.order).order_by("order").first()
@@ -63,7 +63,7 @@ class UserRank(models.Model):
 		unique_together = ("user", "game")
 
 	def __str__(self):
-		return f"{self.game.name}: {self.rank.name} {self.division}"
+		return f"<UserRank {self.game}: {self.rank} {self.division}>"
 
 	def promote(self):
 		if self.marks >= self.rank.marks_required:
@@ -97,9 +97,9 @@ class UserRank(models.Model):
 
 
 class ChoiceEnum(models.TextChoices):
-    @classmethod
-    def to_dict(cls):
-        return {mode.name: {"value": mode.value, "label": mode.label} for mode in cls}
+	@classmethod
+	def to_dict(cls):
+		return {mode.name: {"value": mode.value, "label": mode.label} for mode in cls}
 
 
 class GameMode(ChoiceEnum) :
@@ -124,10 +124,9 @@ class MatchChoice(models.Model):
 	connectivity = models.CharField(max_length=20, choices=Connectivity.choices, default=Connectivity.LOCAL)
 	mode = models.CharField(max_length=20, choices=GameMode.choices, default=GameMode.SOLO)
 	matchmaking = models.CharField(max_length=20, choices=MatchmakingMode.choices, default=MatchmakingMode.UNRANK)
-	auto_fill = models.BooleanField(default=True)
 
 	class Meta:
-		unique_together = ('game', 'connectivity', 'mode', 'matchmaking', 'auto_fill')
+		unique_together = ('game', 'connectivity', 'mode', 'matchmaking')
 	
 	@classmethod
 	def get(cls, pk):
@@ -153,22 +152,29 @@ class MatchChoice(models.Model):
 		return cls.get_default().id
 
 	def __str__(self):
-		return f"<MatchChoice {self.id}: {self.jeu}-{self.mode}-{self.connectivity}-{self.matchmaking}-{'autofill' if self.auto_fill else ''}"
+		return f"<MatchChoice {self.id}: {self.game}-{self.mode}-{self.connectivity}-{self.matchmaking}"
 	
 	def need_matchmaking(self) :
 		if (self.mode == GameMode.SOLO or self.connectivity == Connectivity.LOCAL) :
 			return False
 		return True
 	
-	# @classmethod
-	# def create(cls, connectivity=Connectivity.LOCAL, mode=GameMode.SOLO, matchmaking=MatchmakingMode.UNRANK):
-	# 	match_choice, created = cls.objects.get_or_create(
-	# 		connectivity=connectivity,
-	# 		mode=mode,
-	# 		matchmaking=matchmaking
-	# 	)
-	# 	return match_choice
-
+	def players_required(self):
+		if self.mode == GameMode.SOLO :
+			return 1
+		if self.mode == GameMode.MULTI_1V1:
+			return 2
+		if self.mode == GameMode.MULTI_2V2:
+			return 4
+		
+	def teams_required(self):
+		return 2
+	
+	def players_per_team(self):
+		if self.mode == GameMode.SOLO or self.mode == GameMode.MULTI_1V1:
+			return 1
+		if self.mode == GameMode.MULTI_2V2:
+			return 2
 
 
 class MatchChoiceFilter(django_filters.FilterSet):
@@ -180,6 +186,7 @@ class MatchChoiceFilter(django_filters.FilterSet):
 		model = MatchChoice
 		fields = ['connectivity', 'mode', 'matchmaking']
 
+
 class Match(models.Model):
 	date = models.DateTimeField(default=timezone.now)
 	info = models.ForeignKey('MatchChoice', related_name="matches", on_delete=models.CASCADE)
@@ -190,6 +197,9 @@ class Match(models.Model):
 
 	def __repr__(self):
 		return self.__str__()
+	
+	class Meta:
+		ordering = ['-date']
 
 
 class MatchFilter(django_filters.FilterSet):
@@ -218,23 +228,8 @@ class MatchFilter(django_filters.FilterSet):
 		return queryset
 
 
-class Team(models.Model):
-	players = models.ManyToManyField(User, through="Entry")
-	score = models.IntegerField(default=0)
-
-	def __str__(self):
-		return f"Team {self.id}"
-
-	def __repr__(self):
-		return self.__str__()
-	
-	def is_winner(self):
-		return self.score == max([team.score for team in self.match.teams])
-
-
 class Entry(models.Model):
-	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE)
-	team = models.ForeignKey(Team, related_name="history", on_delete=models.CASCADE)
+	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE, null=True, blank=True)
 	pseudo = models.CharField(max_length=20)
 	score = models.IntegerField(default=0)
 
@@ -246,6 +241,20 @@ class Entry(models.Model):
 	
 	def is_winner(self):
 		return self.team.is_winner()
+
+
+class Team(models.Model):
+	players = models.ManyToManyField(Entry, related_name='teams')
+	score = models.IntegerField(default=0)
+
+	def __str__(self):
+		return f"Team {self.id}"
+
+	def __repr__(self):
+		return self.__str__()
+	
+	def is_winner(self):
+		return self.score == max([team.score for team in self.match.teams])
 
 
 # ********************************************* REDIS ORM MODELS *********************************************
@@ -298,26 +307,26 @@ class WaitingLobby(rom.Model):
 	
 
 class Matchmaking(rom.Model) :
-	match_choice = rom.ForeignModel(MatchChoice)
+	info = rom.ForeignModel(MatchChoice)
 	queue = rom.OneToMany("WaitingLobby")
 
 	@classmethod
-	def get_by_match_choice(cls, match_choice):
+	def get_by_info(cls, match_choice):
 		matchmakings = cls.query.all()
 		for matchmaking in matchmakings:
-			if matchmaking.match_choice.id == match_choice.id :
+			if matchmaking.info.id == match_choice.id :
 				return matchmaking
 			
 	@classmethod
 	def get_or_create(cls, match_choice):
-		matchmaking = cls.get_by_match_choice(match_choice)
+		matchmaking = cls.get_by_info(match_choice)
 		if not matchmaking:
-			matchmaking = cls(match_choice=match_choice)
+			matchmaking = cls(info=match_choice)
 			matchmaking.save()
 		return matchmaking
 	
 	def __str__(self) :
-		return f"<MM {self.match_choice}: {self.queue}>"
+		return f"<MM {self.info}: {self.queue}>"
 	
 
 class LobbyRequest(rom.Model):
@@ -348,14 +357,20 @@ class LobbyRequest(rom.Model):
 			self._sender = value.user.username.encode('utf-8')
 
 
-class WebsocketStatus():
+class BaseCodes():
+	@classmethod
+	def to_dict(cls):
+		return {attr: value for attr, value in cls.__dict__.items() if not attr.startswith("__") and not callable(value)}
+
+
+class WebsocketStatus(BaseCodes):
 	DISCONNECTED = 0
 	CONNECTING = 1
 	CONNECTED = 2
 	DISCONNECTING = 3
 
 
-class LobbyChange():
+class LobbyChange(BaseCodes):
 	MATCH_CHOICE = "match-choice"
 	LEAVE = "leave"
 	JOIN = "join"
@@ -365,7 +380,7 @@ class LobbyChange():
 	PLAYER = "player"
 
 
-class LobbyStatus():
+class LobbyStatus(BaseCodes):
 	DEFAULT = "default"
 	START = "start"
 	IN_QUEUE = "in_queue"
@@ -451,6 +466,7 @@ class Lobby(rom.Model) :
 	id = rom.PrimaryKey(index=True)
 	members = rom.OneToMany("LobbyPlayer")
 	match_choice = rom.ForeignModel(MatchChoice, default=MatchChoice.get_default)
+	auto_fill = rom.Boolean(default=False)
 	is_open = rom.Boolean(default=False)
 	_status = rom.String(default=LobbyStatus.DEFAULT.encode('utf-8'))
 
@@ -515,3 +531,11 @@ class Lobby(rom.Model) :
 		if waiting_lobby:
 			return waiting_lobby.get_queue_time()
 		return 0
+	
+	def members_count(self, include_autofill=False):
+		if include_autofill and self.auto_fill is False:
+			return self.match_choice.players_required() / self.match_choice.teams_required() 
+		return len(self.members)
+		
+	def is_complete(self, include_autofill=False):
+		return self.members_count(include_autofill) == self.match_choice.players_per_team()

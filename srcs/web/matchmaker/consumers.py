@@ -18,6 +18,21 @@ RELOAD_TIMEOUT = 1
 # rom.util.use_rom_session()
 
 class MatchmakingConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.player = None
+        self.waiting_lobby = None
+        self.user = None
+        self.player = None
+        self.generate_handlers(["match_found", "queue_start", "queue_stop"])
+
+    def generate_handlers(self, event_types):
+        for event_type in event_types:
+            async def handler(self, event):
+                self.logger(event_type)
+                await self.send(text_data=json.dumps(event))
+            setattr(self, event_type, handler.__get__(self))    
 
     def logger(self, message, logger_level=logger.info):
         s = "[MatchmakingConsumer]"
@@ -51,7 +66,6 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             )
 
     async def connect(self):
-        self.waiting_lobby = None
         self.user = self.scope['user']
         await sync_to_async(self.user.refresh_from_db)()
         if not self.user:
@@ -103,8 +117,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
     def add_to_queue(self):
         if self.player.lobby.status != LobbyStatus.IN_QUEUE :
-            with rom.util.EntityLock(self.player.lobby, 5, 90):
-                self.player.lobby.update(status=LobbyStatus.IN_QUEUE)
+            self.player.lobby.status = LobbyStatus.IN_QUEUE
+            self.player.lobby.save()
         self.matchmaking = models.Matchmaking.get_or_create(self.match_choice)
         self.waiting_lobby = models.WaitingLobby.get_or_create(self.player.lobby)
         self.waiting_lobby.add_to_queue(self.matchmaking)
@@ -115,21 +129,43 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             self.waiting_lobby.delete()
         self.waiting_lobby = None
         if self.player.lobby.status == LobbyStatus.IN_QUEUE:
-            with rom.util.EntityLock(self.player.lobby, 5, 90):
-               self.player.lobby.update(status=LobbyStatus.DEFAULT)
+            self.player.lobby.status = LobbyStatus.DEFAULT
+            self.player.lobby.save()
         self.logger("Lobby removed from queue")
 
+    def get_players_number(self, teams):
+        return sum([lobby.members_count(include_autofill=True) for team in teams for lobby in team])
+    
+    def join_team(self, teams, lobby):
+        for team in teams:
+            if self.can_join_team(team, lobby):
+                team.append(lobby)
+                return True
+        return False
+    
+    def can_join_team(self, team, lobby):
+        return team[0].auto_fill and self.get_players_number([team]) + self.get_players_number([[lobby]]) <= self.matchmaking.info.players_per_team()
+
     def time_algo(self):
-        self.logger("Checking queue")
-        lobbies = []
+        teams = []
+        teams_required = self.match_choice.teams_required()
         for waiting_lobby in self.matchmaking.queue:
             if waiting_lobby.lobby:
-                lobbies.append(waiting_lobby.lobby)
+                free_team = len(teams) < teams_required
+                lobby_complete = waiting_lobby.lobby.is_complete()
+                if lobby_complete and free_team:
+                    teams.append([waiting_lobby.lobby])
+                elif not lobby_complete:
+                    if waiting_lobby.lobby.auto_fill:
+                        if not self.join_team(teams, waiting_lobby.lobby) and free_team:
+                            teams.append([waiting_lobby.lobby])
+                    elif free_team and (any([lobby.is_complete() for t in teams for lobby in t]) or len(teams) + 1 < teams_required):
+                        teams.append([waiting_lobby.lobby])
             else:
                 waiting_lobby.matchmaking = None
                 waiting_lobby.save()
-        if len(lobbies) >= 2:
-            return lobbies[:2]
+        if self.get_players_number(teams) == self.match_choice.players_required():
+            return teams
 
     def get_lobby_members(self):
         return self.player.lobby.members
@@ -151,13 +187,13 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         )
 
     async def create_match(self):
-        lobbies = await sync_to_async(self.time_algo)()
-        if lobbies :
+        teams = await sync_to_async(self.time_algo)()
+        if teams :
             self.logger("Creating match")
             await sync_to_async(self.remove_from_queue)()
-            match = await sync_to_async(create_match)(lobbies)
+            match = await sync_to_async(create_match)(teams)
             match_url = f'/pong/{match.id}/'
-            for lobby in lobbies :
+            for lobby in [lobby for team in teams for lobby in team] :
                 await self.channel_layer.group_send(
                     f"matchmaking_lobby_{lobby.id}",
                     {
@@ -168,28 +204,6 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                         }
                     }
                 )
-
-    async def match_found(self, event):
-        self.logger("Match found")
-        match_url = event.get('match_url', None)
-        if match_url:
-            await self.send(text_data=json.dumps({
-                'type': 'match_found',
-                'match_url': match_url
-            }))
-        self.close()
-
-    async def queue_start(self, event):
-        self.logger('queue_start')
-        await self.send(text_data=json.dumps({
-            'type': 'queue_start',
-        }))
-
-    async def queue_stop(self, event):
-        self.logger('queue_stop')
-        await self.send(text_data=json.dumps({
-            'type': 'queue_stop',
-        }))
 
     async def disconnect(self, close_code):
         await self.remove_from_group("player")
@@ -207,7 +221,6 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             await self.stop({'type': 'stop'})
 
     async def api_notif(self, event) :
-        self.logger(f"Received API Notif : 'changes': {list(event.get('changes', []))}")
         for change in event.get("changes") :
             if change.get("type") == LobbyChange.LEAVE:
                 await sync_to_async(self.player.refresh)(force=True)
@@ -313,7 +326,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             await sync_to_async(self.change_status)(Status.OFF)
 
     async def api_notif(self, event) :
-        self.logger(f"Received API Notif : 'changes': {list(event.get('changes', []))}")
+        self.logger(f"Received API Notif - Changes : {[change.get('type', change) for change in event.get('changes', {})]}")
         for change in event.get("changes") :
             if change.get("type") == LobbyChange.LEAVE and change.get("username") == self.user.username:
                 await sync_to_async(self.player.refresh)(force=True)
