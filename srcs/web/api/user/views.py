@@ -467,7 +467,7 @@ class UserMeHistoryView(APIView):
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
-	def get(self, request, **kwargs):
+	def get(self, request):
 			message = {}
 		# try:
 			matches = request.user.get_matches()
@@ -495,7 +495,7 @@ class UserStatsView(APIView):
 			user = checking.get("obj")
 			if not user:
 				return checking.get("error_response")
-			history = user.ordered_history()
+			'''history = user.ordered_history()
 			history_s = [
 				{
 					"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
@@ -505,7 +505,7 @@ class UserStatsView(APIView):
 					"date": match.date,
 				}
 				for match in history
-			]
+			]'''
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
 			games_lost = games_played - games_won
@@ -513,7 +513,6 @@ class UserStatsView(APIView):
 			average_score = user.get_average_score()
 			win_loss_ratio = games_won / (games_played - games_won) if games_played != games_won else games_won
 			data = {
-				"history": history_s,
 				"total_games_played": games_played,
 				"games_won": games_won,
 				"games_lost": games_lost,
@@ -543,7 +542,7 @@ class UserMeStatsView(APIView):
 		try:
 			user = request.user
 			#rank = user.ranks.get('pong')
-			history = user.ordered_history()
+			'''history = user.ordered_history()
 			history_s = [
 				{
 					"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
@@ -553,7 +552,7 @@ class UserMeStatsView(APIView):
 					"date": match.date,
 				}
 				for match in history
-			]
+			]'''
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
 			games_lost = games_played - games_won
@@ -561,14 +560,12 @@ class UserMeStatsView(APIView):
 			average_score = user.get_average_score()
 			win_loss_ratio = games_won / (games_played - games_won) if games_played != games_won else games_won
 			data = {
-				#"rank": rank,
 				"total_games_played": games_played,
 				"games_won": games_won,
 				"games_lost": games_lost,
 				"win_streak": win_streak,
 				"average_score": average_score,
 				"win_loss_ratio": win_loss_ratio,
-				"history": history_s,
 			}
 			message['stats'] = data
 			return Response(message, status=status.HTTP_200_OK)
