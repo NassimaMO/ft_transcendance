@@ -1,66 +1,16 @@
+import Utils from '../../js/utils.js';
+
 let lobby_player = null
 let lobby = null
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
-const csrftoken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-async function APIRequest(url, data=null, http_method='GET')
-{
-	let response = null;
-	let jsonResponse = null;
-	try
-	{
-		const options = {
-			method: http_method,
-			credentials: 'include',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-CSRFToken': csrftoken
-			},
-		};
-		if (data && (http_method === 'POST' || http_method === 'PUT' || http_method === 'PATCH' || http_method === 'DELETE')) {
-			options.body = JSON.stringify(data);
-		}
-		response = await fetch(url, options); 
-		jsonResponse = await response.json();
-		if (!response.ok)
-		{
-			if (jsonResponse.errors)
-			{
-				for (const [key, message] of Object.entries(jsonResponse.errors)) {
-					console.error(`[APIRequest] Erreur (${key}): ${message}`);
-				}
-			}
-			else if (response.status == 303)
-			{
-				console.log("Redirection...");
-				window.location.href = jsonResponse.match.url;
-			}
-			else {
-				console.error('[APIRequest] Une erreur inattendue est survenue.');
-			}
-		}
-		if (jsonResponse.message) {
-			console.log("Message from API : ", jsonResponse.message);
-		}
-	}
-	catch (error) {
-		console.error('[APIRequest] Erreur lors de la requête:', error);
-	}
-	if (jsonResponse) {
-		return {ok: response.ok, status: response.status, ...jsonResponse};
-	}
-	if (response) {
-		return {ok: response.ok, status: response.status};
-	}
-	return {ok: false, status: undefined};
-}
 
 async function updateVars()
 {
 	try
 	{
-		const response = await APIRequest('/api/lobbies/main/');
+		const response = await Utils.APIRequest('/api/lobbies/main/');
 		if (response.ok) {
 			lobby = response.lobby
 			lobby_player = response.lobby.members[0];
@@ -71,56 +21,6 @@ async function updateVars()
 	}
 	catch (error) {
 		console.error("Failed to fetch lobby data:", error);
-	}
-}
-
-async function initWS(name, url, eventHandler)
-{
-	try
-	{
-		const ws = new WebSocket(url);
-		ws.onopen = function() {
-			console.log(`WebSocket connection ${name} opened successfully.`);
-		};
-		
-		ws.onmessage = async function(event)
-		{
-			try {
-				await updateVars();
-				eventHandler(event)
-			}
-			catch (error) {
-				console.error(`Error handling WebSocket ${name} message: `, event.data, error);
-			}
-		};
-
-		ws.onerror = function(error) {
-			console.error("WebSocket error observed: ", error);
-		};
-
-		ws.onclose = async function(event)
-		{
-			if (event.wasClean)
-			{
-				console.log(`WebSocket connection ${name} closed cleanly.`);
-				console.error("Code:", event.code);
-				if (event.reason) {
-					console.error("Reason:", event.reason)
-				}
-			}
-			else
-			{
-				console.error(`WebSocket connection ${name} closed unexpectedly.`);
-				console.error("Code:", event.code);
-				if (event.reason) {
-					console.error("Reason:", event.reason)
-				}
-				
-			}
-		};
-	}
-	catch (error) {
-		console.error(`Failed to initialize WebSocket ${name} : ${error}`);
 	}
 }
 
@@ -261,11 +161,13 @@ function updateSection(section)
 	}
 }
 
-function redirectToGame(url) {
+function redirectToGame(url)
+{
     window.location.href = url;
 }
 
-function showMatchFound(url) {
+function showMatchFound(url)
+{
     const overlay = document.getElementById('match-found-overlay');
     const countdownText = document.getElementById('countdown-text');
     overlay.style.display = 'flex';
@@ -327,7 +229,7 @@ async function startMatchmaking()
 	const data = {
 		status: "start"
 	};
-	const response = await APIRequest("/api/lobbies/main/", data, "PATCH");
+	const response = await Utils.APIRequest("/api/lobbies/main/", data, "PATCH");
 	if (response.ok) {
 		console.log('Matchmaking started');
 	}
@@ -341,7 +243,7 @@ async function stopMatchmaking()
 	const data = {
 		status: "default"
 	};
-	const response = await APIRequest("/api/lobbies/main/", data, "PATCH");
+	const response = await Utils.APIRequest("/api/lobbies/main/", data, "PATCH");
 	if (response.ok)
 	{
 		updateTimerStop();
@@ -436,7 +338,7 @@ async function applyModeSelection()
 		},
 		'auto_fill': document.getElementById('id_auto_fill').checked
 	};
-	const response = await APIRequest('/api/lobbies/main/', data, 'PATCH');
+	const response = await Utils.APIRequest('/api/lobbies/main/', data, 'PATCH');
 	if (response.ok) {
 		closeModeSelection();
 	}
@@ -488,7 +390,7 @@ async function updatePlayerStatus(status)
 	const data = {
 		is_ready: status === 'ready'
 	};
-	await APIRequest(`/api/players/me/`, data, "PATCH");
+	await Utils.APIRequest(`/api/players/me/`, data, "PATCH");
 }
 
 async function enableNameEdit(element)
@@ -512,7 +414,7 @@ async function enableNameEdit(element)
 			const data = {
 				pseudo: newName
 			};
-			await APIRequest(`/api/players/me/`, data, "PATCH");
+			await Utils.APIRequest(`/api/players/me/`, data, "PATCH");
 		}
 	});
 
@@ -555,7 +457,7 @@ async function inviteToGroup(playerName)
 	const data = {
 		type: 'invite'
 	};
-	const response = await APIRequest(`/api/players/${playerName}/requests/`, data, "POST");
+	const response = await Utils.APIRequest(`/api/players/${playerName}/requests/`, data, "POST");
 	if (response.ok){
 		console.log("Invite request sent to: ", playerName);
 	}
@@ -569,7 +471,7 @@ async function joinPlayerGroup(playerName)
 	const data = {
 		type: 'join'
 	};
-	const response = await APIRequest(`/api/players/${playerName}/requests/`, data, "POST");
+	const response = await Utils.APIRequest(`/api/players/${playerName}/requests/`, data, "POST");
 	if (response.ok){
 		console.log("Invite request sent to ", playerName);
 	}
@@ -635,7 +537,7 @@ function handleFriendClick(event, menu, selectedFriend)
 
 async function addFriend(userName)
 {
-	const response = await APIRequest(`/api/users/${userName}/requests/`, {}, "POST");
+	const response = await Utils.APIRequest(`/api/users/${userName}/requests/`, {}, "POST");
 	if (response.ok) {
 		console.log("Friend request sent to:", userName);
 	}
@@ -643,7 +545,7 @@ async function addFriend(userName)
 
 async function acceptFriendRequest(friendName)
 {
-	const response = await APIRequest(`/api/users/me/requests/${friendName}/`, {}, "PUT");
+	const response = await Utils.APIRequest(`/api/users/me/requests/${friendName}/`, {}, "PUT");
 	if (response.ok) {
 		console.log("Friend request from ", friendName, " accepted");
 	}
@@ -651,30 +553,30 @@ async function acceptFriendRequest(friendName)
 
 async function rejectFriendRequest(friendName)
 {
-	await APIRequest(`/api/users/me/requests/${friendName}/`, {}, "DELETE");
+	await Utils.APIRequest(`/api/users/me/requests/${friendName}/`, {}, "DELETE");
 }
 
 async function acceptLobbyRequest(requestId)
 {
-	await APIRequest(`/api/players/me/requests/${requestId}/`, {}, "PUT");
+	await Utils.APIRequest(`/api/players/me/requests/${requestId}/`, {}, "PUT");
 }
 
 async function rejectLobbyRequest(requestId)
 {
-	await APIRequest(`/api/players/me/requests/${requestId}/`, {}, "DELETE");
+	await Utils.APIRequest(`/api/players/me/requests/${requestId}/`, {}, "DELETE");
 }
 
 async function leaveLobby()
 {
-	await APIRequest('/api/lobbies/main/', {}, "PUT");
+	await Utils.APIRequest('/api/lobbies/main/', {}, "PUT");
 }
 
 document.addEventListener("DOMContentLoaded", async function () 
 {
 	await updateVars();
 	updateUIMatchmaking();
-	await initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby`, lobbyWSHandler);
-	await initWS("matchmaking", `${protocol}//${window.location.hostname}:${port}/ws/matchmaking`, matchmakingWSHandler);
+	await Utils.initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby`, lobbyWSHandler);
+	await Utils.initWS("matchmaking", `${protocol}//${window.location.hostname}:${port}/ws/matchmaking`, matchmakingWSHandler);
 	let selectedFriend = null;
 	document.addEventListener('click', async function(event)
 	{
