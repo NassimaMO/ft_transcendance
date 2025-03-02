@@ -27,3 +27,7 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extraJS %}
+    <script type="module" src="{% static 'js/utils.js' %}?v={{ timestamp }}"></script>
+{% endblock %}
