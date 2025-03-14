@@ -78,7 +78,7 @@ class User(AbstractUser):
 		return Match.objects.filter(teams__players__user=self).distinct().order_by('-date')
 	
 	def get_ordered_history(self):
-		return self.history.annotate(date=F('team__matches__date')).order_by('-date')
+		return self.history.annotate(date=F('history__team__matches__date')).order_by('-date')
 
 	def get_total_games_won(self):
 		return sum(int(entry.is_winner()) for entry in self.history.all())

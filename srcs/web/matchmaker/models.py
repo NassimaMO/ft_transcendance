@@ -232,6 +232,7 @@ class Entry(models.Model):
 	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE, null=True, blank=True)
 	pseudo = models.CharField(max_length=20)
 	score = models.IntegerField(default=0)
+	team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name="players")
 
 	def __str__(self):
 		return f"Player {self.pseudo} in team {self.team.id}: score {self.score}"
@@ -244,7 +245,7 @@ class Entry(models.Model):
 
 
 class Team(models.Model):
-	players = models.ManyToManyField(Entry, related_name='teams')
+	# players = models.ManyToOneField(Entry, related_name='team')
 	score = models.IntegerField(default=0)
 
 	def __str__(self):
