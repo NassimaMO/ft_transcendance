@@ -495,17 +495,6 @@ class UserStatsView(APIView):
 			user = checking.get("obj")
 			if not user:
 				return checking.get("error_response")
-			'''history = user.ordered_history()
-			history_s = [
-				{
-					"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
-					"team1_score": match.teams.first().score,
-					"team2_score": match.teams.last().score, #CHANGE: enemy team score
-					"mode": match.info.mode,
-					"date": match.date,
-				}
-				for match in history
-			]'''
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
 			games_lost = games_played - games_won
@@ -541,18 +530,9 @@ class UserMeStatsView(APIView):
 		message = {}
 		try:
 			user = request.user
-			#rank = user.ranks.get('pong')
-			'''history = user.ordered_history()
-			history_s = [
-				{
-					"result": "VICTORY" if match.teams.filter(id=user.id).exists() else "DEFEAT",
-					"team1_score": match.teams.first().score,
-					"team2_score": match.teams.last().score, #CHANGE: enemy team score
-					"mode": match.info.mode,
-					"date": match.date,
-				}
-				for match in history
-			]'''
+			matches = request.user.get_matches()
+			data = MatchSerializer(matches, many=True).data
+			history = data
 			games_played = len(user.history.all())
 			games_won = user.get_total_games_won()
 			games_lost = games_played - games_won
@@ -566,6 +546,7 @@ class UserMeStatsView(APIView):
 				"win_streak": win_streak,
 				"average_score": average_score,
 				"win_loss_ratio": win_loss_ratio,
+				"history": history
 			}
 			message['stats'] = data
 			return Response(message, status=status.HTTP_200_OK)
