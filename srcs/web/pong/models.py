@@ -50,6 +50,13 @@ class FieldPosition(BaseCodes):
     LEFT = 0
     RIGHT = 1
 
+    @classmethod
+    def opposite(cls, position):
+        if position == cls.RIGHT:
+            return cls.LEFT
+        if position == cls.LEFT:
+            return cls.RIGHT
+
 
 class PongParameters(rom.Model):
     ball_radius = rom.Float(default=0.01)
@@ -82,6 +89,28 @@ class PongChange(BaseCodes):
     COLLIDE = 1
     GOAL = 2
 
+class PongTeamSession(rom.Model):
+    game_session = rom.ManyToOne("PongGameSession", on_delete='cascade')
+    field_position = rom.Integer(default=FieldPosition.LEFT, index=True)
+    score = rom.Integer(default=0)
+    player_sessions = rom.OneToMany('PongPlayerSession')
+    paddle_length = rom.Float(default=PongParameters.get_default().paddle_length)
+    last_touch = rom.OneToOne('PongPlayerSession', on_delete='cascade')
+
+    def __str__(self):
+        return f'<PongTeamSession {self.id}: {self.player_sessions}>'
+
+
+class PongPlayerSession(rom.Model):
+    team_session = rom.ManyToOne("PongTeamSession", on_delete='cascade')
+    player = rom.ForeignModel(Player)
+    score = rom.Integer(default=0)
+    coordinate_y = rom.Float(default=0)
+    coordinate_x = rom.Float(default=0)
+
+    def __str__(self):
+        return f'<PongPlayerSession of {self.player.user.username}>'
+
 
 class PongGameSession(rom.Model):
     id = rom.PrimaryKey(index=True)
@@ -89,7 +118,6 @@ class PongGameSession(rom.Model):
     ball = rom.OneToOne("Ball", on_delete='cascade')
     team_sessions = rom.OneToMany('PongTeamSession')
     parameters = rom.ManyToOne('PongParameters', default=PongParameters.get_default, on_delete='cascade')
-    last_touch = rom.Integer(default=-1)
 
     def _position_player(self, player_session, team_session, team_players_count, player_number):
         y = (self.parameters.field_ratio - team_players_count * team_session.paddle_length) / (team_players_count + 1)
@@ -114,7 +142,7 @@ class PongGameSession(rom.Model):
                 player_session = PongPlayerSession(team_session=team_session, player=entry.player)
                 self._position_player(player_session, team_session, len(entries), i)
 
-    def _generate_angle(direction=None, margin_ratio=24):
+    def _generate_angle(self, direction=None, margin_ratio=24):
         margin = 2 * math.pi / margin_ratio
         valid_ranges = [
             (math.pi / 2 + margin, math.pi - margin),
@@ -122,19 +150,18 @@ class PongGameSession(rom.Model):
             (3 * math.pi / 2 + margin, 2 * math.pi - margin),
             (margin, math.pi / 2 - margin)
         ]
-        if direction == FieldPosition.RIGHT:
+        if direction == FieldPosition.LEFT:
             theta = random.uniform(*random.choice(valid_ranges[:2]))
-        elif direction == FieldPosition.LEFT:
+        elif direction == FieldPosition.RIGHT:
             theta = random.uniform(*random.choice(valid_ranges[2:]))
         else:
             theta = random.uniform(*random.choice(valid_ranges))
         return theta
 
     def reset_ball(self, direction=None):
-        logger.info("RESET")
         self.ball.coordinate_x = 0.5
         self.ball.coordinate_y = 0.5 * self.parameters.field_ratio
-        theta = self._generate_angle()
+        theta = self._generate_angle(direction=direction)
         self.ball.velocity_x = self.ball.speed * math.cos(theta)
         self.ball.velocity_y = self.ball.speed * math.sin(theta)
         self.ball.last_update = datetime.now()
@@ -170,23 +197,10 @@ class PongGameSession(rom.Model):
         return [player for team in self.team_sessions for player in team.player_sessions]
 
     def check_goal(self):
-        if self.ball.coordinate_x < 0 or self.ball.coordinate_x > 1:
-            return True
-        return False
-    
-    def increase_score(self, field_position):
-        for team_session in PongTeamSession.query.filter(game_session=self.id, field_position=field_position):
-            team_session.score += 1
-            team_session.save()
-    
-    def goal(self):
         if self.ball.coordinate_x < 0:
-            self.increase_score(FieldPosition.RIGHT)
-            return True
+            return PongTeamSession.query.filter(game_session=self.id, field_position=FieldPosition.RIGHT).all()
         if self.ball.coordinate_x > 1:
-            self.increase_score(FieldPosition.LEFT)
-            return True
-        return False
+            return PongTeamSession.query.filter(game_session=self.id, field_position=FieldPosition.LEFT).all()
     
     def _get_collidables(self):
         collidables = {'x': [], 'y': []}
@@ -197,22 +211,22 @@ class PongGameSession(rom.Model):
         for team in self.team_sessions:
             if self.ball.velocity_x > 0 and team.field_position == FieldPosition.RIGHT:
                 collidables['x'] += [(player.coordinate_x, player.coordinate_y, player.coordinate_y + team.paddle_length, 'p', player) 
-                                  for player in team.player_sessions]
+                                  for player in team.player_sessions if self.ball.coordinate_x <= player.coordinate_x]
             if self.ball.velocity_x < 0 and team.field_position == FieldPosition.LEFT:
                 collidables['x'] += [(player.coordinate_x + self.parameters.paddle_width, 
                                    player.coordinate_y, 
                                    player.coordinate_y + team.paddle_length, 
                                    'p', player)
-                                   for player in team.player_sessions]
+                                   for player in team.player_sessions if self.ball.coordinate_x >= player.coordinate_x + self.parameters.paddle_width]
             if self.ball.velocity_y > 0 :
                 collidables['y'] += [(player.coordinate_y, player.coordinate_x, player.coordinate_x + self.parameters.paddle_width, 'p', player) 
-                                  for player in team.player_sessions]
+                                  for player in team.player_sessions if self.ball.coordinate_y <= player.coordinate_y]
             if self.ball.velocity_y < 0 :
                 collidables['y'] += [(player.coordinate_y + team.paddle_length, 
                                    player.coordinate_x, 
                                    player.coordinate_x + self.parameters.paddle_width,
                                    'p', player) 
-                                    for player in team.player_sessions]
+                                    for player in team.player_sessions if self.ball.coordinate_y >= player.coordinate_y + team.paddle_length]
         return collidables
 
     def update_ball(self):
@@ -220,10 +234,9 @@ class PongGameSession(rom.Model):
         px, py = self.ball.coordinate_x, self.ball.coordinate_y
         dx, dy = self.ball.velocity_x * dt, self.ball.velocity_y * dt
         status = PongChange.BALL
-        if self.check_goal():
-            self.reset_ball()
-            self.ball.save()
-            self.save()
+        teams_scorer = self.check_goal()
+        if teams_scorer is not None:
+            self.reset_ball(FieldPosition.opposite(teams_scorer[0].field_position))
             return status
         r = self.ball.radius
         collides = []
@@ -249,38 +262,35 @@ class PongGameSession(rom.Model):
         self.ball.coordinate_x += dx
         self.ball.coordinate_y += dy
         if collides:
-            # collides.sort()
-            # collide_x = min((c for c in collides if c[1] == 'x'), default=None, key=lambda c: c[0])
-            # collide_y = min((c for c in collides if c[1] == 'y'), default=None, key=lambda c: c[0])
-            # if collide_x:
-            #     self.ball.coordinate_x = collide_x[2]
-            #     self.ball.velocity_x *= -1 
-            #     if collide_x[3] == 'p':
-            #         self.last_touch = collide_x[4].id
-            #         collide_x[4].score += 10
-            #         status = PongChange.COLLIDE
-            # if collide_y:
-            #     self.ball.coordinate_y = collide_y[2]
-            #     self.ball.velocity_y *= -1
-            #     if collide_y[3] == 'p':
-            #         self.last_touch = collide_y[4].id
-            #         collide_y[4].score += 10
-            #         status = PongChange.COLLIDE
-            if collides[0][1] == 'x':
+            collide_x = min((c for c in collides if c[1] == 'x'), default=None, key=lambda c: c[0])
+            collide_y = min((c for c in collides if c[1] == 'y'), default=None, key=lambda c: c[0])
+            if collide_x:
                 self.ball.coordinate_x = collides[0][2]
                 self.ball.velocity_x *= -1 
                 if collides[0][3] == 'p':
-                    self.last_touch = collides[0][4].id
-                    collides[0][4].score += 10
+                    scorer = collides[0][4]
+                    scorer.team_session.last_touch = scorer
+                    scorer.score += 10
+                    scorer.save()
                     status = PongChange.COLLIDE
-            elif collides[0][1] == 'y':
+            if collide_y:
                 self.ball.coordinate_y = collides[0][2]
                 self.ball.velocity_y *= -1
                 if collides[0][3] == 'p':
-                    self.last_touch = collides[0][4].id
-                    collides[0][4].score += 10
+                    scorer = collides[0][4]
+                    scorer.team_session.last_touch = scorer
+                    scorer.score += 10
+                    scorer.save()
                     status = PongChange.COLLIDE
-        if self.goal():
+        teams_scorer = self.check_goal()
+        if teams_scorer is not None:
+            for team_scorer in teams_scorer:
+                team_scorer.score += 1
+                if team_scorer.last_touch is not None:
+                    team_scorer.last_touch.score += 50
+                    team_scorer.last_touch.save()
+                    team_scorer.last_touch = None
+                team_scorer.save()
             status = PongChange.GOAL
         self.ball.last_update = datetime.now()
         return status
@@ -293,25 +303,3 @@ class PongGameSession(rom.Model):
 
     def __str__(self):
         return f'<PongGameSession {self.id}: {self.team_sessions}>'
-
-
-class PongTeamSession(rom.Model):
-    game_session = rom.ManyToOne("PongGameSession", on_delete='cascade')
-    field_position = rom.Integer(default=FieldPosition.LEFT, index=True)
-    score = rom.Integer(default=0)
-    player_sessions = rom.OneToMany('PongPlayerSession')
-    paddle_length = rom.Float(default=PongParameters.get_default().paddle_length)
-
-    def __str__(self):
-        return f'<PongTeamSession {self.id}: {self.player_sessions}>'
-
-
-class PongPlayerSession(rom.Model):
-    team_session = rom.ManyToOne("PongTeamSession", on_delete='cascade')
-    player = rom.ForeignModel(Player)
-    score = rom.Integer(default=0)
-    coordinate_y = rom.Float(default=0)
-    coordinate_x = rom.Float(default=0)
-
-    def __str__(self):
-        return f'<PongPlayerSession of {self.player.user.username}>'

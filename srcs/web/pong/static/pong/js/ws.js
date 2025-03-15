@@ -31,7 +31,8 @@ function draw(state)
 	const width = canvas.width * width_ratio
 	const height = width * parameters.field_ratio
 	const x = canvas.width * (1 - width_ratio) / 2;
-	const y = (canvas.height - canvas.height * height_gap_ratio - height) / 2
+	const y = (canvas.height + canvas.height * height_gap_ratio - height) / 2
+
 	const field = {x: x, y: y, width: width, height: height};
 	ball = {x: field.x + state.ball.coordinate_x * field.width,
 			y: field.y + state.ball.coordinate_y * field.width,

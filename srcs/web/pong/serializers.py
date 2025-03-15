@@ -12,6 +12,7 @@ class BallSerializer(serializers.Serializer):
     coordinate_y = serializers.FloatField()
     velocity_x = serializers.FloatField()
     velocity_y = serializers.FloatField()
+    last_update = serializers.DateTimeField()
 
 
 class PlayerSessionSerializer(serializers.Serializer):

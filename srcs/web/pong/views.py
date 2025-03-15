@@ -5,9 +5,9 @@ import logging
 
 logger = logging.getLogger('default')
 
-# @login_required
-# def game(request, game_id) :
-#     return render(request, "pong/game.html", {'game_id': game_id, "timestamp": int(timezone.now().timestamp())})
+@login_required
+def game(request, game_id) :
+    return render(request, "pong/game.html", {'game_id': game_id, "timestamp": int(timezone.now().timestamp())})
 
 @login_required
 def game_client(request, game_id) :
