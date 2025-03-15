@@ -3,7 +3,7 @@ from rest_framework.response import Response # type: ignore
 from asgiref.sync import async_to_sync # type: ignore
 from channels.layers import get_channel_layer # type: ignore
 from account.models import User, UserChange
-from matchmaker.models import LobbyChange, LobbyPlayer, LobbyStatus, GameMode, Team, Entry, Match
+from matchmaker.models import *
 import logging
 import random
 
@@ -33,9 +33,6 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     #
     if code == "not_same_lobby":
         return f"You and '{kwargs.get('username')}' are not in the same lobby."
-    #
-    if code == "forbidden_lobby" :
-        return "You are not allowed to access this lobby."
     #
     if code == "not_leader":
         return "You are not the lobby leader."
@@ -116,6 +113,7 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
         return f"User {kwargs.get('str')} is no longer your friend. Good riddance."
     #
     split = code.split('_')
+    #
     if split[-1] == "updated":
         return f"{' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} info updated successfully."
     #
@@ -123,7 +121,10 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
         return f"{' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} deleted successfully."
     #
     if split[-1] == "created":
-        return f"A {' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} has been successfully created."
+        return f"A {' '.join([s for s in split[1:]])} has been successfully created."
+    #
+    if split[-1] == "started":
+        return f"{' '.join([s.capitalize() if i == 0 else s for i, s in enumerate(split[:-1])])} successfully started."
     #
     if split[0] == "unknown":
         return f"This {' '.join([s for s in split[1:]])} was not found."
@@ -131,6 +132,11 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
     if split[0] == "no":
         return f"There is no {' '.join([s for s in split[1:]])}."
     #
+    if split[0] == "forbidden":
+        return f"You are not allowed to access this {' '.join([s for s in split[1:]])}."
+    #
+    if split[0] == "invalid" or split[0] == "missing":
+        return f"{split[0].capitalize()} {' '.join([s for s in split[1:]])} arg."
     return "Invalid request (error code unknown)"
 
 
@@ -260,12 +266,12 @@ def create_match(teams):
     match_choice = teams[0][0].match_choice
     match = Match.objects.create(info=match_choice)
     for team in teams:
-        team_obj = Team.objects.create()
+        team_obj = Team.objects.create(match=match)
         for lobby in team:
-            team_obj.players.add(*[Entry.objects.create(user=player.user, pseudo=player.pseudo) for player in lobby.members])
-        match.teams.add(team_obj)
+            for lobby_player in lobby.members:
+                Entry.objects.create(player=lobby_player.player, team=team_obj)
     if match_choice.mode == GameMode.SOLO:
-        team_obj = Team.objects.create()
-        team_obj.players.add(Entry.objects.create(user=None, pseudo="IA"))
-        match.teams.add(team_obj)
+        team_obj = Team.objects.create(match=match)
+        player, _ = Player.objects.get_or_create(user=None, pseudo="IA")
+        Entry.objects.create(player=player, team=team_obj)
     return match

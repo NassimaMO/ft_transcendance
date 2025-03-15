@@ -20,6 +20,13 @@
 </head>
 <body>
     {% block content %}{% endblock %}
-    {% block extraJS %}{% endblock %}
+    {% block extraJS %}
+        <script type="module" src="{% static 'js/utils.js' %}?v={{ timestamp }}"></script>
+        <script>
+            window.STATIC_VERSIONED_PATHS = {
+                utils: "{% static 'js/utils.js' %}?v={{ timestamp }}",
+            };
+        </script>
+    {% endblock %}
 </body>
 </html>

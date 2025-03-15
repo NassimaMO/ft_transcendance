@@ -49,9 +49,14 @@ class User(AbstractUser):
 	def online_friends_count(self):
 		return self.friends.count() - self.offline_friends_count
 
+	@property
+	def history(self):
+		from matchmaker.models import Entry
+		return Entry.objects.filter(player__user=self)
+
 	def __str__(self):
 		return self.username
-	
+
 	def __repr__(self):
 		return f"<User {self.__str__()}>"
 	
@@ -75,19 +80,18 @@ class User(AbstractUser):
 
 	def get_matches(self):
 		from matchmaker.models import Match
-		return Match.objects.filter(teams__players__user=self).distinct().order_by('-date')
+		return Match.objects.filter(teams__entries__player__user=self).distinct().order_by('-date')
 	
 	def get_ordered_history(self):
-		return self.history.annotate(date=F('team__matches__date')).order_by('-date')
+		return self.history.annotate(date=F('team__match__date')).order_by('-date')
 
 	def get_total_games_won(self):
 		return sum(int(entry.is_winner()) for entry in self.history.all())
 	
 	def get_average_score(self):
 		all_games_played = self.history.all()
-		average_score = sum(entry.score for entry in all_games_played)
-		average_score = average_score / len(all_games_played) if len(all_games_played) > 0 else 0
-		return average_score
+		total_score = sum(entry.score for entry in all_games_played)
+		return total_score / len(all_games_played) if all_games_played else 0
 	
 	def get_win_streak(self):
 		win_streak = 0

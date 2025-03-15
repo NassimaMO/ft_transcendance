@@ -1,13 +1,14 @@
 import rom
-import redis
-import django_filters
+import redis # type: ignore
+import django_filters # type: ignore
 import logging
 import time
 import threading
-from django.db import models
-from django.utils import timezone
+from django.db import models # type: ignore
+from django.utils import timezone # type: ignore
 from account.models import User
 from datetime import datetime
+from asgiref.sync import async_to_sync # type: ignore
 
 
 logger = logging.getLogger('default')
@@ -152,7 +153,10 @@ class MatchChoice(models.Model):
 		return cls.get_default().id
 
 	def __str__(self):
-		return f"<MatchChoice {self.id}: {self.game}-{self.mode}-{self.connectivity}-{self.matchmaking}"
+		return f"<MatchChoice {self.id}: {self.game}-{self.mode}-{self.connectivity}-{self.matchmaking}>"
+	
+	def __repr__(self):
+		return self.__str__()
 	
 	def need_matchmaking(self) :
 		if (self.mode == GameMode.SOLO or self.connectivity == Connectivity.LOCAL) :
@@ -190,16 +194,28 @@ class MatchChoiceFilter(django_filters.FilterSet):
 class Match(models.Model):
 	date = models.DateTimeField(default=timezone.now)
 	info = models.ForeignKey('MatchChoice', related_name="matches", on_delete=models.CASCADE)
-	teams = models.ManyToManyField('Team', related_name="matches")
+
+	class Meta:
+		ordering = ['-date']
 
 	def __str__(self):
-		return f"Match {self.id} on {self.date}"
+		return f"<Match {self.id}: {self.info}, {self.teams.all()}>"
 
 	def __repr__(self):
 		return self.__str__()
 	
-	class Meta:
-		ordering = ['-date']
+	@classmethod
+	def get(cls, pk):
+		try:
+			return cls.objects.get(pk=pk)
+		except cls.DoesNotExist:
+			return None
+	
+	def is_in_match(self, user):
+		return self.teams.filter(entries__player__user=user).exists()
+	
+	def get_team(self, user):
+		return self.teams.filter(entries__player__user=user).first()
 
 
 class MatchFilter(django_filters.FilterSet):
@@ -228,33 +244,46 @@ class MatchFilter(django_filters.FilterSet):
 		return queryset
 
 
-class Entry(models.Model):
-	user = models.ForeignKey(User, related_name="history", on_delete=models.CASCADE, null=True, blank=True)
-	pseudo = models.CharField(max_length=20)
-	score = models.IntegerField(default=0)
-
-	def __str__(self):
-		return f"Player {self.pseudo} in team {self.team.id}: score {self.score}"
-
-	def __repr__(self):
-		return self.__str__()
-	
-	def is_winner(self):
-		return self.team.is_winner()
-
-
 class Team(models.Model):
-	players = models.ManyToManyField(Entry, related_name='teams')
+	match = models.ForeignKey(Match, related_name='teams', on_delete=models.CASCADE)
 	score = models.IntegerField(default=0)
 
 	def __str__(self):
-		return f"Team {self.id}"
+		return f"<Team {self.id}: {self.entries.all()}>"
 
 	def __repr__(self):
 		return self.__str__()
 	
 	def is_winner(self):
 		return self.score == max([team.score for team in self.match.teams])
+
+
+
+class Player(models.Model):
+	user = models.ForeignKey(User, related_name="players", on_delete=models.CASCADE, null=True, blank=True)
+	pseudo = models.CharField(max_length=10)
+
+	@classmethod
+	def get(cls, pk):
+		try:
+			return cls.objects.get(pk=pk)
+		except cls.DoesNotExist:
+			return None
+
+
+class Entry(models.Model):
+	player = models.ForeignKey(Player, related_name='entries', on_delete=models.CASCADE)
+	team = models.ForeignKey(Team, related_name='entries', on_delete=models.CASCADE)
+	score = models.IntegerField(default=0)
+
+	def __str__(self):
+		return f"<Player {self.pseudo}: {self.score}>"
+
+	def __repr__(self):
+		return self.__str__()
+	
+	def is_winner(self):
+		return self.team.is_winner()
 
 
 # ********************************************* REDIS ORM MODELS *********************************************
@@ -387,9 +416,9 @@ class LobbyStatus(BaseCodes):
 	REDIRECT = "redirect"
 	IN_GAME = "in_game"
 
+
 class LobbyPlayer(rom.Model) :
-	user = rom.ForeignModel(User)
-	_pseudo = rom.String()
+	player = rom.ForeignModel(Player)
 	is_ready = rom.Boolean(default=True)
 	is_leader = rom.Boolean(default=True)
 	lobby = rom.OneToOne("Lobby", on_delete="set null")
@@ -398,13 +427,16 @@ class LobbyPlayer(rom.Model) :
 
 	@property
 	def pseudo(self):
-		if self._pseudo:
-			return self._pseudo.decode('utf-8')
+		return self.player.pseudo
 	
+	@property
+	def user(self):
+		return self.player.user
+
 	@pseudo.setter
 	def pseudo(self, value):
 		if value:
-			self._pseudo = value.encode('utf-8')
+			self.player.pseudo = value
 
 	@classmethod
 	def get_by_user(cls, user):
@@ -420,10 +452,11 @@ class LobbyPlayer(rom.Model) :
 			if lobby and not lobby_player.lobby:
 				lobby_player.join_lobby(lobby)
 			return lobby_player
-		lobby_player = cls(user=user, lobby=lobby, _pseudo=user.get_pseudo())
+		player, created = Player.objects.get_or_create(user=user, pseudo=user.get_pseudo())
+		lobby_player = cls(player=player.id, lobby=lobby)
 		lobby_player.save()
 		return lobby_player
-	
+
 	def change_leadership(self, change):
 		self.is_leader = change
 		self.is_ready = change
