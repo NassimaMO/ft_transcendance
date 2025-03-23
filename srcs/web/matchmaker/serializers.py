@@ -7,7 +7,7 @@ class PlayerSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     class Meta:
         model = Player
-        fields = ['user', 'pseudo']
+        fields = ['user', 'pseudo', 'is_ai']
 
 
 class UserRankSerializer(serializers.ModelSerializer):
@@ -124,13 +124,29 @@ class MatchSerializer(serializers.ModelSerializer):
 
 
 class LobbyRequestSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    recipient = serializers.CharField()
+    sender = serializers.CharField()
+    type = serializers.CharField()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data['id'] = instance.id
         data['sender'] = LobbyPlayerSerializer(instance.sender).data
         data['type'] = instance.type
         return data
+    
+    def create(self, validated_data):
+        logger.info(validated_data)
+        lobby_request = LobbyRequest()
+        lobby_request.recipient = validated_data["recipient"]
+        lobby_request.sender = validated_data["sender"]
+        lobby_request.type = validated_data["type"]
+        lobby_request.save()
+        return lobby_request
+    
+    def validate_type(self, value):
+        if value not in ['invite', 'join']:
+            raise serializers.ValidationError("Invalid value for request type. Expected values : 'invite', 'join'.")
 
 
 class LobbyPlayerSerializer(serializers.Serializer):

@@ -155,7 +155,7 @@ class MainLobbyView(APIView):
 				serializer = MatchChoiceSerializer(data=match_choice)
 				if serializer.is_valid():
 					match_choice_instance = serializer.save()
-					lobby_player.lobby.match_choice = match_choice_instance
+					lobby_player.lobby.update(match_choice=match_choice_instance)
 					lobby_player.lobby.save()
 					send_notifications("lobby", lobby_player.lobby.id, {'type': LobbyChange.MATCH_CHOICE})
 					message['match_choice'] = {
@@ -407,21 +407,18 @@ class PlayerRequestsView(APIView):
 			if not lobby_player or not lobby_player.lobby:
 				add_message(message, "no_player", level="ERROR")
 				return Response(message, status=status.HTTP_404_NOT_FOUND)
-			request_type = request.data.get("type")
+			if not lobby_player.lobby.is_allowed_for(request.user):
+				add_message(message, "forbidden_lobby", level="ERROR")
+				return Response(message, status=status.HTTP_403_FORBIDDEN)
+			request_type = request.data.pop("type", None)
 			if not request_type :
 				add_message(message, "missing_request_type", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
 			if request_type not in ['invite', 'join']:
 				add_message(message, "invalid_request_type", level="ERROR", request_type=request_type)
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
-			if not lobby_player.lobby.is_allowed_for(request.user):
-				add_message(message, "forbidden_lobby", level="ERROR")
-				return Response(message, status=status.HTTP_403_FORBIDDEN)
 			lobby_request = LobbyRequest(recipient=lobby_player, _sender=request.user.username, _type=request_type)
 			lobby_request.save()
-			send_notifications('lobby_player', lobby_player.id, {'type':LobbyChange.LOBBY_REQUEST})
-			add_message(message, "request_sent", request_type=request_type, recipient=user.username)
-			return Response(message, status=status.HTTP_201_CREATED)
 		except Exception as e:
 			logger.error(f"Error sending lobby request: {e}")
 			add_message(message, "server_error", level="ERROR")

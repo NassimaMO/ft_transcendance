@@ -2,12 +2,12 @@ import json, logging, asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer # type: ignore
 from asgiref.sync import sync_to_async # type: ignore
 from .models import *
-from .serializers import GameStateSerializer
+from .serializers import PongGameStateSerializer
 
 logger = logging.getLogger('default')
 
 class PongConsumer(AsyncWebsocketConsumer):
-    STATE_DELAY = 0.01
+    STATE_DELAY = 0.001
     START_TIMEOUT = 10
 
     def __init__(self, *args, **kwargs):
@@ -109,7 +109,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             await asyncio.sleep(self.STATE_DELAY)
 
     def get_game_state(self):
-        return GameStateSerializer(instance=self.session).data
+        return PongGameStateSerializer(instance=self.session).data
 
     async def send_game_state(self):
         await self.channel_layer.group_send(

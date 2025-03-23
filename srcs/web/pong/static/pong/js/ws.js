@@ -1,87 +1,141 @@
 const path = window.location.pathname;
-const id = path.split('/')[2];
-const url = `/ws/pong/${id}/`
-let Utils = null;
-let initial_state = null;
-let parameters = null;
-let ball = null;
+const sessionId = path.split('/')[2];
+const wsUrl = `/ws/pong/${sessionId}/`;
+
 const canvas = document.getElementById("pongCanvas");
 const ctx = canvas.getContext("2d");
-const width_ratio = 0.8;
-const height_gap_ratio = 0.1;
+
+const CANVAS_WIDTH_RATIO = 0.8;
+const HEIGHT_GAP_RATIO = 0.1;
+const CANVAS_BASE_WIDTH = 500;
+
+let Utils = null;
+let gameState = null;
+let gameParams = null;
 
 import(window.STATIC_VERSIONED_PATHS.utils)
     .then(async module => {
         Utils = module.default;
-        await main();
+        await initGame();
     })
     .catch(error => console.error("Erreur lors du chargement de utils.js :", error));
 
-
 async function pongWSHandler(event)
 {
-	const data = JSON.parse(event.data);
-	draw(data.state);
-}
-
-function draw(state)
-{
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	const width = canvas.width * width_ratio
-	const height = width * parameters.field_ratio
-	const x = canvas.width * (1 - width_ratio) / 2;
-	const y = (canvas.height + canvas.height * height_gap_ratio - height) / 2
-
-	const field = {x: x, y: y, width: width, height: height};
-	ball = {x: field.x + state.ball.coordinate_x * field.width,
-			y: field.y + state.ball.coordinate_y * field.width,
-			radius: parameters.ball_radius * field.width}
-	// console.log(state.ball)
-
-	// Terrain
-	ctx.strokeStyle = "white";
-	ctx.lineWidth = 2;
-	ctx.strokeRect(field.x, field.y, field.width, field.height);
-
-	// Balle
-	ctx.beginPath();
-	ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-	ctx.fillStyle = "red";
-	ctx.fill();
-
-	// Scores
-	ctx.font = "20px Arial";
-	state.teams.forEach((team, index) => {
-		let xPos = index === 0 ? canvas.width / 4 : (3 * canvas.width) / 4;
-		ctx.fillText(team.score, xPos, 30);
-
-		// Paddles
-		team.players.forEach(player => {
-			let paddle = {x: field.x + player.coordinate_x * field.width, y: field.y + player.coordinate_y * field.width, 
-					width: parameters.paddle_width * field.width, height: team.paddle_length * field.width}
-			ctx.fillStyle = "white";
-			ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-		});
-	});
-}
-
-async function main()
-{
-	await Utils.initWS('pong', url, pongWSHandler);
-	let response = await Utils.APIRequest(`/api/games/sessions/${id}/`);
-	if (response.ok)
+    const data = JSON.parse(event.data);
+    if (data.state)
 	{
-		const state = response.state;
-		parameters = response.session.parameters;
-		canvas.width = 500;
-		canvas.height = canvas.width / 2;
-		response = await Utils.APIRequest(`/api/games/sessions/${id}/`, {}, "PUT");
-		if (!response.ok) {
-			console.error("Failed to start game");
-		}
+        gameState = data.state;
+        drawGame(gameState);
+    }
+}
+
+async function handleKeyDown(event)
+{
+    if (event.repeat) 
+        return;
+    let response = null;
+    switch (event.key.toLowerCase())
+	{
+        case "arrowup":
+        case "z":
+			response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/state/`, {move: 'up'}, "PATCH");
+			if (!response.ok) {
+				console.error("Échec move up.");
+			}
+            break;
+        case "arrowdown":
+        case "s":
+			response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/state/`, {move: 'down'}, "PATCH");
+			if (!response.ok) {
+				console.error("Échec move down.");
+			}
+            break;
+    }
+}
+
+async function handleKeyUp(event)
+{
+	const response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/state/`, {move: null}, "PATCH"); 
+	if (!response.ok) {
+		console.error("Échec move reset.");
 	}
-	else {
-		console.error("Failed to fetch session data");
-	}
+}
+
+
+async function initGame()
+{
+    try
+	{
+        await Utils.initWS('pong', wsUrl, pongWSHandler);
+
+        const response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/`);
+        if (!response.ok) {
+            console.error("Échec de récupération de la session de jeu.");
+            return;
+        }
+
+        gameParams = response.session.parameters;
+        gameState = response.state;
+
+        canvas.width = CANVAS_BASE_WIDTH;
+        canvas.height = CANVAS_BASE_WIDTH / 2;
+
+        const startResponse = await Utils.APIRequest(`/api/games/sessions/${sessionId}/`, {}, "PUT");
+        if (!startResponse.ok) {
+            console.error("Échec du démarrage de la partie.");
+        }
+		document.addEventListener("keydown", handleKeyDown);
+		document.addEventListener("keyup", handleKeyUp);
+
+    }
+	catch (error) {
+        console.error("Erreur lors de l'initialisation du jeu :", error);
+    }
+}
+
+function drawGame(state)
+{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const fieldWidth = canvas.width * CANVAS_WIDTH_RATIO;
+    const fieldHeight = fieldWidth * gameParams.field_ratio;
+    const fieldX = (canvas.width - fieldWidth) / 2;
+    const fieldY = (canvas.height + canvas.height * HEIGHT_GAP_RATIO - fieldHeight) / 2;
+
+    // Terrain
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(fieldX, fieldY, fieldWidth, fieldHeight);
+
+    // Balle
+    const ball = {
+        x: fieldX + state.ball.coordinate_x * fieldWidth,
+        y: fieldY + state.ball.coordinate_y * fieldWidth,
+        radius: gameParams.ball_radius * fieldWidth
+    };
+
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "red";
+    ctx.fill();
+
+    // Paddles
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "white";
+
+    state.teams.forEach((team, index) => {
+        const scoreX = index === 0 ? canvas.width / 4 : (3 * canvas.width) / 4;
+        ctx.fillText(team.score, scoreX, 30);
+
+        team.players.forEach(player => {
+            const paddle = {
+                x: fieldX + player.coordinate_x * fieldWidth,
+                y: fieldY + player.coordinate_y * fieldWidth,
+                width: gameParams.paddle_width * fieldWidth,
+                height: team.paddle_length * fieldWidth
+            };
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+        });
+    });
 }

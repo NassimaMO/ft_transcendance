@@ -98,9 +98,23 @@ class UserRank(models.Model):
 
 
 class ChoiceEnum(models.TextChoices):
+
 	@classmethod
 	def to_dict(cls):
 		return {mode.name: {"value": mode.value, "label": mode.label} for mode in cls}
+
+	@classmethod
+	def to_string(cls, value):
+		for mode in cls:
+			if mode.value == value:
+				return mode.name.lower()
+		return 'static'
+
+	@classmethod
+	def to_int(cls, value):
+		for mode in cls:
+			if mode.name.lower() == value:
+				return mode.value
 
 
 class GameMode(ChoiceEnum) :
@@ -262,6 +276,7 @@ class Team(models.Model):
 class Player(models.Model):
 	user = models.ForeignKey(User, related_name="players", on_delete=models.CASCADE, null=True, blank=True)
 	pseudo = models.CharField(max_length=10)
+	is_ai = models.BooleanField(default=False)
 
 	@classmethod
 	def get(cls, pk):
@@ -359,7 +374,6 @@ class Matchmaking(rom.Model) :
 	
 
 class LobbyRequest(rom.Model):
-	id = rom.PrimaryKey(index=True)
 	recipient = rom.ManyToOne("LobbyPlayer", on_delete="cascade")
 	_sender = rom.String()
 	_type = rom.String()
@@ -385,11 +399,39 @@ class LobbyRequest(rom.Model):
 		if self._sender:
 			self._sender = value.user.username.encode('utf-8')
 
+	@classmethod
+	def create(cls, recipient, sender, type_):
+		if isinstance(sender, LobbyPlayer):
+			sender_username = sender.user.username
+		elif isinstance(sender, str):
+			sender_username = sender
+		else:
+			raise ValueError("sender must be a LobbyPlayer or a username string")
+		instance = cls(
+			recipient=recipient,
+			_sender=sender_username.encode('utf-8'),
+			_type=type_.encode('utf-8')
+		)
+		instance.save()
+		return instance
+
 
 class BaseCodes():
 	@classmethod
 	def to_dict(cls):
 		return {attr: value for attr, value in cls.__dict__.items() if not attr.startswith("__") and not callable(value)}
+
+	@classmethod
+	def to_int(cls, value):
+		for mode_name, int_value in cls.to_dict().items():
+			if cls.to_string(int_value) == value:
+				return int_value
+
+	@classmethod
+	def to_string(cls, value):
+		for mode_name, int_value in cls.to_dict().items():
+			if int_value == value:
+				return mode_name.lower()
 
 
 class WebsocketStatus(BaseCodes):
