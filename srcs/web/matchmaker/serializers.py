@@ -1,9 +1,13 @@
-from rest_framework import serializers
+from rest_framework import serializers # type: ignore
 from account.serializers import UserSerializer
-import logging
-from .models import MatchChoice, Lobby, LobbyPlayer, WaitingLobby, UserRank, Game, LobbyStatus
-from .models import GameMode, Connectivity, MatchmakingMode, Match, Team, Entry
+from .models import *
 
+
+class PlayerSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    class Meta:
+        model = Player
+        fields = ['user', 'pseudo', 'is_ai']
 
 
 class UserRankSerializer(serializers.ModelSerializer):
@@ -57,10 +61,6 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         warnings = {}
-        # if attrs.get("auto_fill") == 'on':
-        #     attrs["auto_fill"] = True
-        # if attrs.get("auto_fill") == "off":
-        #     attrs['auto_fill'] = False
         if attrs.get("mode") == GameMode.SOLO:
             if attrs.get("connectivity") != Connectivity.LOCAL:
                 warnings["connectivity"] = "La connectivité a été forcée en locale pour ce choix de modes."
@@ -68,11 +68,6 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
             if attrs.get("matchmaking") != MatchmakingMode.UNRANK:
                 warnings["matchmaking"] = "Le matchmaking a été forcé en non classé pour ce choix de modes."
                 attrs["matchmaking"] = MatchmakingMode.UNRANK
-        # if attrs.get('auto_fill') is True and \
-        #     (attrs.get("mode") == GameMode.SOLO or attrs.get("mode") == GameMode.MULTI_1V1 or \
-        #     attrs.get("connectivity") == Connectivity.LOCAL) :
-        #     warnings["auto_fill"] = "Le remplissage automatique a été désactivé pour ce choix de modes."
-        #     attrs["auto_fill"] = False
         attrs["_warnings"] = warnings
         return attrs
 
@@ -92,11 +87,16 @@ class MatchChoiceSerializer(serializers.ModelSerializer):
     
 
 class EntrySerializer(serializers.ModelSerializer):
-    user = UserSerializer()
 
     class Meta:
         model = Entry
-        fields = ['user', 'pseudo', 'score']
+        fields = ['score']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['user'] = UserSerializer(instance.player.user).data if instance.player.user else None
+        data['pseudo'] = instance.player.pseudo
+        return data
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -106,7 +106,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['players'] = EntrySerializer(instance.players, many=True).data
+        data['players'] = EntrySerializer(instance.entries, many=True).data
         return data
     
 
@@ -124,13 +124,29 @@ class MatchSerializer(serializers.ModelSerializer):
 
 
 class LobbyRequestSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    recipient = serializers.CharField()
+    sender = serializers.CharField()
+    type = serializers.CharField()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data['id'] = instance.id
         data['sender'] = LobbyPlayerSerializer(instance.sender).data
         data['type'] = instance.type
         return data
+    
+    def create(self, validated_data):
+        logger.info(validated_data)
+        lobby_request = LobbyRequest()
+        lobby_request.recipient = validated_data["recipient"]
+        lobby_request.sender = validated_data["sender"]
+        lobby_request.type = validated_data["type"]
+        lobby_request.save()
+        return lobby_request
+    
+    def validate_type(self, value):
+        if value not in ['invite', 'join']:
+            raise serializers.ValidationError("Invalid value for request type. Expected values : 'invite', 'join'.")
 
 
 class LobbyPlayerSerializer(serializers.Serializer):

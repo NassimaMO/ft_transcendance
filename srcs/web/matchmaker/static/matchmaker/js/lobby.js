@@ -1,9 +1,14 @@
-import Utils from '../../js/utils.js';
-
-let lobby_player = null
-let lobby = null
+let Utils;
+let lobby_player = null;
+let lobby = null;
+let selectedFriend = null;
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
+
+import(window.STATIC_VERSIONED_PATHS.utils).then(module => {
+    Utils = module.default;
+	main();
+}).catch(error => console.error("Erreur lors du chargement de utils.js :", error));
 
 
 async function updateVars()
@@ -27,6 +32,7 @@ async function updateVars()
 async function matchmakingWSHandler(event)
 {
 	const data = JSON.parse(event.data);
+	await updateVars();
 	console.log("Received mm handler: ", data.type);
 	if (data.type === "queue_start") {
 		updateTimerStart();
@@ -44,6 +50,7 @@ async function matchmakingWSHandler(event)
 async function lobbyWSHandler(event)
 {
 	const data = JSON.parse(event.data);
+	await updateVars();
 	if (data.type === "notif")
 	{
 		for (const change of data.changes)
@@ -571,139 +578,146 @@ async function leaveLobby()
 	await Utils.APIRequest('/api/lobbies/main/', {}, "PUT");
 }
 
-document.addEventListener("DOMContentLoaded", async function () 
+async function clickHandler(event)
 {
+	const menu = document.getElementById('friend-actions-menu');
+	const inviteMenu = document.getElementById('inviteMenu');
+	const inviteButton = document.getElementById('inviteButton');
+
+	if (event.target.parentElement && event.target.parentElement.classList.contains('modal-option')) {
+		updateModeOptions();
+	}
+	if (event.target.id == "button-lobby" || event.target.id == "button-carreer")
+	{
+		const buttons = document.querySelectorAll('.nav-button');
+
+		buttons.forEach(btn => {
+			btn.classList.remove('active');
+		});
+		event.target.classList.add('active');
+	}
+	if (event.target.id === 'matchmaking-btn' && lobby_player.is_leader)
+	{
+		if (lobby.status === LobbyStatus['DEFAULT'] && lobby.members.every(player => player.is_ready)) {
+			startMatchmaking();
+		}
+		else {
+			stopMatchmaking();
+		}
+	}
+	else if (event.target.id === 'leaveLobbyButton') {
+		leaveLobby();
+	}
+	else if (event.target.id === 'toggle-online-button') {
+		toggleSection("onlineFriends");
+	}
+	else if (event.target.id === 'toggle-offline-button') {
+		toggleSection("offlineFriends");
+	}
+	else if (event.target.id === 'close-modal-button') {
+		closeModeSelection();
+	}
+	else if (event.target.id === 'mode-action-button')
+	{
+		if (lobby_player.is_leader) {
+			openModeSelection();
+		}
+		else if (lobby_player.is_ready) {
+			await unsetReadyStatus();
+		}
+		else {
+			await setReadyStatus();
+		}
+	}
+	else if (event.target.id === 'apply-mode-button') {
+		applyModeSelection();
+	}
+	else if (event.target.id === 'editable-name') {
+		enableNameEdit(event.target);
+	}
+	else if (event.target.id === 'inviteButton') {
+		event.stopPropagation();
+		toggleInviteMenu(inviteMenu);
+	}
+	else if (event.target.id === 'acceptFriendRequest')
+	{
+		const requesterName = document.getElementById('requesterName').textContent;
+		await acceptFriendRequest(requesterName);
+	}
+	else if (event.target.id === 'rejectFriendRequest')
+	{
+		const requesterName = document.getElementById('requesterName').textContent;
+		await rejectFriendRequest(requesterName);
+	}
+	else if (event.target.id === 'acceptLobbyRequest')
+	{
+		const request = document.querySelector('span[data-request-type]');
+		const requestId = request.getAttribute('data-request-id');
+		await acceptLobbyRequest(requestId);
+	}
+	else if (event.target.id === 'rejectLobbyRequest')
+	{
+		const request = document.querySelector('span[data-request-type]');
+		const requestId = request.getAttribute('data-request-id');
+		await rejectLobbyRequest(requestId);
+	}
+	else if (event.target.id === 'addFriendButton')
+	{
+		const addFriendInput = document.getElementById('addFriendInput');
+		await addFriend(addFriendInput.value);
+	}
+	else if (event.target.id === 'friendSearch')
+	{
+		const friendSearchInput = document.getElementById('friendSearch');
+		friendSearchInput?.addEventListener('keyup', filterFriends);
+	}
+	else if (event.target.parentElement && event.target.parentElement.id === 'onlineFriends') {
+		selectedFriend = handleFriendClick(event, menu, selectedFriend)
+	}
+	if (!menu.contains(event.target) && !event.target.classList.contains('list-group-item')) // outside click
+	{
+		closeMenu(menu);
+		selectedFriend = null;
+	}
+	if (inviteMenu && inviteButton && !inviteMenu.contains(event.target) && event.target !== inviteButton) { // outside click
+		closeInviteMenu(inviteMenu);
+	}
+}
+
+async function keyDownHandler(event)
+{
+	if (event.key === "Enter")
+	{
+		event.preventDefault();
+		const inputField = document.getElementById("addFriendInput");
+		const value = inputField.value.trim();
+
+		if (event.key === "Enter")
+		{
+			if (value)
+			{
+				event.preventDefault();
+				addFriend(value);
+			}
+			else
+			{
+				// inputField.placeHolder = "Veuillez entrer un nom valide"
+			}
+		}
+
+	}
+}
+
+async function main ()
+{
+	if (document.readyState === "loading") {
+		await new Promise(resolve => document.addEventListener("DOMContentLoaded", resolve));
+	}
 	await updateVars();
 	updateUIMatchmaking();
 	await Utils.initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby`, lobbyWSHandler);
 	await Utils.initWS("matchmaking", `${protocol}//${window.location.hostname}:${port}/ws/matchmaking`, matchmakingWSHandler);
-	let selectedFriend = null;
-	document.addEventListener('click', async function(event)
-	{
-		const menu = document.getElementById('friend-actions-menu');
-		const inviteMenu = document.getElementById('inviteMenu');
-		const inviteButton = document.getElementById('inviteButton');
+	document.addEventListener('click', clickHandler);
+	document.addEventListener('keydown', keyDownHandler);
+}
 
-		if (event.target.parentElement && event.target.parentElement.classList.contains('modal-option')) {
-			updateModeOptions();
-		}
-		if (event.target.id == "button-lobby" || event.target.id == "button-carreer")
-		{
-			const buttons = document.querySelectorAll('.nav-button');
-
-			buttons.forEach(btn => {
-				btn.classList.remove('active');
-			});
-			event.target.classList.add('active');
-		}
-		if (event.target.id === 'matchmaking-btn' && lobby_player.is_leader)
-		{
-			if (lobby.status === LobbyStatus['DEFAULT'] && lobby.members.every(player => player.is_ready)) {
-				startMatchmaking();
-			}
-			else {
-				stopMatchmaking();
-			}
-		}
-		else if (event.target.id === 'leaveLobbyButton') {
-			leaveLobby();
-		}
-		else if (event.target.id === 'toggle-online-button') {
-			toggleSection("onlineFriends");
-		}
-		else if (event.target.id === 'toggle-offline-button') {
-			toggleSection("offlineFriends");
-		}
-		else if (event.target.id === 'close-modal-button') {
-			closeModeSelection();
-		}
-		else if (event.target.id === 'mode-action-button')
-		{
-			if (lobby_player.is_leader) {
-				openModeSelection();
-			}
-			else if (lobby_player.is_ready) {
-				await unsetReadyStatus();
-			}
-			else {
-				await setReadyStatus();
-			}
-		}
-		else if (event.target.id === 'apply-mode-button') {
-			applyModeSelection();
-		}
-		else if (event.target.id === 'editable-name') {
-			enableNameEdit(event.target);
-		}
-		else if (event.target.id === 'inviteButton') {
-			event.stopPropagation();
-			toggleInviteMenu(inviteMenu);
-		}
-		else if (event.target.id === 'acceptFriendRequest')
-		{
-			const requesterName = document.getElementById('requesterName').textContent;
-			await acceptFriendRequest(requesterName);
-		}
-		else if (event.target.id === 'rejectFriendRequest')
-		{
-			const requesterName = document.getElementById('requesterName').textContent;
-			await rejectFriendRequest(requesterName);
-		}
-		else if (event.target.id === 'acceptLobbyRequest')
-		{
-			const request = document.querySelector('span[data-request-type]');
-			const requestId = request.getAttribute('data-request-id');
-			await acceptLobbyRequest(requestId);
-		}
-		else if (event.target.id === 'rejectLobbyRequest')
-		{
-			const request = document.querySelector('span[data-request-type]');
-			const requestId = request.getAttribute('data-request-id');
-			await rejectLobbyRequest(requestId);
-		}
-		else if (event.target.id === 'addFriendButton')
-		{
-			const addFriendInput = document.getElementById('addFriendInput');
-			await addFriend(addFriendInput.value);
-		}
-		else if (event.target.id === 'friendSearch')
-		{
-			const friendSearchInput = document.getElementById('friendSearch');
-			friendSearchInput?.addEventListener('keyup', filterFriends);
-		}
-		else if (event.target.parentElement && event.target.parentElement.id === 'onlineFriends') {
-			selectedFriend = handleFriendClick(event, menu, selectedFriend)
-		}
-		if (!menu.contains(event.target) && !event.target.classList.contains('list-group-item')) // outside click
-		{
-			closeMenu(menu);
-			selectedFriend = null;
-		}
-		if (inviteMenu && inviteButton && !inviteMenu.contains(event.target) && event.target !== inviteButton) { // outside click
-			closeInviteMenu(inviteMenu);
-		}
-	});
-	const inputField = document.getElementById("addFriendInput");
-	document.addEventListener('keydown', async function(event)
-	{
-		if (event.key === "Enter")
-		{
-			event.preventDefault();
-			const value = inputField.value.trim();
-
-			if (event.key === "Enter")
-			{
-				if (value)
-				{
-					event.preventDefault();
-					addFriend(value);
-				}
-				else
-				{
-					// inputField.placeHolder = "Veuillez entrer un nom valide"
-				}
-            }
-
-		}
-	});
-});

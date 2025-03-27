@@ -13,18 +13,14 @@ from datetime import datetime
 
 logger = logging.getLogger("default")
 
-RELOAD_TIMEOUT = 1
-
-# rom.util.use_rom_session()
-
 class MatchmakingConsumer(AsyncWebsocketConsumer):
-    def __init__(self, *args, **kwargs):
+    RELOAD_TIMEOUT = 1
 
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.player = None
         self.waiting_lobby = None
         self.user = None
-        self.player = None
         self.generate_handlers(["match_found", "queue_start", "queue_stop"])
 
     def generate_handlers(self, event_types):
@@ -209,7 +205,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         await self.remove_from_group("player")
         await self.remove_from_group("lobby")
         if close_code == 1001 :
-            await asyncio.sleep(RELOAD_TIMEOUT)
+            await asyncio.sleep(self.RELOAD_TIMEOUT)
             await sync_to_async(self.player.refresh)(force=True)
             if self.player.ws_status == WebsocketStatus.CONNECTED:
                 self.logger("Reload")
@@ -231,6 +227,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
+    RELOAD_TIMEOUT = 1
 
     def __init__(self) :
         super().__init__()
@@ -310,7 +307,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.player.ws_status = self.player.ws_status = WebsocketStatus.DISCONNECTED
         await sync_to_async(self.player.save)()
         if close_code == 1001 :
-            await asyncio.sleep(RELOAD_TIMEOUT)
+            await asyncio.sleep(self.RELOAD_TIMEOUT)
             await sync_to_async(self.player.refresh)(force=True)
             if self.player.ws_status == WebsocketStatus.CONNECTED:
                 self.logger("Reload")
