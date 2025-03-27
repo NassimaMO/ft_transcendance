@@ -8,16 +8,16 @@
         </div>
     {% for match in history %}
     {% if match.result == "Victory" %}
-    <tr class="match" style="background-color: rgba(20, 244, 136, 0.1)">
-        <td class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</td>
+    <div class="match" style="background-color: rgba(20, 244, 136, 0.1)">
+        <div class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</div>
         {% elif match.result == "Defeat" %}
-        <tr class="match" style="background-color: rgba(244, 20, 20, 0.1)">
-            <td class="result" style="color: rgba(255, 0, 0, 0.696)">Defeat</td>
+        <div class="match" style="background-color: rgba(244, 20, 20, 0.1)">
+            <div class="result" style="color: rgba(255, 0, 0, 0.696)">Defeat</div>
             {% endif %}
-                <td class="game-mode">{{ match.mode }}</td>
-                <td class="score">{{ match.score.0 }} - {{ match.score.1 }}</td>
-                <td class="date-time">{{ match.date }}</td>
-        </tr>
+                <div class="game-mode">{{ match.mode }}</div>
+                <div class="score">{{ match.score.0 }} - {{ match.score.1 }}</div>
+                <div class="date-time">{{ match.date }}</div>
+        </div>
         {% empty %}
         <div>
             <div class="no-match">No matches available</div>

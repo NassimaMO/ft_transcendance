@@ -21,6 +21,7 @@ class UserHistorySerializer(serializers.ModelSerializer):
     mode = serializers.CharField(source="info.mode")
     score = serializers.SerializerMethodField()
     result = serializers.SerializerMethodField()
+    date = serializers.DateTimeField(format="%Y-%m-%d")
 
     class Meta:
         model = Match
