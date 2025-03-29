@@ -124,10 +124,13 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if self.waiting_lobby :
             self.waiting_lobby.delete()
         self.waiting_lobby = None
-        if self.player.lobby.status == LobbyStatus.IN_QUEUE:
-            self.player.lobby.status = LobbyStatus.DEFAULT
-            self.player.lobby.save()
-        self.logger("Lobby removed from queue")
+        try:
+            if self.player.lobby.status == LobbyStatus.IN_QUEUE:
+                self.player.lobby.status = LobbyStatus.DEFAULT
+                self.player.lobby.save()
+            self.logger("Lobby removed from queue")
+        except rom.exceptions.EntityDeletedError:
+            pass
 
     def get_players_number(self, teams):
         return sum([lobby.members_count(include_autofill=True) for team in teams for lobby in team])

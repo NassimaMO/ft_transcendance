@@ -1,14 +1,13 @@
-import rom
-import redis # type: ignore
+import rom # type: ignore
 import django_filters # type: ignore
+import sys
+import inspect
 import logging
 import time
-import threading
 from django.db import models # type: ignore
 from django.utils import timezone # type: ignore
 from account.models import User
 from datetime import datetime
-from asgiref.sync import async_to_sync # type: ignore
 
 
 logger = logging.getLogger('default')
@@ -230,6 +229,12 @@ class Match(models.Model):
 	
 	def get_team(self, user):
 		return self.teams.filter(entries__player__user=user).first()
+	
+	def get_host(self):
+		if self.info.connectivity != Connectivity.LOCAL:
+			return None
+		return Player.objects.filter(entries__team__match=self, user__isnull=False).first()
+
 
 
 class MatchFilter(django_filters.FilterSet):
@@ -270,7 +275,6 @@ class Team(models.Model):
 	
 	def is_winner(self):
 		return self.score == max([team.score for team in self.match.teams])
-
 
 
 class Player(models.Model):

@@ -2,7 +2,7 @@ import rom # type: ignore
 import random
 import math
 from django.db import models # type: ignore
-from matchmaker.models import Match, BaseCodes, Player
+from matchmaker.models import Match, BaseCodes, Player, Entry
 from datetime import datetime
 import logging
 
@@ -66,6 +66,7 @@ class PongParameters(rom.Model):
 	paddle_gap = rom.Float(default=0.05)
 	paddle_speed = rom.Float(default=0.3)
 	field_ratio = rom.Float(default=0.5)
+	win_score = rom.Integer(default=10)
 
 	@classmethod
 	def get_default(cls):
@@ -90,6 +91,14 @@ class PongChange(BaseCodes):
 	COLLIDE = 1
 	GOAL = 2
 	PADDLE = 3
+	END = 4
+
+
+class PongPlayerStatus(BaseCodes):
+	STARTING = 0
+	WAITING = 1
+	PLAYING = 2
+	AWAY = 3
 
 
 class PaddleMove(BaseCodes):
@@ -129,6 +138,7 @@ class PongPlayerSession(rom.Model):
 	coordinate_y = rom.Float(default=0)
 	coordinate_x = rom.Float(default=0)
 	move = rom.Integer(default=PaddleMove.STATIC, required=False)
+	status = rom.Integer(default=PongPlayerStatus.STARTING)
 	last_update = rom.DateTime(default=None, required=False)
 
 	@classmethod
@@ -221,6 +231,13 @@ class PongGameSession(rom.Model):
 		session = cls.create(match_id)
 		session.save()
 		return session
+	
+	def save_match(self):
+		for player_session in self.get_player_sessions():
+			entry = Entry.objects.filter(match__id=self.match.id, player__id=player_session.player.id).first()
+			entry.score = player_session.score
+			entry.team.score = player_session.team.score
+			entry.save()
 
 	def get_player_sessions(self):
 		return [player for team in self.team_sessions for player in team.player_sessions]
@@ -318,6 +335,8 @@ class PongGameSession(rom.Model):
 		if teams_scorer is not None:
 			for team_scorer in teams_scorer:
 				team_scorer.score += 1
+				if team_scorer.score == self.parameters.win_score:
+					status = PongChange.END
 				if team_scorer.last_touch is not None:
 					team_scorer.last_touch.score += 50
 					team_scorer.last_touch.save()
@@ -330,7 +349,8 @@ class PongGameSession(rom.Model):
 	def update_paddles(self):
 		status = None
 		for team in self.team_sessions:
-			for i, player in enumerate(team.player_sessions):
+			players = team.player_sessions
+			for i, player in enumerate(players):
 				if player.move != PaddleMove.STATIC:
 					now = datetime.now()
 					if player.last_update:
@@ -347,10 +367,10 @@ class PongGameSession(rom.Model):
 							else:
 								player.coordinate_y = 0
 						else:
-							if new_pos >= player[i - 1].coordinate_y + team.paddle_length:
+							if new_pos >= players[i - 1].coordinate_y + team.paddle_length:
 								player.coordinate_y = new_pos
 							else:
-								player.coordinate_y = player[i - 1].coordinate_y + team.paddle_length
+								player.coordinate_y = players[i - 1].coordinate_y + team.paddle_length
 					if player.move ==PaddleMove.DOWN:
 						new_pos = player.coordinate_y + self.parameters.paddle_speed * dt
 						n = len(team.player_sessions)
@@ -360,10 +380,10 @@ class PongGameSession(rom.Model):
 							else:
 								player.coordinate_y = self.parameters.field_ratio - team.paddle_length
 						else:
-							if new_pos + team.paddle_length <= player[i + 1].coordinate_y:
+							if new_pos + team.paddle_length <= players[i + 1].coordinate_y:
 								player.coordinate_y = new_pos
 							else:
-								player[i + 1].coordinate_y - team.paddle_length
+								player.coordinate_y = players[i + 1].coordinate_y - team.paddle_length
 					player.last_update = now
 					player.save()
 					status = PongChange.PADDLE
@@ -371,7 +391,6 @@ class PongGameSession(rom.Model):
 					player.last_update = None
 					player.save()
 		return status
-			
 
 	def update_state(self):
 		status = self.update_ball()

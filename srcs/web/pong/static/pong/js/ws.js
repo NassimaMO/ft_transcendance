@@ -1,6 +1,6 @@
 const path = window.location.pathname;
-const sessionId = path.split('/')[2];
-const wsUrl = `/ws/pong/${sessionId}/`;
+const session_id = path.split('/')[2];
+const ws_url = `/ws/pong/${session_id}/`;
 
 const canvas = document.getElementById("pongCanvas");
 const ctx = canvas.getContext("2d");
@@ -10,8 +10,11 @@ const HEIGHT_GAP_RATIO = 0.1;
 const CANVAS_BASE_WIDTH = 500;
 
 let Utils = null;
-let gameState = null;
-let gameParams = null;
+let state = null;
+let params = null;
+let match = null;
+
+const keyState = {};
 
 import(window.STATIC_VERSIONED_PATHS.utils)
     .then(async module => {
@@ -25,63 +28,157 @@ async function pongWSHandler(event)
     const data = JSON.parse(event.data);
     if (data.state)
 	{
-        gameState = data.state;
-        drawGame(gameState);
+        state = data.state;
+        drawGame(state);
     }
+}
+
+function getInputs()
+{
+    const inputs = {};
+
+    inputs[state.teams[0].players[0].id] = { up: ['z'], down: ['s'] };
+    if (match.info.connectivity === "Local" && match.info.mode === "1v1")
+    {
+        inputs[state.teams[1].players[0].id] = {up: ['p', 'arrowup'], down: ['l', 'arrowdown']};
+    }
+    if (match.info.connectivity === "Local" && match.info.mode === "2v2")
+    {
+        inputs[state.teams[0].players[1].id] = {up: ['f'], down: ['v']};
+        inputs[state.teams[1].players[1].id] = {up: ['j'], down: ['n']};
+        inputs[state.teams[1].players[0].id] = {up: ['p'], down: ['l']};
+    }
+    if (match.info.connectivity !== "Local" || match.info.mode === "Solo")
+    {
+        inputs[state.teams[0].players[0].id].up.push('arrowup');
+        inputs[state.teams[0].players[0].id].down.push('arrowdown');
+    }
+    return inputs;
+}
+
+function checkInput(event)
+{
+    const inputs = getInputs();
+    const key = event.key.toLowerCase();
+
+    for (const player_id in inputs)
+    {
+        for (const move in inputs[player_id])
+        {
+            if (inputs[player_id][move].includes(key))
+            {
+                return { player_id: player_id, move: move };
+            }
+        }
+    }
+    return null;
 }
 
 async function handleKeyDown(event)
 {
-    if (event.repeat) 
+    const key = event.key.toLowerCase();
+    const check = checkInput(event);
+    // const opposite_keys = getOppositeKeys(key);
+
+    if (keyState[key])
         return;
-    let response = null;
-    switch (event.key.toLowerCase())
-	{
-        case "arrowup":
-        case "z":
-			response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/state/`, {move: 'up'}, "PATCH");
-			if (!response.ok) {
-				console.error("Échec move up.");
-			}
-            break;
-        case "arrowdown":
-        case "s":
-			response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/state/`, {move: 'down'}, "PATCH");
-			if (!response.ok) {
-				console.error("Échec move down.");
-			}
-            break;
+    keyState[key] = true;
+    // if (opposite_keys)
+    // {
+    //     for (const input of opposite_keys.inputs)
+    //     {
+    //         if (keyState[input])
+    //         {
+    //             const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/state/players/${check.player_id}/`, 
+    //                 {move: null}, 
+    //                 "PATCH"); 
+    //             if (!response.ok) {
+    //                 console.error("ERROR handleKeyUp.");
+    //             }
+    //             return ;
+    //         }
+    //     }
+    // }
+    if (check)
+    {
+        const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/state/players/${check.player_id}/`, 
+            {move: check.move}, 
+            "PATCH");
+        if (!response.ok) {
+            console.error("ERROR handleKeyDown");
+        }
+    }   
+}
+
+function getOppositeKeys(key)
+{
+    const inputs = getInputs();
+
+    for (const player_id in inputs)
+    {
+        if (inputs[player_id].up.includes(key))
+        {
+            return {inputs: inputs[player_id].down, move:  'down'};
+        }
+        if (inputs[player_id].down.includes(key))
+        {
+            return {inputs: inputs[player_id].up, move: 'up'};
+        }
     }
 }
 
 async function handleKeyUp(event)
 {
-	const response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/state/`, {move: null}, "PATCH"); 
-	if (!response.ok) {
-		console.error("Échec move reset.");
-	}
-}
+    const key = event.key.toLowerCase();
+    const check = checkInput(event);
+    const opposite_keys = getOppositeKeys(key);
 
+    keyState[key] = false;
+    if (opposite_keys)
+    {
+        for (const input of opposite_keys.inputs)
+        {
+            if (keyState[input])
+            {
+                const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/state/players/${check.player_id}/`, 
+                    {move: opposite_keys.move}, 
+                    "PATCH"); 
+                if (!response.ok) {
+                    console.error("ERROR handleKeyUp.");
+                }
+                return ;
+            }
+        }
+    }
+    if (check)
+    {
+        const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/state/players/${check.player_id}/`, {move: null}, "PATCH"); 
+        if (!response.ok) {
+            console.error("ERROR handleKeyUp.");
+        }
+    }
+}
 
 async function initGame()
 {
     try
 	{
-        await Utils.initWS('pong', wsUrl, pongWSHandler);
+        await Utils.initWS('pong', ws_url, pongWSHandler);
 
-        const response = await Utils.APIRequest(`/api/games/sessions/${sessionId}/`);
+        const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/`);
         if (!response.ok) {
             console.error("Échec de récupération de la session de jeu.");
             return;
         }
 
-        gameParams = response.session.parameters;
-        gameState = response.state;
+        params = response.session.parameters;
+        state = response.session.state;
+        match = response.session.match
 
         canvas.width = CANVAS_BASE_WIDTH;
         canvas.height = CANVAS_BASE_WIDTH / 2;
 
-        const startResponse = await Utils.APIRequest(`/api/games/sessions/${sessionId}/`, {}, "PUT");
+        const startResponse = await Utils.APIRequest(`/api/games/sessions/${session_id}/`, {}, "PUT");
         if (!startResponse.ok) {
             console.error("Échec du démarrage de la partie.");
         }
@@ -94,12 +191,13 @@ async function initGame()
     }
 }
 
+
 function drawGame(state)
 {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const fieldWidth = canvas.width * CANVAS_WIDTH_RATIO;
-    const fieldHeight = fieldWidth * gameParams.field_ratio;
+    const fieldHeight = fieldWidth * params.field_ratio;
     const fieldX = (canvas.width - fieldWidth) / 2;
     const fieldY = (canvas.height + canvas.height * HEIGHT_GAP_RATIO - fieldHeight) / 2;
 
@@ -112,7 +210,7 @@ function drawGame(state)
     const ball = {
         x: fieldX + state.ball.coordinate_x * fieldWidth,
         y: fieldY + state.ball.coordinate_y * fieldWidth,
-        radius: gameParams.ball_radius * fieldWidth
+        radius: params.ball_radius * fieldWidth
     };
 
     ctx.beginPath();
@@ -132,7 +230,7 @@ function drawGame(state)
             const paddle = {
                 x: fieldX + player.coordinate_x * fieldWidth,
                 y: fieldY + player.coordinate_y * fieldWidth,
-                width: gameParams.paddle_width * fieldWidth,
+                width: params.paddle_width * fieldWidth,
                 height: team.paddle_length * fieldWidth
             };
             ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);

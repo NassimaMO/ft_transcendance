@@ -578,7 +578,7 @@ class PlayerMeRequestView(APIView):
 			elif lobby_request.type == "join":
 				change_lobby_api(lobby_request.sender, lobby_player.lobby)
 			lobby_request.delete()
-			lobby_player.refresh()
+			lobby_player.refresh(force=True)
 			send_notifications("lobby_player", lobby_player.id, {'type':LobbyChange.LOBBY_REQUEST})
 			add_message(message, "request_accepted", request_type=lobby_request.type, sender=lobby_request.sender.user.username)
 			return Response(message, status=status.HTTP_200_OK)

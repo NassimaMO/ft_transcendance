@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from django.db.utils import OperationalError
+from transcendance.utils import add_methods_rom
 
 
 class PongConfig(AppConfig):
@@ -8,3 +8,4 @@ class PongConfig(AppConfig):
 
     def ready(self):
         import pong.signals
+        add_methods_rom('pong.models')
