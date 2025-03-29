@@ -1,7 +1,3 @@
-<script>
-    document.documentElement.style.setProperty('--win-ratio', "{{ stats.win_loss_ratio|floatformat:0 }}%".replace("%", ""));
-</script>
-
 <div class="dashboard-container">
     <div class="user-info">
         <h2 class="username">{{ user.username }}</h2>
@@ -48,7 +44,7 @@
                 <div class="avg-score-title">Average score</div>
                 <div class="avg-score">
                     <canvas id="avg-score-graph"></canvas>
-                    <div class="avg-score-number">3.4</div>
+                    <div class="avg-score-number">{{ stats.average_score}}</div>
                 </div>
             </div>
         </div>

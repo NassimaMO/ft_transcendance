@@ -8,7 +8,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'boards/css/history.css' %}">
 {% endblock %}
     
-    {% block lobbyBody %}
+{% block lobbyBody %}
     <select class="board-mode" name="choices" id="choices">
         <option>All</option>
         <option>Unranked</option>
@@ -22,5 +22,11 @@
 {% endblock %}
 
 {% block extraJS %}
-<script src="{% static 'boards/js/dashboard.js' %}"></script>
+<script>
+    var matchDates = {{ match_dates|safe }};
+    var matchScores = {{ match_scores|safe }};
+    document.documentElement.style.setProperty('--win-ratio', "{{ stats.win_loss_ratio|floatformat:0 }}%".replace("%", ""));
+</script>
+<script src="{% static 'boards/js/dashboard.js' %}">
+</script>
 {% endblock %}
