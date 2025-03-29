@@ -14,7 +14,7 @@ class UserStatsSerializer(serializers.ModelSerializer):
         data["games_lost"] = len(instance.history.all()) - instance.get_total_games_won()
         data["win_streak"] = instance.get_win_streak()
         data["average_score"] = instance.get_average_score()
-        data["win_loss_ratio"] = instance.get_total_games_won() / (len(instance.history.all()) - obj.get_total_games_won()) if data["total_games_played"] != data["games_won"] else data["games_won"]
+        data["win_loss_ratio"] = 0 if data["total_games_played"] == 0 else (data["games_won"] / data["total_games_played"]) * 100
         return data
     
 class UserHistorySerializer(serializers.ModelSerializer):

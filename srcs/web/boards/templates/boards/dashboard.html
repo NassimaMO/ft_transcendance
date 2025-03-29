@@ -1,3 +1,7 @@
+<script>
+    document.documentElement.style.setProperty('--win-ratio', "{{ stats.win_loss_ratio|floatformat:0 }}%".replace("%", ""));
+</script>
+
 <div class="dashboard-container">
     <div class="user-info">
         <h2 class="username">{{ user.username }}</h2>

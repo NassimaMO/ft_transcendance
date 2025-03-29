@@ -21,6 +21,7 @@ document.querySelectorAll('.display-button').forEach(function(button) {
   });
 });
 
+
 var ctx = document.getElementById('avg-score-graph').getContext('2d');
 
 var matchScoresChart = new Chart(ctx, {
