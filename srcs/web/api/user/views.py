@@ -425,7 +425,6 @@ class UserMeRankView(APIView):
 			if game is None:
 				return checking.get("error_response")
 			rank, _ = UserRank.objects.get_or_create(user=request.user, game=game)
-			logger.info(rank)
 			data = UserRankSerializer(rank, context={'request': request}).data
 			message['rank'] = data
 			return Response(data, status=status.HTTP_200_OK)

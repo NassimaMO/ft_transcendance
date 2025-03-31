@@ -5,7 +5,7 @@ let selectedFriend = null;
 let timerInterval = null;
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
-const lobby_id = path.split('/')[2];
+const lobby_id = window.location.pathname.split('/')[2];
 console.log(lobby_id)
 
 import(window.STATIC_VERSIONED_PATHS.utils).then(module => {
@@ -724,7 +724,7 @@ async function main ()
 	}
 	await updateVars();
 	updateUIMatchmaking();
-	await Utils.initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby/${lobby_id}`, lobbyWSHandler);
+	await Utils.initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby/${lobby_id}/`, lobbyWSHandler);
 	await Utils.initWS("matchmaking", `${protocol}//${window.location.hostname}:${port}/ws/matchmaking`, matchmakingWSHandler);
 	document.addEventListener('click', clickHandler);
 	document.addEventListener('keydown', keyDownHandler);

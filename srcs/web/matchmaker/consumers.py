@@ -282,8 +282,10 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         if not self.user.is_authenticated:
             self.logger("Unauthorized action : User not authenticated", logger.error)
             return await self.close(1008, reason="User not authenticated")
+        self.lobby_id = self.scope['url_route']['kwargs']['lobby_id']
+        self.lobby = await sync_to_async(models.Lobby.get)(self.lobby_id)
         self.player = await sync_to_async(models.LobbyPlayer.get_by_user)(self.user)
-        if not self.player or not self.player.lobby:
+        if not self.lobby or not self.player or not self.player.lobby or self.player.lobby.id != self.lobby.id:
             self.logger("Unauthorized action : You are not in a lobby", logger.error)
             return self.close(1008, reason="You are not in a lobby")
         await self.add_to_group("player") 
