@@ -32,9 +32,9 @@ class Game(models.Model):
 
 class Rank(models.Model):
 	game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="ranks")
-	name = models.CharField(max_length=20)
-	order = models.IntegerField()
-	marks_required = models.IntegerField(default=0)
+	name = models.CharField(max_length=20, default="unranked")
+	order = models.IntegerField(default=0)
+	marks_required = models.IntegerField(default=1)
 
 	class Meta:
 		unique_together = ("game", "name")
@@ -50,12 +50,20 @@ class Rank(models.Model):
 	def previous_rank(self):
 		prev_rank = Rank.objects.filter(game=self.game, order__lt=self.order).order_by("-order").first()
 		return prev_rank if prev_rank else self
+	
+	@classmethod
+	def get_default(cls):
+		return cls.objects.first() if cls.objects.exists() else None
+	
+	@classmethod
+	def get_default_id(cls):
+		return cls.get_default().id
 
 
 class UserRank(models.Model):
 	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ranks")
 	game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="user_ranks")
-	rank = models.ForeignKey(Rank, on_delete=models.CASCADE, related_name="user_ranks")
+	rank = models.ForeignKey(Rank, on_delete=models.CASCADE, default=Rank.get_default, related_name="user_ranks")
 	division = models.IntegerField(default=4)
 	marks = models.IntegerField(default=0)
 
@@ -234,7 +242,11 @@ class Match(models.Model):
 		if self.info.connectivity != Connectivity.LOCAL:
 			return None
 		return Player.objects.filter(entries__team__match=self, user__isnull=False).first()
-
+	
+	def get_winner_team(self):
+		for team in Team.objects.filter(match=self):
+			if team.is_winner():
+				return team
 
 
 class MatchFilter(django_filters.FilterSet):
@@ -274,7 +286,7 @@ class Team(models.Model):
 		return self.__str__()
 	
 	def is_winner(self):
-		return self.score == max([team.score for team in self.match.teams])
+		return self.score == max([team.score for team in self.match.teams.all()])
 
 
 class Player(models.Model):
@@ -296,7 +308,7 @@ class Entry(models.Model):
 	score = models.IntegerField(default=0)
 
 	def __str__(self):
-		return f"<Player {self.pseudo}: {self.score}>"
+		return f"<Player {self.player.id}: {self.score}>"
 
 	def __repr__(self):
 		return self.__str__()

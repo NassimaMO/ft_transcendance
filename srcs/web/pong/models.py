@@ -128,7 +128,7 @@ class PongTeamSession(rom.Model):
 	last_touch = rom.OneToOne('PongPlayerSession', on_delete='cascade')
 
 	def __str__(self):
-		return f'<PongTeamSession {self.id}: {self.player_sessions}>'
+		return f'<PongTeamSession {self.id}: {self.player_sessions}, score: {self.score}>'
 
 
 class PongPlayerSession(rom.Model):
@@ -148,7 +148,7 @@ class PongPlayerSession(rom.Model):
 				return player_session
 
 	def __str__(self):
-		return f'<PongPlayerSession of {self.player.user.username}>'
+		return f'<PongPlayerSession of {self.player.user}>'
 
 
 class PongGameSession(rom.Model):
@@ -234,9 +234,10 @@ class PongGameSession(rom.Model):
 	
 	def save_match(self):
 		for player_session in self.get_player_sessions():
-			entry = Entry.objects.filter(match__id=self.match.id, player__id=player_session.player.id).first()
+			entry = Entry.objects.filter(team__match__id=self.match.id, player__id=player_session.player.id).first()
 			entry.score = player_session.score
-			entry.team.score = player_session.team.score
+			entry.team.score = player_session.team_session.score
+			entry.team.save()
 			entry.save()
 
 	def get_player_sessions(self):
@@ -342,7 +343,8 @@ class PongGameSession(rom.Model):
 					team_scorer.last_touch.save()
 					team_scorer.last_touch = None
 				team_scorer.save()
-			status = PongChange.GOAL
+			if status == PongChange.BALL:
+				status = PongChange.GOAL
 		self.ball.last_update = now
 		return status
 	

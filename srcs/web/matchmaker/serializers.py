@@ -13,10 +13,12 @@ class PlayerSerializer(serializers.ModelSerializer):
 class UserRankSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRank
-        fields = ['division', 'mark', 'rank']
+        fields = ['division', 'marks', 'rank']
 
-    def get_rank(self, obj):
-        return obj.rank.name
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["rank"] = instance.rank.name
+        return data
 
 
 class UserRanksSerializer(serializers.Serializer):

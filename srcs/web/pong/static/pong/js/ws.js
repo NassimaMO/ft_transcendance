@@ -13,8 +13,11 @@ let Utils = null;
 let state = null;
 let params = null;
 let match = null;
-
-const keyState = {};
+let player_session = null;
+const user_id = document.getElementById("config").dataset.userId;
+console.log(user_id)
+const keys_state = {};
+let colors = ['blue', 'red']
 
 import(window.STATIC_VERSIONED_PATHS.utils)
     .then(async module => {
@@ -23,13 +26,59 @@ import(window.STATIC_VERSIONED_PATHS.utils)
     })
     .catch(error => console.error("Erreur lors du chargement de utils.js :", error));
 
+function printWinner2D(winner_id)
+{
+    let text = "";
+    ctx.textAlign = "center"; 
+
+    for (const [index, team] of state.teams.entries())
+    {
+        if (team.id == winner_id)
+        {
+            if (match.info.connectivity == "Local" && match.info.mode != "Solo")
+            {
+                ctx.fillStyle = colors[index];
+                text = `${colors[index].toUpperCase()} WON !`;
+            }
+            else
+            {
+                for (const player of team.players)
+                {
+                    if (player.user && player.user.id == user_id)
+                    {
+                        ctx.fillStyle = "green";
+                        text = "VICTORY";
+                        break;
+                    }
+                }
+                ctx.fillStyle = "red";
+                text = "DEFEAT";
+            }
+            ctx.fillText(text, canvas.width / 2, 30);
+            return;
+        }
+    }
+    ctx.fillStyle = "white";
+    ctx.fillText("DRAW", canvas.width / 2, 30);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function pongWSHandler(event)
 {
     const data = JSON.parse(event.data);
+    if (data.type === "game_end")
+    {
+        printWinner2D(data.winner);
+        await sleep(3000);
+        window.location.href = data.url;
+    }
     if (data.state)
 	{
         state = data.state;
-        drawGame(state);
+        engine2D(state);
     }
 }
 
@@ -80,14 +129,14 @@ async function handleKeyDown(event)
     const check = checkInput(event);
     // const opposite_keys = getOppositeKeys(key);
 
-    if (keyState[key])
+    if (keys_state[key])
         return;
-    keyState[key] = true;
+    keys_state[key] = true;
     // if (opposite_keys)
     // {
     //     for (const input of opposite_keys.inputs)
     //     {
-    //         if (keyState[input])
+    //         if (keys_state[input])
     //         {
     //             const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/state/players/${check.player_id}/`, 
     //                 {move: null}, 
@@ -133,12 +182,12 @@ async function handleKeyUp(event)
     const check = checkInput(event);
     const opposite_keys = getOppositeKeys(key);
 
-    keyState[key] = false;
+    keys_state[key] = false;
     if (opposite_keys)
     {
         for (const input of opposite_keys.inputs)
         {
-            if (keyState[input])
+            if (keys_state[input])
             {
                 const response = await Utils.APIRequest(`/api/games/sessions/${session_id}/state/players/${check.player_id}/`, 
                     {move: opposite_keys.move}, 
@@ -173,7 +222,7 @@ async function initGame()
 
         params = response.session.parameters;
         state = response.session.state;
-        match = response.session.match
+        match = response.session.match;
 
         canvas.width = CANVAS_BASE_WIDTH;
         canvas.height = CANVAS_BASE_WIDTH / 2;
@@ -191,8 +240,7 @@ async function initGame()
     }
 }
 
-
-function drawGame(state)
+function engine2D(state)
 {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -215,14 +263,14 @@ function drawGame(state)
 
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "red";
+    ctx.fillStyle = "white";
     ctx.fill();
 
     // Paddles
     ctx.font = "20px Arial";
-    ctx.fillStyle = "white";
 
     state.teams.forEach((team, index) => {
+        ctx.fillStyle = colors[index];
         const scoreX = index === 0 ? canvas.width / 4 : (3 * canvas.width) / 4;
         ctx.fillText(team.score, scoreX, 30);
 

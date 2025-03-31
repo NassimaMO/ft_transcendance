@@ -3,7 +3,6 @@ import json
 import rom # type: ignore
 import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer # type: ignore
-from rest_framework.test import APIRequestFactory # type: ignore
 from asgiref.sync import sync_to_async # type: ignore
 from . import models
 from account.models import Status
@@ -105,8 +104,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     async def stop(self, event):
         await sync_to_async(self.player.refresh)(force=True)
         if not self.player.lobby:
-            self.logger("Unauthorized action : You are not in a lobby", logger.error)
-            return self.close(1008, reason="You are not in a lobby")
+            # self.logger("Unauthorized action : You are not in a lobby", logger.error)
+            return self.close(1008, reason="Already stopped")
         else:
             await sync_to_async(self.remove_from_queue)()
             await self.notify_queue_stop()

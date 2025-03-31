@@ -61,10 +61,11 @@ async function initWS(name, url, eventHandler = null)
 }
 
 
-async function APIRequest(url, data=null, http_method='GET')
+async function APIRequest(url, data = null, http_method = 'GET')
 {
 	let response = null;
 	let jsonResponse = null;
+
 	try
 	{
 		const options = {
@@ -75,43 +76,58 @@ async function APIRequest(url, data=null, http_method='GET')
 				'X-CSRFToken': csrftoken
 			},
 		};
-		if (data && (http_method === 'POST' || http_method === 'PUT' || http_method === 'PATCH' || http_method === 'DELETE')) {
+
+		if (data && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(http_method))
+		{
 			options.body = JSON.stringify(data);
 		}
-		response = await fetch(url, options); 
-		jsonResponse = await response.json();
+
+		response = await fetch(url, options);
+
+		const textResponse = await response.text();
+		if (textResponse)
+		{
+			try {
+				jsonResponse = JSON.parse(textResponse);
+			}
+			catch (parseError) {
+				console.error(`[APIRequest] Réponse invalide (non-JSON) :`, textResponse);
+			}
+		}
+
 		if (!response.ok)
 		{
-			if (jsonResponse.errors)
+			if (jsonResponse?.errors)
 			{
 				for (const [key, message] of Object.entries(jsonResponse.errors)) {
 					console.error(`[APIRequest] Erreur (${key}): ${message}`);
 				}
 			}
-			else if (response.status == 303)
+			else if (response.status === 303 && jsonResponse?.match?.url)
 			{
 				console.log("Redirection...");
 				window.location.href = jsonResponse.match.url;
 			}
 			else {
-				console.error('[APIRequest] Une erreur inattendue est survenue.');
+				console.error(`[APIRequest] Erreur HTTP ${response.status} : ${response.statusText}`);
 			}
 		}
-		if (jsonResponse.message) {
-			console.log("Message from API : ", jsonResponse.message);
+
+		if (jsonResponse?.message) {
+			console.log("Message from API:", jsonResponse.message);
 		}
-	}
+	} 
 	catch (error) {
 		console.error('[APIRequest] Erreur lors de la requête:', error);
 	}
-	if (jsonResponse) {
-		return {ok: response.ok, status: response.status, ...jsonResponse};
-	}
-	if (response) {
-		return {ok: response.ok, status: response.status};
-	}
-	return {ok: false, status: undefined};
+
+	return {
+		ok: response?.ok ?? false,
+		status: response?.status ?? undefined,
+		...(jsonResponse || {}),
+	};
 }
+
 
 export default {
 	initWS,

@@ -56,6 +56,7 @@ class PongTeamSessionSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data['id'] = instance.id
         data['players'] = PongPlayerSessionSerializer(list(instance.player_sessions), many=True, context=self.context).data
         if instance.field_position == FieldPosition.LEFT:
             data['field_position'] = "LEFT"

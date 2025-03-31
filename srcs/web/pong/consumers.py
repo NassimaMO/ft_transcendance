@@ -18,7 +18,6 @@ class PongConsumer(AsyncWebsocketConsumer):
 		self.match_id  = None
 		self.team = None
 		self.session = None
-		self.player = None
 		self.player_session = None
 		self.players = None
 		self.running = asyncio.Event()
@@ -91,10 +90,10 @@ class PongConsumer(AsyncWebsocketConsumer):
 	async def disconnect(self, close_code):
 		await self.remove_from_group(await self.get_group_name("session"))
 		await self.remove_from_group(await self.get_group_name("team"))
-		if not self.player_session:
-			self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
-		self.player_session.status = PongPlayerStatus.AWAY
-		await sync_to_async(self.player_session.save)()
+		self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
+		if self.player_session:
+			self.player_session.status = PongPlayerStatus.AWAY
+			await sync_to_async(self.player_session.save)()
 		self.running.clear()
 
 	async def logger(self, message, logger_level=logger.info):
@@ -130,8 +129,10 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 	async def game(self):
 		self.running.set()
+		self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
 		if not self.player_session:
-			self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
+			self.logger("Stoping game ; session is no longer available.", logger.error)
+			return await self.close(1008, reason="Session unavailable")
 		if self.player_session.status != PongPlayerStatus.PLAYING:
 			self.player_session.status = PongPlayerStatus.PLAYING
 			await sync_to_async(self.player_session.save)()
@@ -141,8 +142,11 @@ class PongConsumer(AsyncWebsocketConsumer):
 			if status == PongChange.END:
 				self.running.clear()
 			await self.send_game_state()
-		await sync_to_async(self.session.save_match)()
-		await sync_to_async(self.session.delete)()
+		self.session = await sync_to_async(PongGameSession.get_by_match_id)(self.match.id)
+		if self.session and status == PongChange.END:
+			await sync_to_async(self.session.save_match)()
+			await sync_to_async(self.session.delete)()
+			await self.send_match_end()
 
 	def ia_easy(self, player_session):
 		self.session.refresh(True)
@@ -178,12 +182,18 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 	def get_game_state(self):
 		return PongGameStateSerializer(instance=self.session).data
+	
+	async def send_match_end(self):
+		winner_team = await sync_to_async(self.match.get_winner_team)()
+		await self.send(text_data=json.dumps({
+			'type': 'game_end',
+			'winner': winner_team.id if winner_team else None,
+            'url': '/lobby/'
+        }))
 
 	async def send_game_state(self):
-		await self.channel_layer.group_send(
-			await self.get_group_name('session'),
+		await self.send(text_data=json.dumps(
 			{
 				'type': 'game_state',
 				'state': await sync_to_async(self.get_game_state)()
-			}
-		)
+			}))

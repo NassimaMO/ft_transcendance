@@ -15,9 +15,12 @@ def add_methods_rom(module_name):
 			try:
 				return super(self.__class__, self).save(*args, **kwargs)
 			except rom.exceptions.DataRaceError as e:
-				logger.warning(f"[{self.__class__.__name__}] DataRace detected on save (retrying): {e}")
+				logger.warning(f"[{self.__class__.__name__}] DataRace detected on save (retrying)")
 				self.refresh(force=True)
 				time.sleep(0.01)
+			except rom.exceptions.EntityDeletedError as e:
+				logger.warning(f"[{self.__class__.__name__}] EntityDeletedError detected on save (ignoring)")
+				return
 		logger.error(f"[{self.__class__.__name__}] Save failed after {max_retry} retries due to DataRace.")
 
 	def delete(self, *args, max_retry=5, **kwargs):

@@ -2,8 +2,11 @@ let Utils;
 let lobby_player = null;
 let lobby = null;
 let selectedFriend = null;
+let timerInterval = null;
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
+const lobby_id = path.split('/')[2];
+console.log(lobby_id)
 
 import(window.STATIC_VERSIONED_PATHS.utils).then(module => {
     Utils = module.default;
@@ -18,7 +21,13 @@ async function updateVars()
 		const response = await Utils.APIRequest('/api/lobbies/main/');
 		if (response.ok) {
 			lobby = response.lobby
-			lobby_player = response.lobby.members[0];
+			if (lobby)
+			{
+				lobby_player = lobby.members[0];
+			}
+			else {
+				console.error("Failed to fetch lobby data");
+			}
 		}
 		else {
 			console.error("Failed to fetch lobby data");
@@ -170,7 +179,7 @@ function updateSection(section)
 
 function redirectToGame(url)
 {
-    window.location.href = url;
+    // window.location.href = url;
 }
 
 function showMatchFound(url)
@@ -194,8 +203,6 @@ function showMatchFound(url)
     }, 1000);
 }
 
-let timerInterval = null;
-
 function formatTime(seconds)
 {
     const minutes = Math.floor(seconds / 60);
@@ -205,6 +212,7 @@ function formatTime(seconds)
 
 function updateTimerStart()
 {
+	console.log("updateTimerStart")
 	const button = document.getElementById('matchmaking-btn');
 	timerInterval = setInterval(() => {
 		const seconds = Math.floor((Date.now() - lobby.queue_start * 1000) / 1000);
@@ -214,6 +222,7 @@ function updateTimerStart()
 
 function updateTimerStop()
 {
+	console.log("updateTimerStop")
 	const button = document.getElementById('matchmaking-btn');
 	button.textContent = "JOUER";
 	if (timerInterval) {
@@ -223,7 +232,7 @@ function updateTimerStop()
 
 function updateUIMatchmaking()
 {
-	if (lobby.status == "in_queue") {
+	if (lobby && lobby.status == "in_queue") {
 		updateTimerStart();
 	}
 	else {
@@ -715,7 +724,7 @@ async function main ()
 	}
 	await updateVars();
 	updateUIMatchmaking();
-	await Utils.initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby`, lobbyWSHandler);
+	await Utils.initWS("lobby", `${protocol}//${window.location.hostname}:${port}/ws/lobby/${lobby_id}`, lobbyWSHandler);
 	await Utils.initWS("matchmaking", `${protocol}//${window.location.hostname}:${port}/ws/matchmaking`, matchmakingWSHandler);
 	document.addEventListener('click', clickHandler);
 	document.addEventListener('keydown', keyDownHandler);
