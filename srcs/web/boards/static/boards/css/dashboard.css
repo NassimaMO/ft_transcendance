@@ -46,7 +46,7 @@
     left: 0;
     background-color: #ffffff5e;
     height: 100%;
-    width: 77.33%;
+    width: calc(var(--marks-percent) * 100%);
 }
 
 /* --------------------- */

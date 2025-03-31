@@ -8,7 +8,7 @@ from api.utils import check_args, send_notifications, notify_friends_api
 from account.serializers import UserSerializer
 from account.models import User, UserChange
 from .serializers import RegisterSerializer
-from matchmaker.models import LobbyPlayer, Game, Rank
+from matchmaker.models import LobbyPlayer, Game, UserRank, Rank
 from matchmaker.serializers import UserRanksSerializer, UserRankSerializer, MatchSerializer
 import logging
 from api.utils import add_message
@@ -418,20 +418,21 @@ class UserMeRankView(APIView):
 	authentication_classes = [JWTAuthentication, SessionAuthentication]
 
 	def get(self, request, **kwargs):
-		message = {}
-		try:
+			message = {}
+		# try:
 			checking = check_args(Game, **kwargs)
 			game = checking.get("obj")
 			if game is None:
 				return checking.get("error_response")
-			rank = Rank.objects.get(user=request.user, game=game)
+			rank, _ = UserRank.objects.get_or_create(user=request.user, game=game)
+			logger.info(rank)
 			data = UserRankSerializer(rank, context={'request': request}).data
 			message['rank'] = data
 			return Response(data, status=status.HTTP_200_OK)
-		except Exception as e:
-			logger.error(f"Error fetching rank info: {e}")
-			add_message(message, "server_error", level="ERROR")
-			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		# except Exception as e:
+		# 	logger.error(f"Error fetching rank info: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		
 
 class UserRankView(APIView):
@@ -451,7 +452,7 @@ class UserRankView(APIView):
 			game = checking.get("obj")
 			if game is None:
 				return checking.get("error_response")
-			rank = Rank.objects.get(user=user, game=game)
+			rank = Rank.objects.get_or_create(user=user, game=game)
 			data = UserRankSerializer(rank, context={'request': request}).data
 			message['rank'] = data
 			return Response(data, status=status.HTTP_200_OK)

@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated # type: ignore
 from rest_framework.authentication import SessionAuthentication # type: ignore
 from rest_framework_simplejwt.authentication import JWTAuthentication # type: ignore
 from pong.serializers import PongGameSessionSerializer, PongGameStateSerializer, PongPlayerSessionSerializer
-from pong.models import PongGameSession, PongPlayerSession
+from pong.models import PongGameSession, PongPlayerSession, PongPlayerStatus
 from api.utils import *
 
 
@@ -45,6 +45,12 @@ class GameSessionView(APIView):
 			if not session.match.is_in_match(request.user):
 				add_message(message, "forbidden_game_session", level="ERROR")
 				return Response(message, status=status.HTTP_403_FORBIDDEN)
+			player_session = PongPlayerSession.get_by_user(request.user)
+			if not player_session:
+				add_message(message, "forbidden_game_session", level="ERROR")
+				return Response(message, status=status.HTTP_403_FORBIDDEN)
+			player_session.status = PongPlayerStatus.WAITING
+			player_session.save()
 			send_ws_message("pong_session", match_id, "start")
 			add_message(message, "pong_session_started")
 			return Response(message, status=status.HTTP_200_OK)
@@ -80,7 +86,10 @@ class GameStateView(APIView):
 			add_message(message, "server_error", level="ERROR")
 			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 		
-	def patch(self, request, match_id):
+	
+class GameStatePlayerView(APIView):
+
+	def patch(self, request, match_id, player_id):
 		"""Change a PongGameSession state"""
 
 		message = {}
@@ -95,8 +104,19 @@ class GameStateView(APIView):
 			if not request.data:
 				add_message(message, "", level="ERROR")
 				return Response(message, status=status.HTTP_400_BAD_REQUEST)
+			player = Player.get(player_id)
+			if not player :
+				add_message(message, "no_player", level="ERROR")
+				return Response(message, status=status.HTTP_404_NOT_FOUND)
+			if (player.user and request.user.id != player.user.id):
+				add_message(message, "forbidden_change", level="ERROR")
+				return Response(message, status=status.HTTP_403_FORBIDDEN)
+			host = session.match.get_host()
+			if (not player.user and host and host.user.id != request.user.id):
+				add_message(message, "forbidden_change", level="ERROR")
+				return Response(message, status=status.HTTP_403_FORBIDDEN)
 			if 'move' in request.data.keys():
-				player_session = PongPlayerSession.get_by_user(request.user)
+				player_session = PongPlayerSession.get(player_id)
 				serializer = PongPlayerSessionSerializer(player_session, data={'move':request.data['move']}, context={'request':request}, partial=True)
 				if serializer.is_valid():
 					serializer.save()

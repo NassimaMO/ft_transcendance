@@ -7,192 +7,193 @@ from .serializers import PongGameStateSerializer
 logger = logging.getLogger('default')
 
 class PongConsumer(AsyncWebsocketConsumer):
-    STATE_DELAY = 0.001
-    START_TIMEOUT = 10
+	STATE_DELAY = 0.001
+	START_TIMEOUT = 5
+	IA_DELAY = 1
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.user = None
-        self.match = None
-        self.match_id  = None
-        self.team = None
-        self.session = None
-        self.running = asyncio.Event()
-        self.generate_handlers(['game_state'])
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.user = None
+		self.match = None
+		self.match_id  = None
+		self.team = None
+		self.session = None
+		self.player_session = None
+		self.players = None
+		self.running = asyncio.Event()
+		self.generate_handlers(['game_state'])
 
-    def generate_handlers(self, event_types):
-        for event_type in event_types:
-            async def handler(self, event):
-                # await self.logger(event)
-                await self.send(text_data=json.dumps(event))
-            setattr(self, event_type, handler.__get__(self))   
+	def generate_handlers(self, event_types):
+		for event_type in event_types:
+			async def handler(self, event):
+				await self.send(text_data=json.dumps(event))
+			setattr(self, event_type, handler.__get__(self))   
 
-    async def connect(self):
-        self.user = self.scope['user']
-        if not self.user:
-            self.logger("Unauthorized action : Invalid user.", logger.error)
-            return await self.close(1008, reason="Invalid user")
-        if not self.user.is_authenticated:
-            self.logger("Unauthorized action : User not authenticated.", logger.error)
-            return await self.close(1008, reason="User not authenticated")
-        self.match_id = self.scope['url_route']['kwargs']['game_id']
-        self.match = await sync_to_async(Match.objects.get)(id=self.match_id)
-        if not self.match:
-            self.logger("Unauthorized action : Invalid match.", logger.error)
-            return await self.close(1008, reason="Invalid match")
-        self.team = await sync_to_async(self.match.get_team)(self.user)
-        if not self.team:
-            self.logger("Unauthorized action : You are not in that match.", logger.error)
-            return await self.close(1008, reason="Invalid player")
-        self.session = await sync_to_async(PongGameSession.get_or_create)(self.match.id)
-        await self.add_to_group(await self.get_group_name("session"))
-        await self.add_to_group(await self.get_group_name("team"))
-        await self.accept()
-        asyncio.create_task(self.wait_client())
+	async def connect(self):
+		self.user = self.scope['user']
+		if not self.user:
+			self.logger("Unauthorized action : Invalid user.", logger.error)
+			return await self.close(1008, reason="Invalid user")
+		if not self.user.is_authenticated:
+			self.logger("Unauthorized action : User not authenticated.", logger.error)
+			return await self.close(1008, reason="User not authenticated")
+		self.match_id = self.scope['url_route']['kwargs']['game_id']
+		self.match = await sync_to_async(Match.objects.get)(id=self.match_id)
+		if not self.match:
+			self.logger("Unauthorized action : Invalid match.", logger.error)
+			return await self.close(1008, reason="Invalid match")
+		self.team = await sync_to_async(self.match.get_team)(self.user)
+		if not self.team:
+			self.logger("Unauthorized action : You are not in that match.", logger.error)
+			return await self.close(1008, reason="Invalid player")
+		self.session = await sync_to_async(PongGameSession.get_by_match_id)(self.match.id)
+		if not self.session:
+			self.logger("Unauthorized action : Invalid session.", logger.error)
+			return await self.close(1008, reason="Invalid session")
+		await self.add_to_group(await self.get_group_name("session"))
+		await self.add_to_group(await self.get_group_name("team"))
+		await self.accept()
+		asyncio.create_task(self.wait_clients())
 
-    async def wait_client(self):
-        await self.logger("Waiting for client signal...")
-        await asyncio.sleep(self.START_TIMEOUT)
-        if not self.running.is_set():
-            await self.logger("Timeout expired ; Initiating game.")
-            asyncio.create_task(self.game())
+	async def start_game(self):
+		asyncio.create_task(self.game())
+		if not self.players:
+			self.players = await sync_to_async(self.session.get_player_sessions)()
+		for player_session in self.players:
+			if player_session.player.is_ai:
+				asyncio.create_task(self.ia(player_session))
 
-    async def start(self, event):
-        await self.logger("Received API start signal.")
-        if not self.running.is_set():
-            await self.logger("Starting Game.")
-            asyncio.create_task(self.game())
-        else:
-            await self.logger("ERROR: Ignoring start signal: Game has already started.", logger_level=logger.error)
+	async def check_starting(self):
+		if not self.players:
+			self.players = await sync_to_async(self.session.get_player_sessions)()
+		return any([player.status == PongPlayerStatus.STARTING for player in self.players])
 
-    async def disconnect(self, close_code):
-        await self.remove_from_group(await self.get_group_name("session"))
-        await self.remove_from_group(await self.get_group_name("team"))
-        self.running.clear()
+	async def wait_clients(self):
+		if not self.check_starting():
+			await self.game()
+		else:
+			await self.logger("Waiting for API start signal...")
+			await asyncio.sleep(self.START_TIMEOUT)
+			if not self.running.is_set():
+				await self.logger("Timeout expired ; Initiating game.")
+				await self.start_game()
 
-    async def logger(self, message, logger_level=logger.info):
-        s = "[PongConsumer]"
-        group_1 = await self.get_group_name('session')
-        if group_1:
-            s += f"[{group_1}]"
-        group_2 = await self.get_group_name('team')
-        if group_2:
-            s += f"[{group_2}]"
-        s += f" : {message}"
-        logger_level(s)
+	async def start(self, event):
+		await self.logger("Received API start signal.")
 
-    async def get_group_name(self, group):
-        if group == 'session' and self.session:
-            return f"pong_session_{self.session.id}"
-        if group == 'team' and self.team:
-            return f"pong_team_{self.team.id}"
-        
-    async def add_to_group(self, group):
-        if group:
-            await self.channel_layer.group_add(
-                group, 
-                self.channel_name
-            )
+		if not self.running.is_set():
+			await self.logger("All clients ready ; Starting Game.")
+			await self.start_game()
+		else:
+			await self.logger("ERROR: Ignoring start signal: Game has already started.", logger_level=logger.error)
 
-    async def remove_from_group(self, group):
-        if group:
-            await self.channel_layer.group_discard(
-                group, 
-                self.channel_name
-            )
+	async def disconnect(self, close_code):
+		await self.remove_from_group(await self.get_group_name("session"))
+		await self.remove_from_group(await self.get_group_name("team"))
+		self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
+		if self.player_session:
+			self.player_session.status = PongPlayerStatus.AWAY
+			await sync_to_async(self.player_session.save)()
+		self.running.clear()
 
-    async def game(self):
-        self.running.set()
-        while self.running.is_set():
-            await sync_to_async(self.session.update_state)()
-            await self.send_game_state()
-            await asyncio.sleep(self.STATE_DELAY)
+	async def logger(self, message, logger_level=logger.info):
+		s = "[PongConsumer]"
+		group_1 = await self.get_group_name('session')
+		if group_1:
+			s += f"[{group_1}]"
+		group_2 = await self.get_group_name('team')
+		if group_2:
+			s += f"[{group_2}]"
+		s += f" : {message}"
+		logger_level(s)
 
-    def get_game_state(self):
-        return PongGameStateSerializer(instance=self.session).data
+	async def get_group_name(self, group):
+		if group == 'session' and self.session:
+			return f"pong_session_{self.session.id}"
+		if group == 'team' and self.team:
+			return f"pong_team_{self.team.id}"
 
-    async def send_game_state(self):
-        await self.channel_layer.group_send(
-            await self.get_group_name('session'),
-            {
-                'type': 'game_state',
-                'state': await sync_to_async(self.get_game_state)()
-            }
-        )
+	async def add_to_group(self, group):
+		if group:
+			await self.channel_layer.group_add(
+				group, 
+				self.channel_name
+			)
 
-    """ async def move_paddle(self, data):
-        player = data['player']
-        new_position = data['position']
+	async def remove_from_group(self, group):
+		if group:
+			await self.channel_layer.group_discard(
+				group, 
+				self.channel_name
+			)
 
-        await self.update_player_position(player, new_position)
+	async def game(self):
+		self.running.set()
+		self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
+		if not self.player_session:
+			self.logger("Stoping game ; session is no longer available.", logger.error)
+			return await self.close(1008, reason="Session unavailable")
+		if self.player_session.status != PongPlayerStatus.PLAYING:
+			self.player_session.status = PongPlayerStatus.PLAYING
+			await sync_to_async(self.player_session.save)()
+		while self.running.is_set():
+			await asyncio.sleep(self.STATE_DELAY)
+			status =  await sync_to_async(self.session.update_state)()
+			if status == PongChange.END:
+				self.running.clear()
+			await self.send_game_state()
+		self.session = await sync_to_async(PongGameSession.get_by_match_id)(self.match.id)
+		if self.session and status == PongChange.END:
+			await sync_to_async(self.session.save_match)()
+			await sync_to_async(self.session.delete)()
+			await self.send_match_end()
 
-    @database_sync_to_async
-    def update_player_position(self, player, new_position):
-        game = PongGameSession.objects.get(id=self.game_id)
-        if player == 'one':
-            player_session = game.player_sessions.filter(position=0).first()  # Gauche
-        else:
-            player_session = game.player_sessions.filter(position=1).first()  # Droite
-        
-        if player_session:
-            player_session.coordinates = new_position
-            player_session.save()
+	def ia_easy(self, player_session):
+		self.session.refresh(True)
+		if player_session.coordinate_y > self.session.ball.coordinate_y :
+			player_session.move = PaddleMove.UP
+		elif player_session.coordinate_y + player_session.team_session.paddle_length < self.session.ball.coordinate_y :
+			player_session.move = PaddleMove.DOWN
+		else:
+			player_session.move = PaddleMove.STATIC
+		player_session.save()
 
-    async def update_ball(self, data):
-        new_x = data['position_x']
-        new_y = data['position_y']
-        new_velocity_x = data['velocity_x']
-        new_velocity_y = data['velocity_y']
+	def ia_medium(self, player_session):
+		self.session.refresh(True)
+		if player_session.coordinate_y + player_session.team_session.paddle_length / 2 > self.session.ball.coordinate_y :
+			player_session.move = PaddleMove.UP
+		elif player_session.coordinate_y + player_session.team_session.paddle_length / 2 < self.session.ball.coordinate_y :
+			player_session.move = PaddleMove.DOWN
+		elif player_session.coordinate_y > self.session.parameters.field_ratio / 2:
+			player_session.move = PaddleMove.UP
+		elif player_session.coordinate_y < self.session.parameters.field_ratio / 2:
+			player_session.move = PaddleMove.DOWN
+		else:
+			player_session.move = PaddleMove.STATIC
+		player_session.save()
 
-        await self.update_ball_position(new_x, new_y, new_velocity_x, new_velocity_y)
+	def ia_hard(self, player_session):
+		pass
 
-    @database_sync_to_async
-    def update_ball_position(self, x, y, velocity_x, velocity_y):
-        game = PongGameSession.objects.get(id=self.game_id)
-        ball = game.ball
-        ball.position_x = x
-        ball.position_y = y
-        ball.velocity_x = velocity_x
-        ball.velocity_y = velocity_y
-        ball.save()
+	async def ia(self, player_session, level="medium"):
+		while self.running.is_set():
+			await sync_to_async(getattr(self, f"ia_{level}"))(player_session)
+			asyncio.sleep(self.IA_DELAY)
 
-    async def send_game_state(self):
-        game = await self.get_game_state()
+	def get_game_state(self):
+		return PongGameStateSerializer(instance=self.session).data
+	
+	async def send_match_end(self):
+		winner_team = await sync_to_async(self.match.get_winner_team)()
+		await self.send(text_data=json.dumps({
+			'type': 'game_end',
+			'winner': winner_team.id if winner_team else None,
+            'url': '/lobby/'
+        }))
 
-        # Diffuser le nouvel état du jeu à tous les membres de la room
-        await self.channel_layer.group_send(
-            self.game_group_name,
-            {
-                'type': 'game_state',
-                'game': game
-            }
-        )
-
-    @database_sync_to_async
-    def get_game_state(self):
-        game = PongGameSession.objects.get(id=self.game_id)
-        ball = game.ball
-        player_one = game.player_sessions.filter(position=0).first()  # Joueur à gauche
-        player_two = game.player_sessions.filter(position=1).first()  # Joueur à droite
-
-        return {
-            'ball': {
-                'position_x': ball.position_x,
-                'position_y': ball.position_y,
-                'velocity_x': ball.velocity_x,
-                'velocity_y': ball.velocity_y,
-            },
-            'player_one': {
-                'coordinates': player_one.coordinates,
-                'score': player_one.score
-            },
-            'player_two': {
-                'coordinates': player_two.coordinates,
-                'score': player_two.score
-            }
-        }
-
-    async def game_state(self, event):
-        game = event['game']
-
-        await self.send(text_data=json.dumps(game)) """
+	async def send_game_state(self):
+		await self.send(text_data=json.dumps(
+			{
+				'type': 'game_state',
+				'state': await sync_to_async(self.get_game_state)()
+			}))

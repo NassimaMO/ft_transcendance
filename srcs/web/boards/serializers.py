@@ -25,7 +25,7 @@ class UserHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Match
-        fields = ["id", "result", "date", "mode", "score"]
+        fields = ["id", "result", "date", "info", "score"]
 
     def get_score(self, instance):
         return [team.score for team in instance.teams.all()] 

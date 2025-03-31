@@ -4,8 +4,8 @@ from asgiref.sync import async_to_sync # type: ignore
 from channels.layers import get_channel_layer # type: ignore
 from account.models import User, UserChange
 from matchmaker.models import *
+from pong.models import PongGameSession
 import logging
-import random
 
 logger = logging.getLogger('default')
 
@@ -15,6 +15,12 @@ def get_message_str(code: str, level: str, **kwargs) -> str :
 
 	if code == "server_error":
 		return "An unexpected server-side error occurred."
+	#
+	if code == "forbidden_change":
+		return "You are not allowed to modify this ressource."
+	#
+	if code == "forbidden_access":
+		return "You are not allowed to access this ressource."
 	#
 	if code == "no_available_lobby":
 		return "There is no available lobby."
@@ -296,4 +302,5 @@ def create_match(teams):
 				entry.save()
 				players_count += 1
 	match.save()
+	PongGameSession.get_or_create(match.id)
 	return match

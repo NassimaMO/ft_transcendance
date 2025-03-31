@@ -6,13 +6,12 @@ import logging
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'avatar', 'banner', 'status']
+        fields = ['id', 'username', 'avatar', 'banner', 'status']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
         if request and request.user.id == instance.id :
-            data['id'] = instance.id
             data['friends'] = UserSerializer(instance.friends.all(), many=True).data
             data['requests'] = UserSerializer(instance.requests.all(), many=True).data
             if self.context.get('type') == 'template' :

@@ -26,6 +26,7 @@
     var matchDates = {{ match_dates|safe }};
     var matchScores = {{ match_scores|safe }};
     document.documentElement.style.setProperty('--win-ratio', "{{ stats.win_loss_ratio|floatformat:0 }}%".replace("%", ""));
+    document.documentElement.style.setProperty('--marks-percent', "{{ rank.marks_percent|floatformat:2 }}%");
 </script>
 <script src="{% static 'boards/js/dashboard.js' %}">
 </script>
