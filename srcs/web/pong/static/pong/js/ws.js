@@ -281,6 +281,7 @@ function engine2D(state)
                 width: params.paddle_width * fieldWidth,
                 height: team.paddle_length * fieldWidth
             };
+            ctx.fillStyle = colors[index];
             ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
         });
     });
