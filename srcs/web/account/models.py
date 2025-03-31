@@ -101,6 +101,9 @@ class User(AbstractUser):
 			else:
 				break
 		return win_streak
+	
+	def get_win_loss_ratio(self):
+		return 0 if len(self.history.all()) == 0 else self.get_total_games_won() / len(self.history.all()) * 100
 
 
 class UserFilter(django_filters.FilterSet):

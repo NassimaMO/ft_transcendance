@@ -17,8 +17,8 @@ def boards_view(request):
     marks_percent = rank.get_marks_percent()
     matches = request.user.get_matches()
     match_dates = [match.date.strftime('%d/%m/%Y') for match in matches]
-    match_scores = [match.teams.all().first().score if match.teams.exists() else 0 for match in matches]
-    history_data = UserHistorySerializer(matches, many=True)
+    match_scores = [entry.score for entry in request.user.history.all()]
+    history_data = UserHistorySerializer(matches, many=True, context={'user':request.user})
     context = {
         "stats": stats.data,
         "rank": user_rank.data,
