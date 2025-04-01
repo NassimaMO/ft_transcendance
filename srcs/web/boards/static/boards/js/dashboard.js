@@ -1,3 +1,17 @@
+document.getElementById('choices').addEventListener('change', function () {
+    const selectedMode = this.value;
+    const matches = document.querySelectorAll('.match');
+
+    matches.forEach(match => {
+        const matchMode = match.getAttribute('data-matchmaking');
+        if (selectedMode === 'All' || matchMode === selectedMode) {
+            match.style.display = '';
+        } else {
+            match.style.display = 'none';
+        }
+    });
+});
+
 document.querySelectorAll('.display-button').forEach(function(button) {
   button.addEventListener('click', function() {
     var contentToHide = document.querySelector('.statistics');
@@ -46,7 +60,7 @@ options: {
             },
             beginAtZero: true,
             min: 0,
-            max: 5
+            max: 500
         }
     },
     plugins: {

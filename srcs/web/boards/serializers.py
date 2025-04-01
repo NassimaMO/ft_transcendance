@@ -21,14 +21,16 @@ class UserStatsSerializer(serializers.ModelSerializer):
         return data
     
 class UserHistorySerializer(serializers.ModelSerializer):
-    mode = serializers.CharField(source="info")
+    mode = serializers.CharField(source="info.mode")
+    connectivity = serializers.CharField(source="info.connectivity")
+    matchmaking = serializers.CharField(source="info.matchmaking")
     score = serializers.SerializerMethodField()
     result = serializers.SerializerMethodField()
     date = serializers.DateTimeField(format="%Y-%m-%d")
 
     class Meta:
         model = Match
-        fields = ["id", "result", "date", "mode", "score"]
+        fields = ["id", "result", "date", "mode", "connectivity", "matchmaking", "score"]
 
     def get_score(self, instance):
         return [team.score for team in instance.teams.all()] 

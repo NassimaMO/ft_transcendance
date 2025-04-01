@@ -8,13 +8,13 @@
         </div>
     {% for match in history %}
     {% if match.result == "Victory" %}
-    <div class="match" style="background-color: rgba(20, 244, 136, 0.1)">
+    <div class="match" data-matchmaking="{{ match.matchmaking }}" style="background-color: rgba(20, 244, 136, 0.1)">
         <div class="result" style="color: rgba(1, 255, 1, 0.744)">Victory</div>
         {% elif match.result == "Defeat" %}
-        <div class="match" style="background-color: rgba(244, 20, 20, 0.1)">
+        <div class="match" data-matchmaking="{{ match.matchmaking }}" style="background-color: rgba(244, 20, 20, 0.1)">
             <div class="result" style="color: rgba(255, 0, 0, 0.696)">Defeat</div>
             {% endif %}
-                <div class="game-mode">{{ match.mode }}</div>
+                <div class="game-mode">{{ match.mode }} | {{ match.connectivity }}</div>
                 <div class="score">{{ match.score.0 }} - {{ match.score.1 }}</div>
                 <div class="date-time">{{ match.date }}</div>
         </div>
