@@ -1,19 +1,21 @@
-.play, .about, .rule
+.play, .about, .rules
 {
     padding-top: 0.7em;
     padding-bottom: 0.7em;
     border: 0.1em rgb(240, 240, 240) solid;
     transition: background-color 0.2s;
+    z-index: 1;
+
 }
 
-.play:visited, .play:link, .about:visited, .about:link, .rule:visited, .rule:link
+.play:visited, .play:link, .about:visited, .about:link, .rules:visited, .rules:link
 {
     color: rgb(240, 240, 240);
     font-style: normal;
     text-decoration: none;
 }
 
-.play:hover, .about:hover, .rule:hover
+.play:hover, .about:hover, .rules:hover
 {
     background-color: rgb(240, 240, 240);
     color: rgb(0, 0, 30);
@@ -29,7 +31,7 @@
     grid-area: about;
 }
 
-.rule
+.rules
 {
     grid-area: rule;
 }
@@ -42,9 +44,103 @@
     text-align: center;
     gap: 0.5em;
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1.5fr;
+    grid-template-columns: 0,5fr 1fr 1fr 0,5fr;
     grid-template-areas:
-    ". play ."
-    ". rule ."
-    ". about .";
+    ". play play ."
+    ". rule about .";
+}
+
+.ball{
+    position: absolute;
+    display: block;
+    list-style: none;
+    width: 2em;
+    height: 2em;
+    background: rgba(255, 255, 255, 0.2);
+    animation: animateBall 5s linear infinite;
+    border-radius: 100%;
+    left: 0;
+    bottom: 0;
+}
+
+.leftPaddle{
+    position: absolute;
+    display: block;
+    list-style: none;
+    width: 1em;
+    height: 30vh;
+    background: rgba(255, 255, 255, 0.2);
+    animation: animateLeftPaddle 5s linear infinite;
+    border-radius: 0%;
+    left: 0%;
+    bottom: 0%;
+}
+
+.rightPaddle{
+    position: absolute;
+    display: block;
+    list-style: none;
+    width: 1em;
+    height: 30vh;
+    background: rgba(255, 255, 255, 0.2);
+    animation: animateRightPaddle 5s linear infinite;
+    border-radius: 0%;
+    right: 0%;
+    bottom: 0%;
+}
+
+@keyframes animateBall
+{
+    0%
+    {
+        transform: translateY(-15vh) translateX(1em);
+    }
+    25%
+    {
+        transform: translateY(calc(-100vh + 2em)) translateX(50vw);
+    }
+    50%
+    {
+        transform: translateY(-15vh) translateX(calc(100vw - 3em));
+    }
+    75%
+    {
+        transform: translateY(calc(-100vh + 2em)) translateX(50vw);
+    }
+    100%
+    {
+        transform: translateY(-15vh) translateX(1em)
+    }
+}
+
+@keyframes animateLeftPaddle
+{
+    0%
+    {
+        transform: translateY(0vh);
+    }
+    50%
+    {
+        transform: translateY(-70vh);
+    }
+    100%
+    {
+        transform: translateY(0vh);
+    }
+}
+
+@keyframes animateRightPaddle
+{
+    0%
+    {
+        transform: translateY(-70vh);
+    }
+    50%
+    {
+        transform: translateY(0vh);
+    }
+    100%
+    {
+        transform: translateY(-70vh);
+    }
 }

@@ -8,9 +8,17 @@
 {% block content %}
 	<h1>Ft_Transcendance</h1>
 	<h2>Ce projet consiste à créer un site web pour participer à une compétition du célèbre jeu Pong !</h2>
+	<h2><br/></h2>
+
 	<div class="button">
 		<a href="{% url 'lobby-home' %}" class="play">Play</a>
-		<a href="{% url 'rules' %}" class="rules">Rules</a>
+		<a href="{% url 'rules' %}" class="rules"	>Rules</a>
 		<a href="{% url 'about' %}" class="about">About us</a>
-	</div>	
+	</div>
+
+	<div class="background" >
+		<li class="ball"></li>
+		<li class="leftPaddle"></li>
+		<li class="rightPaddle"></li>
+	</div>
 {% endblock %}
