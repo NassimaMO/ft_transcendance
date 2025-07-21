@@ -1,12 +1,23 @@
+@import url("aboutAnime.css");
+
 .banner
 {
 
 }
 
-.tob
+.teaImg
 {
-	width: 50%;
-	aspect-ratio: 2 / 1;
+	grid-area: tobImg;
+}
+
+.teaTxt
+{
+	grid-area: tobTxt;
+}
+
+.tea
+{
+	animation: animateTob 15s linear infinite;
 
 	display: grid;
     grid-template-columns: 1fr 1fr;
@@ -14,12 +25,42 @@
     "tobImg tobTxt"
 }
 
-.tobImg
+.sheilImg
 {
-	grid-area: tobImg;
+	grid-area: sheilImg;
 }
 
-.tobTxt
+.sheilTxt
 {
-	grid-area: tobTxt;
+	grid-area: sheilTxt;
+}
+
+.sheil
+{
+	animation: animateSheil 15s linear infinite;
+
+	display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+    "sheilImg sheilTxt"
+}
+
+.valorantImg
+{
+	grid-area: valorantImg;
+}
+
+.valorantTxt
+{
+	grid-area: valorantTxt;
+}
+
+.valorant
+{
+	animation: animateValorant 15s linear infinite;
+
+	display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+    "valorantImg valorantTxt"
 }
