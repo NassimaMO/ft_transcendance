@@ -7,25 +7,10 @@
 
 {% block content %}
 	<h1>About Us</h1>
-	<div id="carouselAbout" class="carousel slide" data-bs-ride="carousel">
-		<div class="carousel-inner">
-			{% for author in authors %}
-    			<div class="carousel-item {% if forloop.first %}active{% endif %}">
-					<div class="{{ author.img }}">
-						<img src="{% static 'media/' %}{{ author.img }}.png" class="img_{{ author.img }}" alt="{{ author.img }}">
-						<h2 class="h2_{{ author.img }}">{{ author.name }}</h2>
-						<p class="p_{{ author.img }}">Hello je suis {{ author.name }}<br>Je suis à 42 depuis {{ author.date }}</p>
-					</div>	
-				</div>
-			{% endfor %}
+	<div class="banner">
+		<div class="tob bg-white border-8 border-white opacity-100 rounded-t-3xl"> 
+			<img src="{% static 'media/' %}tea.png" class="tobImg">
+			<h2 class="tobTxt">Hola</h2>
 		</div>
-		<button class="carousel-control-prev" type="button" data-bs-target="#carouselAbout" data-bs-slide="prev">
-			<span class="carousel-control-prev-icon" aria-hidden="true"></span>
-			<span class="visually-hidden">Previous</span>
-		</button>
-		<button class="carousel-control-next" type="button" data-bs-target="#carouselAbout" data-bs-slide="next">
-			<span class="carousel-control-next-icon" aria-hidden="true"></span>
-			<span class="visually-hidden">Next</span>
-		</button>
 	</div>
 {% endblock %}
