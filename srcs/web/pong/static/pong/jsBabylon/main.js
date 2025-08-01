@@ -3,24 +3,132 @@ import * as Config from "./config.js"
 import * as Obj from "./createObject.js";
 
 // Create the scene //
-const canvas = document.getElementById("renderCanvas");
-const engine = new Babylon.Engine(canvas, true);
-var scene = new Babylon.Scene(engine);
+    const canvas = document.getElementById("renderCanvas");
+    const engine = new Babylon.Engine(canvas, true);
+    var scene = new Babylon.Scene(engine);
+// end //
 
 // Create the loop //
-function renderLoop() { scene.render(); }
-engine.runRenderLoop(renderLoop);
+    function renderLoop() { scene.render(); }
+    engine.runRenderLoop(renderLoop);
+// end //
+
+// Glow effect //
+    const gl = new Babylon.GlowLayer("glow", scene);
+    gl.intensity = 0.4;
+// end //
 
 // Create the camera //
-const camera = new Babylon.ArcRotateCamera("camera", 0, Math.PI , -Config.groundHeight / 1.7, new Babylon.Vector3(0, 0, 0), scene);
+    var cameraRadius = 100;
+
+    if (window.innerWidth / window.innerHeight >= 16 / 7)
+        cameraRadius = ((((window.innerWidth / window.innerHeight) / (16 / 7)) * Config.groundLength * Config.groundHeight) * 90) / (Config.groundLength * Config.groundHeight)
+    else
+        cameraRadius = ((((16 / 7) / (window.innerWidth / window.innerHeight)) * Config.groundLength * Config.groundHeight) * 90) / (Config.groundLength * Config.groundHeight)
+    const camera = new Babylon.ArcRotateCamera("camera", 0, Math.PI, -cameraRadius, new Babylon.Vector3(0, 0, 0), scene);
+    if (window.innerWidth >= window.innerHeight)
+        camera.alpha = 0
+    else
+        camera.alpha = - Math.PI / 2
+// end //
+
+// Make the scene responsive //
+    window.addEventListener("resize", () =>
+    {
+        engine.resize();
+        if (window.innerWidth / window.innerHeight >= 16 / 7)
+            cameraRadius = ((((window.innerWidth / window.innerHeight) / (16 / 7)) * Config.groundLength * Config.groundHeight) * 90) / (Config.groundLength * Config.groundHeight)
+        else
+            cameraRadius = ((((16 / 7) / (window.innerWidth / window.innerHeight)) * Config.groundLength * Config.groundHeight) * 90) / (Config.groundLength * Config.groundHeight)
+        camera.radius = -cameraRadius
+        if (window.innerWidth >= window.innerHeight)
+            camera.alpha = 0
+        else
+            camera.alpha = - Math.PI / 2
+    });
+// end //
 
 // Create the objects //
-var puck = Obj.puck(scene);
-var leftPaddle = Obj.paddle(Config.groundHeight / 3, ((2 - Config.mode) / 8) * Config.groundWidth, Config.paddleColor[0], scene);
-var rightPaddle = Obj.paddle(-Config.groundHeight / 3, ((2 - Config.mode) / 8) * Config.groundWidth, Config.paddleColor[1]), scene;
-if (Config.mode == 4) 
-{
-    var ndLeftPaddle = Obj.paddle(Config.groundHeight / 3, ((Config.mode - 2) / 8) * Config.groundWidth, Config.paddleColor[2], scene);
-    var ndRightPaddle = Obj.paddle(-Config.groundHeight / 3, ((Config.mode - 2) / 8) * Config.groundWidth, Config.paddleColor[3], scene);
-}
-const ground = Babylon.MeshBuilder.CreateGround("ground", {width: Config.groundWidth, height: Config.groundHeight}, scene);
+    var puck = Obj.puck(scene);
+    var leftPaddle = Obj.paddle(Config.groundLength / 3, ((2 - Config.mode) / 8) * Config.groundHeight, Config.paddleColor[0], scene);
+    var rightPaddle = Obj.paddle(-Config.groundLength / 3, ((2 - Config.mode) / 8) * Config.groundHeight, Config.paddleColor[1]), scene;
+    if (Config.mode == 4) 
+    {
+        var ndLeftPaddle = Obj.paddle(Config.groundLength / 3, ((Config.mode - 2) / 8) * Config.groundHeight, Config.paddleColor[2], scene);
+        var ndRightPaddle = Obj.paddle(-Config.groundLength / 3, ((Config.mode - 2) / 8) * Config.groundHeight, Config.paddleColor[3], scene);
+    }
+    var upWall = Obj.wall(Config.groundHeight / 2, scene);
+    var downWall = Obj.wall(-Config.groundHeight / 2, scene);
+    var ground = Obj.ground(scene);
+// end //
+
+// Puck Mouvement //
+    var directionX = 1;
+    var directionZ = 1;
+
+    scene.registerBeforeRender(() => 
+    {
+
+        if (puck.position.x >= (Config.groundHeight / 2 ) - 2.5 || puck.position.x <= - (Config.groundHeight / 2) + 2.5)
+        {
+            directionX *= -1
+            puck.position.x += 1 * directionX;
+        }
+        if (puck.position.z >= Config.groundLength / 2 || puck.position.z <= - Config.groundLength / 2)
+        {
+            directionZ *= -1
+            puck.position.z += 1 * directionZ;
+        }
+        puck.position.x += 0.2 * directionX;
+        puck.position.z += 0.2 * directionZ;
+    });
+// end //
+
+// Score board //
+    var plane = Babylon.MeshBuilder.CreatePlane("plane", { height: 25 , width: 50}, scene);
+
+    plane.material = new Babylon.StandardMaterial("mat", scene)
+    plane.position.x = 20
+    plane.position.y = 0
+    plane.rotation.x = Math.PI / 2
+    plane.rotation.y = Math.PI / 2
+    const dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
+    dynamicTexture.drawText("1 - 0", null, null, "120px Minecraft", "white", "transparent", true, true);
+    //plane.material.diffuseTexture = dynamicTexture;
+    plane.material.emissiveTexture = dynamicTexture;
+    plane.material.maxSimultaneousLights = 12;
+// end //
+
+// Movement of the paddles //
+    const keys = { w: false, s: false, up: false, down: false };
+
+    window.addEventListener("keydown", (e) => { switch (e.code) 
+    {
+        // Left paddle movement //
+        case "KeyW": keys.w = true; break;
+        case "KeyS": keys.s = true; break;
+
+        // Right paddle movement //
+        case "ArrowUp": keys.up = true; break;
+        case "ArrowDown": keys.down = true; break;
+    }
+    });
+    window.addEventListener("keyup", (e) => { switch (e.code) 
+    {
+        // Left paddle movement //
+        case "KeyW": keys.w = false; break;
+        case "KeyS": keys.s = false; break;
+
+        // Right paddle movement //
+        case "ArrowUp": keys.up = false; break;
+        case "ArrowDown": keys.down = false; break;
+    }
+    });
+    scene.onBeforeRenderObservable.add(() => 
+    {
+        if (keys.w && leftPaddle.position.x < (Config.groundHeight / 2) - (Config.paddleSize[1] / 2) - 2) leftPaddle.position.x += Config.paddleSpeed;
+        if (keys.s && leftPaddle.position.x > -(Config.groundHeight / 2) + (Config.paddleSize[1] / 2) + 2) leftPaddle.position.x -= Config.paddleSpeed;
+        if (keys.up && rightPaddle.position.x < (Config.groundHeight / 2) - (Config.paddleSize[1] / 2) - 2) rightPaddle.position.x += Config.paddleSpeed;
+        if (keys.down && rightPaddle.position.x > -(Config.groundHeight / 2) + (Config.paddleSize[1] / 2) + 2) rightPaddle.position.x -= Config.paddleSpeed;
+    });
+// end //
