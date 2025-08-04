@@ -12,5 +12,7 @@ export { GlowLayer } from "@babylonjs/core/Layers/glowLayer.js";
 export { Texture } from "@babylonjs/core/Materials/Textures/texture.js";
 export { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture.js";
 export { GridMaterial } from "@babylonjs/materials/grid/gridMaterial.js"
+export { Layer } from "@babylonjs/core/Layers/layer.js"
+export { VideoTexture } from "@babylonjs/core/Materials/Textures/videoTexture.js";
 
 export * from "@babylonjs/core/Rendering/edgesRenderer.js"; 

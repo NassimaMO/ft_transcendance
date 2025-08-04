@@ -15,7 +15,7 @@ export const groundHeight = 70;
 /*               Puck                 */
 /* ---------------------------------- */
 
-export const puckSpeed = 1.5
+export const puckSpeed = 1
 export const puckPosition = [0, 0, 190]
 export const puckDiameter = 4.5
 export const puckColor = 0xffffff

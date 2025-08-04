@@ -6,6 +6,10 @@ import * as Obj from "./createObject.js";
     const canvas = document.getElementById("renderCanvas");
     const engine = new Babylon.Engine(canvas, true);
     var scene = new Babylon.Scene(engine);
+    const videoTexture = new Babylon.VideoTexture('background', '/static/pong/media/videoplayback.mp4', scene, true, true, Babylon.VideoTexture.TRILINEAR_SAMPLINGMODE);
+    const videoLayer = new Babylon.Layer("videoLayer", null, scene, true);
+    videoLayer.texture = videoTexture;
+    videoTexture.vScale = -1;
 // end //
 
 // Create the loop //
@@ -62,41 +66,75 @@ import * as Obj from "./createObject.js";
     var ground = Obj.ground(scene);
 // end //
 
-// Puck Mouvement //
-    var directionX = 1;
-    var directionZ = 1;
-
-    scene.registerBeforeRender(() => 
-    {
-
-        if (puck.position.x >= (Config.groundHeight / 2 ) - 2.5 || puck.position.x <= - (Config.groundHeight / 2) + 2.5)
-        {
-            directionX *= -1
-            puck.position.x += 1 * directionX;
-        }
-        if (puck.position.z >= Config.groundLength / 2 || puck.position.z <= - Config.groundLength / 2)
-        {
-            directionZ *= -1
-            puck.position.z += 1 * directionZ;
-        }
-        puck.position.x += 0.2 * directionX;
-        puck.position.z += 0.2 * directionZ;
-    });
-// end //
-
 // Score board //
     var plane = Babylon.MeshBuilder.CreatePlane("plane", { height: 25 , width: 50}, scene);
+    var leftPoint = 0;
+    var rightPoint = 0;
+    var win = 0;
 
     plane.material = new Babylon.StandardMaterial("mat", scene)
     plane.position.x = 20
     plane.position.y = 0
     plane.rotation.x = Math.PI / 2
     plane.rotation.y = Math.PI / 2
-    const dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
-    dynamicTexture.drawText("1 - 0", null, null, "120px Minecraft", "white", "transparent", true, true);
+    var dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
+    dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
     //plane.material.diffuseTexture = dynamicTexture;
     plane.material.emissiveTexture = dynamicTexture;
     plane.material.maxSimultaneousLights = 12;
+// end //
+
+// Puck Mouvement //
+    var directionX = 1;
+    var directionZ = 1;
+
+    scene.registerBeforeRender(() => 
+    {
+        if (win === 0)
+        {
+            if (puck.position.x >= (Config.groundHeight / 2 ) - 2.5 || puck.position.x <= - (Config.groundHeight / 2) + 2.5)
+            {
+                directionX *= -1
+                puck.position.x += 1 * directionX;
+            }
+            if (puck.position.z <= - Config.groundLength / 2)
+            {
+                puck.position.x = 0;
+                puck.position.z = 0;
+                leftPoint += 1;
+                dynamicTexture.dispose();
+                dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
+                if (leftPoint == 10)
+                {
+                    dynamicTexture.drawText("Left player has win", null, null, "45px Minecraft", "white", "transparent", true, true);
+                    win = 1;
+                }
+                else
+                    dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
+                plane.material.emissiveTexture = dynamicTexture;
+            }
+            if (puck.position.z >= Config.groundLength / 2)
+            {
+                puck.position.x = 0;
+                puck.position.z = 0;
+                rightPoint += 1;
+                dynamicTexture.dispose();
+                dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
+                if (rightPoint == 10)
+                {
+                    dynamicTexture.drawText("Right player has win", null, null, "45px Minecraft", "white", "transparent", true, true);
+                    win = 1;
+                }
+                else
+                    dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
+                plane.material.emissiveTexture = dynamicTexture;
+            }
+            if ((puck.intersectsMesh(leftPaddle, true) || puck.intersectsMesh(rightPaddle, true)) && !(puck.position.z > (Config.groundLength  / 3 - 2.5)) && !((puck.position.z < -Config.groundLength  / 3 + 2.5)))
+                directionZ *= -1
+            puck.position.x += Config.puckSpeed * directionX;
+            puck.position.z += Config.puckSpeed * directionZ;
+        }
+    });
 // end //
 
 // Movement of the paddles //

@@ -4,7 +4,7 @@ import * as Config from "./config.js";
 export function puck(scene)
 {
     var puck = Babylon.MeshBuilder.CreateCylinder("puck", { diameter: Config.puckDiameter}, scene);
-    puck.position.y = 1;
+    puck.position.y = 2.5;
     puck.material = new Babylon.StandardMaterial("mat", scene);
     puck.material.maxSimultaneousLights = 12;
     puck.material.emissiveColor = new Babylon.Color3(0, 1, 0);
@@ -35,7 +35,7 @@ export function paddle(paddleZ, paddleX, paddleColor, scene)
 {
     var paddle = Babylon.MeshBuilder.CreateBox("paddle", { size: Config.paddleSize[0], width: Config.paddleSize[1]}, scene);
     paddle.position.z = paddleZ;
-    paddle.position.y = 5;
+    paddle.position.y = 2.5;
     paddle.position.x = paddleX;
     paddle.material = new Babylon.StandardMaterial("mat", scene);
     paddle.material.maxSimultaneousLights = 8;
@@ -61,15 +61,16 @@ export function wall(wallX, scene)
     wall.enableEdgesRendering();
     wall.edgesWidth = 20.0;
     wall.edgesColor = new Babylon.Color4(0, 0, 0, 1);
+
     
-    /*var face = Babylon.MeshBuilder.CreatePlane("face", { height: Config.groundLength - 5 , width: 2}, scene);
+    var face = Babylon.MeshBuilder.CreatePlane("face", { height: Config.groundLength - 5 , width: 2}, scene);
     face.material = new Babylon.StandardMaterial("mat", scene)
-    face.position.y = 2.5;
+    face.position.y = 5;
     face.rotation.x = Math.PI / 2
     face.parent = wall;
-    face.material.emissiveColor = new Babylon.Color3(1,0,1);*/
+    face.material.emissiveColor = new Babylon.Color3(1,0,1);
 
-    var face = Babylon.MeshBuilder.CreatePlane("face", { height: (Config.groundLength / 2) - 2.5 , width: 2}, scene);
+    /*var face = Babylon.MeshBuilder.CreatePlane("face", { height: (Config.groundLength / 2) - 2.5 , width: 2}, scene);
     face.material = new Babylon.StandardMaterial("mat", scene)
     face.position.y = 5;
     face.position.z = -(Config.groundLength / 4) + 1.25
@@ -82,7 +83,7 @@ export function wall(wallX, scene)
     face2.position.z = (Config.groundLength / 4) - 1
     face2.rotation.x = Math.PI / 2
     face2.parent = wall;
-    face2.material.emissiveColor = new Babylon.Color3(0,0,1);
+    face2.material.emissiveColor = new Babylon.Color3(0,0,1);*/
 
     //wall.emissiveTexture = new Babylon.Texture("/static/pong/media/degrade.jpg", scene);
     //wall.material.emissiveColor = new Babylon.Color3(1,0,1);
@@ -109,7 +110,7 @@ export function ground(scene)
     ground.material = new Babylon.StandardMaterial("mat", scene);
     ground.material.maxSimultaneousLights = 12;
 
-    const dynTex = new Babylon.DynamicTexture("gridTex", { width: Config.groundHeight * 2, height: Config.groundLength * 2}, scene, false);
+    /*const dynTex = new Babylon.DynamicTexture("gridTex", { width: Config.groundHeight * 2, height: Config.groundLength * 2}, scene, false);
     const ctx = dynTex.getContext();
 
     // Quadrillage gris
@@ -132,5 +133,5 @@ export function ground(scene)
     // Matériau standard avec lumière
     ground.material.emissiveTexture = dynTex;
     ground.material.specularColor = new Babylon.Color3(0.3, 0.3, 0.3); // reflet doux
-    ground.material.backFaceCulling = false;
+    ground.material.backFaceCulling = false;*/
 }
