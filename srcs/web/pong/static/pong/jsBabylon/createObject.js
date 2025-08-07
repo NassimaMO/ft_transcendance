@@ -46,7 +46,6 @@ export function paddle(paddleZ, paddleX, paddleColor, scene)
 
     const upLight = paddleLight(paddle, paddleZ, Config.paddleSize[0], paddleColor, scene);
     const downLight = paddleLight(paddle, paddleZ, -Config.paddleSize[0], paddleColor, scene);
-    //const middleLight = paddleLight(paddle, paddleZ, 0, paddleColor, scene);
 
     return (paddle);
 }
@@ -84,10 +83,6 @@ export function wall(wallX, scene)
     face2.rotation.x = Math.PI / 2
     face2.parent = wall;
     face2.material.emissiveColor = new Babylon.Color3(0,0,1);*/
-
-    //wall.emissiveTexture = new Babylon.Texture("/static/pong/media/degrade.jpg", scene);
-    //wall.material.emissiveColor = new Babylon.Color3(1,0,1);
-   
     
     const rightLight = new Babylon.PointLight("rightLight", new Babylon.Vector3(wallX ,25 ,-(Config.groundLength/2) - 20), scene);
     rightLight.diffuse = new Babylon.Color3(0,0,1);
@@ -96,12 +91,8 @@ export function wall(wallX, scene)
     const leftLight = new Babylon.PointLight("leftLight", new Babylon.Vector3(wallX ,25 ,(Config.groundLength/2) + 20), scene);
     leftLight.diffuse = new Babylon.Color3(1,0,0);
     leftLight.intensity = 0.4
-/*
-    const middleLight = new Babylon.PointLight("middleLight", new Babylon.Vector3(wallX + (20 * (wallX / Math.abs(wallX))) ,25 ,0), scene);
-    middleLight.diffuse = new Babylon.Color3(1,0,1);
-    middleLight.intensity = 0.4
     
-    return (wall);*/
+    return (wall);
 }
 
 export function ground(scene)
@@ -110,7 +101,7 @@ export function ground(scene)
     ground.material = new Babylon.StandardMaterial("mat", scene);
     ground.material.maxSimultaneousLights = 12;
 
-    /*const dynTex = new Babylon.DynamicTexture("gridTex", { width: Config.groundHeight * 2, height: Config.groundLength * 2}, scene, false);
+    const dynTex = new Babylon.DynamicTexture("gridTex", { width: Config.groundHeight * 2, height: Config.groundLength * 2}, scene, false);
     const ctx = dynTex.getContext();
 
     // Quadrillage gris
@@ -133,5 +124,5 @@ export function ground(scene)
     // Matériau standard avec lumière
     ground.material.emissiveTexture = dynTex;
     ground.material.specularColor = new Babylon.Color3(0.3, 0.3, 0.3); // reflet doux
-    ground.material.backFaceCulling = false;*/
+    ground.material.backFaceCulling = false;
 }

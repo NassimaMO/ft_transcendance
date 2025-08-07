@@ -3,9 +3,11 @@ import * as Config from "./config.js"
 import * as Obj from "./createObject.js";
 
 // Create the scene //
+    /* Create the canvas */
     const canvas = document.getElementById("renderCanvas");
     const engine = new Babylon.Engine(canvas, true);
     var scene = new Babylon.Scene(engine);
+    /* Create the background */
     const videoTexture = new Babylon.VideoTexture('background', '/static/pong/media/videoplayback.mp4', scene, true, true, Babylon.VideoTexture.TRILINEAR_SAMPLINGMODE);
     const videoLayer = new Babylon.Layer("videoLayer", null, scene, true);
     videoLayer.texture = videoTexture;
@@ -79,7 +81,6 @@ import * as Obj from "./createObject.js";
     plane.rotation.y = Math.PI / 2
     var dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
     dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
-    //plane.material.diffuseTexture = dynamicTexture;
     plane.material.emissiveTexture = dynamicTexture;
     plane.material.maxSimultaneousLights = 12;
 // end //
@@ -88,47 +89,45 @@ import * as Obj from "./createObject.js";
     var directionX = 1;
     var directionZ = 1;
 
+    function scorePoint(player, point)
+    {
+        puck.position.x = 0;
+        puck.position.z = 0;
+        if (player === "Right")
+            rightPoint += 1;
+        if (player === "Left")
+            leftPoint += 1;
+        dynamicTexture.dispose();
+        dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
+        /* If the player has 10 point, he win */
+        if (point == 9)
+        {
+            dynamicTexture.drawText(player + " player has won", null, null, "45px Minecraft", "white", "transparent", true, true);
+            win = 1;
+        }
+        /* Otherwise update the score */
+        else
+            dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
+        plane.material.emissiveTexture = dynamicTexture;
+    }
+
     scene.registerBeforeRender(() => 
     {
         if (win === 0)
         {
+            /* If the puck touch a wall */
             if (puck.position.x >= (Config.groundHeight / 2 ) - 2.5 || puck.position.x <= - (Config.groundHeight / 2) + 2.5)
             {
                 directionX *= -1
                 puck.position.x += 1 * directionX;
             }
+            /* If the left player score */
             if (puck.position.z <= - Config.groundLength / 2)
-            {
-                puck.position.x = 0;
-                puck.position.z = 0;
-                leftPoint += 1;
-                dynamicTexture.dispose();
-                dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
-                if (leftPoint == 10)
-                {
-                    dynamicTexture.drawText("Left player has win", null, null, "45px Minecraft", "white", "transparent", true, true);
-                    win = 1;
-                }
-                else
-                    dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
-                plane.material.emissiveTexture = dynamicTexture;
-            }
+                scorePoint("Left", leftPoint);
+            /* If the right player score */
             if (puck.position.z >= Config.groundLength / 2)
-            {
-                puck.position.x = 0;
-                puck.position.z = 0;
-                rightPoint += 1;
-                dynamicTexture.dispose();
-                dynamicTexture = new Babylon.DynamicTexture("DynamicTexture", {width:512, height:256}, scene, true);
-                if (rightPoint == 10)
-                {
-                    dynamicTexture.drawText("Right player has win", null, null, "45px Minecraft", "white", "transparent", true, true);
-                    win = 1;
-                }
-                else
-                    dynamicTexture.drawText(leftPoint + " - " + rightPoint, null, null, "120px Minecraft", "white", "transparent", true, true);
-                plane.material.emissiveTexture = dynamicTexture;
-            }
+                scorePoint("Right", rightPoint);
+            /* If the puck touch a paddle */
             if ((puck.intersectsMesh(leftPaddle, true) || puck.intersectsMesh(rightPaddle, true)) && !(puck.position.z > (Config.groundLength  / 3 - 2.5)) && !((puck.position.z < -Config.groundLength  / 3 + 2.5)))
                 directionZ *= -1
             puck.position.x += Config.puckSpeed * directionX;
@@ -142,26 +141,25 @@ import * as Obj from "./createObject.js";
 
     window.addEventListener("keydown", (e) => { switch (e.code) 
     {
-        // Left paddle movement //
+        /* Press left paddle key */
         case "KeyW": keys.w = true; break;
         case "KeyS": keys.s = true; break;
-
-        // Right paddle movement //
+        /* Press right paddle key */
         case "ArrowUp": keys.up = true; break;
         case "ArrowDown": keys.down = true; break;
     }
     });
     window.addEventListener("keyup", (e) => { switch (e.code) 
     {
-        // Left paddle movement //
+        /* Release left paddle key */
         case "KeyW": keys.w = false; break;
         case "KeyS": keys.s = false; break;
-
-        // Right paddle movement //
+        /* Release right paddle key */
         case "ArrowUp": keys.up = false; break;
         case "ArrowDown": keys.down = false; break;
     }
     });
+    /* Move the paddle if a key is press */
     scene.onBeforeRenderObservable.add(() => 
     {
         if (keys.w && leftPaddle.position.x < (Config.groundHeight / 2) - (Config.paddleSize[1] / 2) - 2) leftPaddle.position.x += Config.paddleSpeed;
