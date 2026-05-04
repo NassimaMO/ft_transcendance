@@ -90,10 +90,10 @@ class GameStateView(APIView):
 class GameStatePlayerView(APIView):
 
 	def patch(self, request, match_id, player_id):
-		"""Change a PongGameSession state"""
+			"""Change a PongGameSession state"""
 
-		message = {}
-		try:
+			message = {}
+		# try:
 			session = PongGameSession.get_by_match_id(match_id)
 			if not session:
 				add_message(message, "no_game_session", level="ERROR")
@@ -117,16 +117,23 @@ class GameStatePlayerView(APIView):
 				return Response(message, status=status.HTTP_403_FORBIDDEN)
 			if 'move' in request.data.keys():
 				player_session = PongPlayerSession.get(player_id)
+				if player_session:
+					logger.info(f"[API] player_session: {player_session.__dict__}")
+				else:
+					logger.info(f"{player_session}")
+				logger.info(f"[API] data: {request.data}")
 				serializer = PongPlayerSessionSerializer(player_session, data={'move':request.data['move']}, context={'request':request}, partial=True)
+				logger.info(f"[API] serializer: {serializer.__dict__}")
 				if serializer.is_valid():
-					serializer.save()
+					session = serializer.save()
+					logger.info(f"[API] : {session.__dict__}")
 					add_message(message, "player_move_state_updated")
 					return Response(message, status=status.HTTP_200_OK)
 				return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 			for key in request.data:
 				add_message(message, f"invalid_{key}", level="ERROR")
 			return Response(message, status=status.HTTP_204_NO_CONTENT)
-		except Exception as e:
-			logger.error(f"Error patching game state of match {match_id}: {e}")
-			add_message(message, "server_error", level="ERROR")
-			return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		# except Exception as e:
+		# 	logger.error(f"Error patching game state of match {match_id}: {e}")
+		# 	add_message(message, "server_error", level="ERROR")
+		# 	return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

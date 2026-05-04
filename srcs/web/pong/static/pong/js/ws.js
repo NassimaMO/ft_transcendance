@@ -26,10 +26,18 @@ import(window.STATIC_VERSIONED_PATHS.utils)
     })
     .catch(error => console.error("Erreur lors du chargement de utils.js :", error));
 
-function printWinner2D(winner_id)
+function printWinner2D(text, color)
+{
+    ctx.textAlign = "center";
+    ctx.fillStyle = color;
+    ctx.fillText(text, canvas.width / 2, 30);
+}
+
+function getEndgameText(winner_id)
 {
     let text = "";
-    ctx.textAlign = "center"; 
+    let color = "white";
+    
 
     for (const [index, team] of state.teams.entries())
     {
@@ -37,29 +45,29 @@ function printWinner2D(winner_id)
         {
             if (match.info.connectivity == "Local" && match.info.mode != "Solo")
             {
-                ctx.fillStyle = colors[index];
+                color = colors[index];
                 text = `${colors[index].toUpperCase()} WON !`;
             }
             else
             {
+                color = "red";
+                text = "DEFEAT";
                 for (const player of team.players)
                 {
                     if (player.user && player.user.id == user_id)
                     {
-                        ctx.fillStyle = "green";
+                        color = "green";
                         text = "VICTORY";
                         break;
                     }
                 }
-                ctx.fillStyle = "red";
-                text = "DEFEAT";
             }
-            ctx.fillText(text, canvas.width / 2, 30);
-            return;
+            return {text: text, color: color};
         }
     }
-    ctx.fillStyle = "white";
-    ctx.fillText("DRAW", canvas.width / 2, 30);
+    color = "white";
+    text = "DRAW";
+    return {text: text, color: color}
 }
 
 function sleep(ms) {
@@ -71,7 +79,9 @@ async function pongWSHandler(event)
     const data = JSON.parse(event.data);
     if (data.type === "game_end")
     {
-        printWinner2D(data.winner);
+        const endgame_data = getEndgameText(data.winner);
+        console.log(endgame_data);
+        printWinner2D(endgame_data.text, endgame_data.color);
         await sleep(3000);
         window.location.href = data.url;
     }

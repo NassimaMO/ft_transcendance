@@ -129,6 +129,9 @@ class PongTeamSession(rom.Model):
 
 	def __str__(self):
 		return f'<PongTeamSession {self.id}: {self.player_sessions}, score: {self.score}>'
+	
+	def __repr__(self):
+		return self.__str__()
 
 
 class PongPlayerSession(rom.Model):
@@ -148,7 +151,12 @@ class PongPlayerSession(rom.Model):
 				return player_session
 
 	def __str__(self):
-		return f'<PongPlayerSession of {self.player.user}>'
+		if self.player :
+			return f'<PongPlayerSession of user {self.player.user} (move: {self.move})>'
+		return f'<PongPlayerSession of player {self.player} (move: {self.move})>'
+	
+	def __repr__(self):
+		return self.__str__()
 
 
 class PongGameSession(rom.Model):
@@ -349,6 +357,7 @@ class PongGameSession(rom.Model):
 		return status
 	
 	def update_paddles(self):
+		# logger.info(f"[MODEL]: {self}")
 		status = None
 		for team in self.team_sessions:
 			players = team.player_sessions
@@ -405,3 +414,6 @@ class PongGameSession(rom.Model):
 
 	def __str__(self):
 		return f'<PongGameSession {self.id}: {self.team_sessions}>'
+	
+	def __repr__(self):
+		return self.__str__()

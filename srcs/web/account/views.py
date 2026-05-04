@@ -27,8 +27,7 @@ def login_view(request):
                 if next_url:
                     return redirect(next_url)
                 return redirect('profile')
-            else:
-                form.add_error(None, 'Identifiants incorrects')
+            form.add_error(None, 'Identifiants incorrects')
     else:
         form = LoginForm()
     register_url = reverse('register')

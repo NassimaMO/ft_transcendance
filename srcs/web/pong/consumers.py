@@ -7,7 +7,7 @@ from .serializers import PongGameStateSerializer
 logger = logging.getLogger('default')
 
 class PongConsumer(AsyncWebsocketConsumer):
-	STATE_DELAY = 0.001
+	STATE_DELAY = 0.1
 	START_TIMEOUT = 5
 	IA_DELAY = 1
 
@@ -64,8 +64,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 				asyncio.create_task(self.ia(player_session))
 
 	async def check_starting(self):
-		if not self.players:
-			self.players = await sync_to_async(self.session.get_player_sessions)()
+		self.players = await sync_to_async(self.session.get_player_sessions)()
 		return any([player.status == PongPlayerStatus.STARTING for player in self.players])
 
 	async def wait_clients(self):
@@ -127,6 +126,9 @@ class PongConsumer(AsyncWebsocketConsumer):
 				self.channel_name
 			)
 
+	def get_session_str(self):
+		return f"{self.session}"
+
 	async def game(self):
 		self.running.set()
 		self.player_session = await sync_to_async(PongPlayerSession.get_by_user)(self.user)
@@ -138,7 +140,9 @@ class PongConsumer(AsyncWebsocketConsumer):
 			await sync_to_async(self.player_session.save)()
 		while self.running.is_set():
 			await asyncio.sleep(self.STATE_DELAY)
-			status =  await sync_to_async(self.session.update_state)()
+			await sync_to_async(self.session.refresh)(force=True)
+			# await self.logger(await sync_to_async(self.get_session_str)())
+			status = await sync_to_async(self.session.update_state)()
 			if status == PongChange.END:
 				self.running.clear()
 			await self.send_game_state()

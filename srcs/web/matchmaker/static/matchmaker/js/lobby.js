@@ -6,7 +6,6 @@ let timerInterval = null;
 const protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 const port = window.location.protocol === 'http:' ? '8000' : '443';
 const lobby_id = window.location.pathname.split('/')[2];
-console.log(lobby_id)
 
 import(window.STATIC_VERSIONED_PATHS.utils).then(module => {
     Utils = module.default;
@@ -212,7 +211,7 @@ function formatTime(seconds)
 
 function updateTimerStart()
 {
-	console.log("updateTimerStart")
+	// console.log("updateTimerStart")
 	const button = document.getElementById('matchmaking-btn');
 	timerInterval = setInterval(() => {
 		const seconds = Math.floor((Date.now() - lobby.queue_start * 1000) / 1000);
@@ -222,7 +221,7 @@ function updateTimerStart()
 
 function updateTimerStop()
 {
-	console.log("updateTimerStop")
+	// console.log("updateTimerStop")
 	const button = document.getElementById('matchmaking-btn');
 	button.textContent = "JOUER";
 	if (timerInterval) {

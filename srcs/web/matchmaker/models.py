@@ -1,9 +1,9 @@
 import rom # type: ignore
 import django_filters # type: ignore
-import sys
-import inspect
+# import sys
+# import inspect
 import logging
-import time
+# import time
 from django.db import models # type: ignore
 from django.utils import timezone # type: ignore
 from account.models import User
@@ -562,7 +562,7 @@ class Lobby(rom.Model) :
 	match_choice = rom.ForeignModel(MatchChoice, default=MatchChoice.get_default)
 	auto_fill = rom.Boolean(default=False)
 	is_open = rom.Boolean(default=False)
-	_status = rom.String(default=LobbyStatus.DEFAULT.encode('utf-8'))
+	status = rom.String(default=LobbyStatus.DEFAULT.encode('utf-8'))
 
 	@property
 	def status(self):

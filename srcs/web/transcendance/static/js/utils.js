@@ -72,7 +72,7 @@ async function APIRequest(url, data = null, http_method = 'GET')
 			method: http_method,
 			credentials: 'include',
 			headers: {
-				'Content-Type': 'application/json',
+				'Content-Type': 'application/json; charset=utf-8',
 				'X-CSRFToken': csrftoken
 			},
 		};
@@ -112,9 +112,11 @@ async function APIRequest(url, data = null, http_method = 'GET')
 				console.error(`[APIRequest] Erreur HTTP ${response.status} : ${response.statusText}`);
 			}
 		}
-
-		if (jsonResponse?.message) {
-			console.log("Message from API:", jsonResponse.message);
+		if (jsonResponse?.messages) {
+			for (const message in jsonResponse.messages)
+			{
+				console.log("Message from API:", message);
+			}
 		}
 	} 
 	catch (error) {
